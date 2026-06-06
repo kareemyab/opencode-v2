@@ -25,6 +25,22 @@ export const APP_URL = "https://cde.orgn.com" as const
 
 export const ATTESTATION_URL = "https://attest.daytona.orgn.com" as const
 
+/**
+ * Base domain for self-hosted Daytona sandbox previews. opencode runs inside a
+ * sandbox and is exposed at `https://<port>-<sandboxId>.<DAYTONA_PROXY_BASE>`.
+ * The app-gate Worker's DAYTONA_PROXY_PATTERN is the server-side source of truth;
+ * this constant lets the SPA reconstruct the same origin from a sandbox id.
+ */
+export const DAYTONA_PROXY_BASE = "proxy.daytona.orgn.com" as const
+
+/** Default port opencode listens on inside a sandbox. */
+export const DAYTONA_OPENCODE_PORT = 4096 as const
+
+/** Build the opencode origin for a Daytona sandbox preview. */
+export function daytonaOpencodeOrigin(sandboxId: string, port: number = DAYTONA_OPENCODE_PORT): string {
+  return `https://${port}-${sandboxId}.${DAYTONA_PROXY_BASE}`
+}
+
 /** Primary custom URL scheme for deep links. */
 export const DEEP_LINK_SCHEME = "orgn" as const
 

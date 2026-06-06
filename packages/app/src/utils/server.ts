@@ -41,12 +41,18 @@ export function createSdkForServer({
     }
   })()
 
+  // Pin this client to a specific upstream (a Daytona sandbox) via the gateway's
+  // X-OpenCode-Target-URL header. The same-origin Worker SSRF-allowlists the value
+  // and mints the sandbox's preview token, so the browser only sends the origin.
+  const target = server.target ? { "X-OpenCode-Target-URL": server.target } : undefined
+
   return createOpencodeClient({
     ...config,
     ...(sameOrigin ? { credentials: "include" as const } : {}),
     headers: {
       ...(config.headers instanceof Headers ? Object.fromEntries(config.headers.entries()) : config.headers),
       ...auth,
+      ...target,
     },
     baseUrl: server.url,
   })
