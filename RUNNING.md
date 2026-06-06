@@ -20,19 +20,22 @@ Team guide to running the full stack — **server, web UI, and desktop app** —
 
 ## TL;DR
 
-There are **two modes**. Don't mix them up — they answer different questions.
-
 ```bash
 bun install            # one-time
 
-# 1) "Show me prod, running locally, end-to-end"  →  a single self-contained app
-bun prod:local         # builds + serves UI **and** API together on :4096 (channel=prod)
-#  → open http://localhost:4096        (this IS prod; no DEV badge; no hot reload)
+# ⭐ the everyday command — work locally, prod-looking, on :4096, with hot reload
+bun local              # frees the ports, then serves your local UI on :4096 (channel=prod)
+#  → open http://localhost:4096        (edit packages/app/src/** → renders live, looks like prod)
+```
 
-# 2) "Let me edit the UI and watch it change"     →  dev server with hot reload
-bun dev:stack          # API on :4096 + UI on :3000 (HMR) — PROD channel by default
-#  → open http://localhost:3000        (edit packages/app/src/** → renders live, looks like prod)
-#  (OPENCODE_CHANNEL=dev bun dev:stack  for the dev channel)
+`bun local` **always clears the ports first**, so it never fails with "port in use". It puts the editable **UI on `:4096`** (prod channel, HMR) and the API on `:4097` (internal). Open `:4096` and that's your local code, rendered as production.
+
+Other entry points:
+
+```bash
+bun prod:local         # exact prod build: UI+API embedded on :4096, channel=prod, NO hot reload
+bun dev:stack          # classic split: API :4096 + UI :3000 (HMR, prod channel)
+OPENCODE_CHANNEL=dev bun local   # use the dev channel instead
 ```
 
 | | `bun prod:local` | `bun dev:stack` |
@@ -91,10 +94,13 @@ So when you run the dev stack and open **`:4096`, you see the live website, not 
 
 | You want to… | Use | URL to open |
 | --- | --- | --- |
-| **A local copy of prod, end-to-end** | `bun prod:local` | **http://localhost:4096** |
-| **Edit the UI and see changes live** | `bun dev:stack` | **http://localhost:3000** |
+| **Work locally (prod look, hot reload), `:4096`** ⭐ | `bun local` | **http://localhost:4096** |
+| A local copy of prod, end-to-end (no HMR) | `bun prod:local` | **http://localhost:4096** |
+| Classic split (API :4096 + UI :3000) | `bun dev:stack` | http://localhost:3000 |
 | Run the API for the TUI / SDK / scripts | `bun dev:server` | `http://localhost:4096` (API) |
 | Run the native desktop app | `bun dev:desktop` | (Electron window) |
+
+> `bun local` is the everyday driver: it frees the ports first (no more "port in use"), runs everything in the **prod channel**, and serves the **editable UI on `:4096`** (API moved to `:4097` internally). `bun prod:local` and `bun dev:stack` also use `:4096` for their server — **run only one at a time.**
 
 ---
 
