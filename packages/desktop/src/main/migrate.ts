@@ -3,13 +3,13 @@ import log from "electron-log/main.js"
 import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { homedir } from "node:os"
 import { join } from "node:path"
-import { CHANNEL } from "./constants"
+import { APP_IDS, DESKTOP_STORAGE, LEGACY_DESKTOP_STORAGE } from "@opencode-ai/ui/brand"
+import { CHANNEL, LEGACY_SETTINGS_STORE, SETTINGS_STORE } from "./constants"
 import { getStore } from "./store"
 
 const TAURI_MIGRATED_KEY = "tauriMigrated"
+const SETTINGS_MIGRATED_KEY = "settingsStoreMigrated"
 
-// Resolve the directory where Tauri stored its .dat files for the given app identifier.
-// Mirrors Tauri's AppLocalData / AppData resolution per OS.
 function tauriDir(id: string) {
   switch (process.platform) {
     case "darwin":
@@ -21,21 +21,18 @@ function tauriDir(id: string) {
   }
 }
 
-// The Tauri app identifier changes between dev/beta/prod builds.
-const TAURI_APP_IDS: Record<string, string> = {
+const LEGACY_TAURI_APP_IDS = {
   dev: "ai.opencode.desktop.dev",
   beta: "ai.opencode.desktop.beta",
   prod: "ai.opencode.desktop",
-}
-function tauriAppId() {
-  return app.isPackaged ? TAURI_APP_IDS[CHANNEL] : "ai.opencode.desktop.dev"
+} as const
+
+function tauriAppIds() {
+  const current = app.isPackaged ? APP_IDS[CHANNEL] : APP_IDS.dev
+  const legacy = LEGACY_TAURI_APP_IDS[CHANNEL]
+  return legacy === current ? [current] : [current, legacy]
 }
 
-// Migrate a single Tauri .dat file into the corresponding electron-store.
-// `opencode.settings.dat` is special: it maps to the `opencode.settings` store
-// (the electron-store name without the `.dat` extension). All other .dat files
-// keep their full filename as the electron-store name so they match what the
-// renderer already passes via IPC (e.g. `"default.dat"`, `"opencode.global.dat"`).
 function migrateFile(datPath: string, filename: string) {
   let data: Record<string, unknown>
   try {
@@ -45,16 +42,19 @@ function migrateFile(datPath: string, filename: string) {
     return
   }
 
-  // opencode.settings.dat → the electron settings store ("opencode.settings").
-  // All other .dat files keep their full filename as the store name so they match
-  // what the renderer passes via IPC (e.g. "default.dat", "opencode.global.dat").
-  const storeName = filename === "opencode.settings.dat" ? "opencode.settings" : filename
+  const legacySettingsName = `${LEGACY_SETTINGS_STORE}.dat`
+  const nextSettingsName = `${SETTINGS_STORE}.dat`
+  const storeName =
+    filename === legacySettingsName || filename === nextSettingsName
+      ? SETTINGS_STORE
+      : filename === LEGACY_DESKTOP_STORAGE.globalDat || filename === "opencode.global.dat"
+        ? DESKTOP_STORAGE.globalDat
+        : filename
   const target = getStore(storeName)
   const migrated: string[] = []
   const skipped: string[] = []
 
   for (const [key, value] of Object.entries(data)) {
-    // Don't overwrite values the user has already set in the Electron app.
     if (target.has(key)) {
       skipped.push(key)
       continue
@@ -66,24 +66,66 @@ function migrateFile(datPath: string, filename: string) {
   log.log("tauri migration: migrated", filename, "→", storeName, { migrated, skipped })
 }
 
+function migrateSettingsStore() {
+  if (getStore().get(SETTINGS_MIGRATED_KEY)) return
+
+  const legacy = getStore(LEGACY_SETTINGS_STORE)
+  const next = getStore(SETTINGS_STORE)
+  const migrated: string[] = []
+
+  for (const key of Object.keys(legacy.store)) {
+    if (next.has(key)) continue
+    next.set(key, legacy.get(key))
+    migrated.push(key)
+  }
+
+  if (migrated.length > 0) {
+    log.log("settings migration: copied legacy store keys", { migrated })
+  }
+
+  getStore().set(SETTINGS_MIGRATED_KEY, true)
+}
+
+const GLOBAL_DAT_MIGRATED_KEY = "globalDatMigrated"
+
+function migrateGlobalDatStore() {
+  if (getStore().get(GLOBAL_DAT_MIGRATED_KEY)) return
+
+  const legacy = getStore(LEGACY_DESKTOP_STORAGE.globalDat)
+  const next = getStore(DESKTOP_STORAGE.globalDat)
+  const migrated: string[] = []
+
+  for (const key of Object.keys(legacy.store)) {
+    if (next.has(key)) continue
+    next.set(key, legacy.get(key))
+    migrated.push(key)
+  }
+
+  if (migrated.length > 0) {
+    log.log("global dat migration: copied legacy store keys", { migrated })
+  }
+
+  getStore().set(GLOBAL_DAT_MIGRATED_KEY, true)
+}
+
 export function migrate() {
+  migrateSettingsStore()
+  migrateGlobalDatStore()
+
   if (getStore().get(TAURI_MIGRATED_KEY)) {
     log.log("tauri migration: already done, skipping")
     return
   }
 
-  const dir = tauriDir(tauriAppId())
-  log.log("tauri migration: starting", { dir })
+  for (const id of tauriAppIds()) {
+    const dir = tauriDir(id)
+    log.log("tauri migration: checking", { dir, id })
+    if (!existsSync(dir)) continue
 
-  if (!existsSync(dir)) {
-    log.log("tauri migration: no tauri data directory found, nothing to migrate")
-    getStore().set(TAURI_MIGRATED_KEY, true)
-    return
-  }
-
-  for (const filename of readdirSync(dir)) {
-    if (!filename.endsWith(".dat")) continue
-    migrateFile(join(dir, filename), filename)
+    for (const filename of readdirSync(dir)) {
+      if (!filename.endsWith(".dat")) continue
+      migrateFile(join(dir, filename), filename)
+    }
   }
 
   log.log("tauri migration: complete")
