@@ -11,12 +11,14 @@ export const dict = {
   "desktop.updater.checkFailed.title": "Provjera ažuriranja nije uspjela",
   "desktop.updater.checkFailed.message": "Nije moguće provjeriti ažuriranja",
   "desktop.updater.none.title": "Nema dostupnog ažuriranja",
-  "desktop.updater.none.message": "Već koristiš najnoviju verziju OpenCode-a",
+  "desktop.updater.none.message": "Već koristiš najnoviju verziju orgn-a",
   "desktop.updater.downloadFailed.title": "Ažuriranje nije uspjelo",
   "desktop.updater.downloadFailed.message": "Neuspjelo preuzimanje ažuriranja",
   "desktop.updater.downloaded.title": "Ažuriranje preuzeto",
   "desktop.updater.downloaded.prompt":
-    "Verzija {{version}} OpenCode-a je preuzeta. Želiš li da je instaliraš i ponovo pokreneš aplikaciju?",
+    "Verzija {{version}} orgn-a je preuzeta. Želiš li da je instaliraš i ponovo pokreneš aplikaciju?",
+  "desktop.updater.downloaded.restart": "Ponovo pokreni",
+  "desktop.updater.downloaded.later": "Kasnije",
   "desktop.updater.installFailed.title": "Ažuriranje nije uspjelo",
   "desktop.updater.installFailed.message": "Neuspjela instalacija ažuriranja",
 

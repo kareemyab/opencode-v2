@@ -11,12 +11,14 @@ export const dict = {
   "desktop.updater.checkFailed.title": "Nie udało się sprawdzić aktualizacji",
   "desktop.updater.checkFailed.message": "Nie udało się sprawdzić aktualizacji",
   "desktop.updater.none.title": "Brak dostępnych aktualizacji",
-  "desktop.updater.none.message": "Korzystasz już z najnowszej wersji OpenCode",
+  "desktop.updater.none.message": "Korzystasz już z najnowszej wersji orgn",
   "desktop.updater.downloadFailed.title": "Aktualizacja nie powiodła się",
   "desktop.updater.downloadFailed.message": "Nie udało się pobrać aktualizacji",
   "desktop.updater.downloaded.title": "Aktualizacja pobrana",
   "desktop.updater.downloaded.prompt":
-    "Pobrano wersję {{version}} OpenCode. Czy chcesz ją zainstalować i uruchomić ponownie?",
+    "Pobrano wersję {{version}} orgn. Czy chcesz ją zainstalować i uruchomić ponownie?",
+  "desktop.updater.downloaded.restart": "Uruchom ponownie",
+  "desktop.updater.downloaded.later": "Później",
   "desktop.updater.installFailed.title": "Aktualizacja nie powiodła się",
   "desktop.updater.installFailed.message": "Nie udało się zainstalować aktualizacji",
 

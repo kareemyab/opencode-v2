@@ -1,3 +1,4 @@
+import { DESKTOP_STORAGE, LEGACY_DESKTOP_STORAGE, LEGACY_STORAGE_PREFIX, STORAGE_PREFIX } from "@opencode-ai/ui/brand"
 import { Platform, usePlatform } from "@/context/platform"
 import { makePersisted, type AsyncStorage, type SyncStorage } from "@solid-primitives/storage"
 import { checksum } from "@opencode-ai/core/util/encode"
@@ -23,8 +24,9 @@ type PersistTarget = {
 }
 
 const LEGACY_STORAGE = "default.dat"
-const GLOBAL_STORAGE = "opencode.global.dat"
-const LOCAL_PREFIX = "opencode."
+const GLOBAL_STORAGE = DESKTOP_STORAGE.globalDat
+const LEGACY_GLOBAL_STORAGE = LEGACY_DESKTOP_STORAGE.globalDat
+const LOCAL_PREFIX = `${STORAGE_PREFIX}.`
 const fallback = new Map<string, boolean>()
 
 const CACHE_MAX_ENTRIES = 500
@@ -338,19 +340,25 @@ async function migrateLegacyAsync(input: {
 function workspaceStorage(dir: string) {
   const head = (dir.slice(0, 12) || "workspace").replace(/[^a-zA-Z0-9._-]/g, "-")
   const sum = checksum(dir) ?? "0"
-  return `opencode.workspace.${head}.${sum}.dat`
+  return `${STORAGE_PREFIX}.workspace.${head}.${sum}.dat`
 }
 
-function legacyWorkspaceStorage(dir: string) {
+function legacyWorkspaceStorageName(dir: string) {
+  const head = (dir.slice(0, 12) || "workspace").replace(/[^a-zA-Z0-9._-]/g, "-")
+  const sum = checksum(dir) ?? "0"
+  return `${LEGACY_STORAGE_PREFIX}.workspace.${head}.${sum}.dat`
+}
+
+function legacyWorkspaceStorageNames(dir: string) {
   const storage = workspaceStorage(pathKey(dir))
   const result = new Set<string>()
-  const raw = workspaceStorage(dir)
+  const raw = legacyWorkspaceStorageName(dir)
   if (raw !== storage) result.add(raw)
 
   const key = pathKey(dir)
   const drive = key.length >= 3 && key[1] === ":" && key[2] === "/"
   if (drive) {
-    const backslash = workspaceStorage(key.replaceAll("/", "\\"))
+    const backslash = legacyWorkspaceStorageName(key.replaceAll("/", "\\"))
     if (backslash !== storage) result.add(backslash)
   }
 
@@ -360,7 +368,7 @@ function legacyWorkspaceStorage(dir: string) {
 
 function serverWorkspaceTarget(scope: ServerScopeValue, dir: string, key: string, legacy?: string[]): PersistTarget {
   if (scope !== ServerScope.local) return { storage: workspaceStorage(ScopedKey.from(scope, pathKey(dir))), key }
-  return { storage: workspaceStorage(pathKey(dir)), legacyStorageNames: legacyWorkspaceStorage(dir), key, legacy }
+  return { storage: workspaceStorage(pathKey(dir)), legacyStorageNames: legacyWorkspaceStorageNames(dir), key, legacy }
 }
 
 function localStorageWithPrefix(prefix: string): SyncStorage {
@@ -460,7 +468,7 @@ export const PersistTesting = {
 
 export const Persist = {
   global(key: string, legacy?: string[]): PersistTarget {
-    return { storage: GLOBAL_STORAGE, key, legacy }
+    return { storage: GLOBAL_STORAGE, legacyStorageNames: [LEGACY_GLOBAL_STORAGE], key, legacy }
   },
   serverGlobal(scope: ServerScopeValue, key: string, legacy?: string[]): PersistTarget {
     if (scope === ServerScope.local) return Persist.global(key, legacy)

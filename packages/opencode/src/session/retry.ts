@@ -8,7 +8,7 @@ import { isRecord } from "@/util/record"
 export type Err = ReturnType<NamedError["toObject"]>
 
 export const GO_UPSELL_MESSAGE = "Free usage exceeded, subscribe to Go"
-export const GO_UPSELL_URL = "https://opencode.ai/go"
+export const GO_UPSELL_URL = "https://orgn.com"
 export type RetryReason = "free_tier_limit" | "account_rate_limit" | (string & {})
 
 export type Retryable = {
@@ -80,7 +80,7 @@ export function retryable(error: Err, provider: string) {
           reason: "free_tier_limit",
           provider,
           title: "Free limit reached",
-          message: "Subscribe to OpenCode Go for reliable access to the best open-source models, starting at $5/month.",
+          message: "Subscribe to orgn for reliable access to the best open-source models, starting at $5/month.",
           label: "subscribe",
           link: GO_UPSELL_URL,
         },

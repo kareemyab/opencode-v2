@@ -20,7 +20,7 @@
 
 [data-component="line-comment-v2"] [data-slot="line-comment-v2-shell"] {
   background: var(--background-bg-layer-01);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   box-shadow: var(--elevation-raised);
 }
 
@@ -82,7 +82,7 @@
   gap: 3px;
   margin: 0;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--icon-icon-muted);
   cursor: pointer;
@@ -152,7 +152,7 @@
   margin: 0;
   resize: vertical;
   border: 1px solid var(--border-border-base);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: linear-gradient(180deg, var(--alpha-light-2) 0%, var(--alpha-light-0) 100%), var(--background-bg-base);
   font-size: 13px;
   font-style: normal;
