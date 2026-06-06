@@ -45,9 +45,11 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           ID_ORGN_CLIENT_SECRET: ${{ secrets.ID_ORGN_CLIENT_SECRET }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          DAYTONA_API_KEY: ${{ secrets.DAYTONA_API_KEY }}
         run: |
           printf '%s' "$ID_ORGN_CLIENT_SECRET" | bunx wrangler secret put ID_ORGN_CLIENT_SECRET
           printf '%s' "$SESSION_SECRET"        | bunx wrangler secret put SESSION_SECRET
+          printf '%s' "$DAYTONA_API_KEY"       | bunx wrangler secret put DAYTONA_API_KEY
 
       - name: Deploy Worker
         working-directory: packages/function
