@@ -10,7 +10,7 @@
   "name": "opencode-app-gate",
   "main": "src/app-gate.ts",
   "compatibility_date": "2025-06-01",
-  "routes": [{ "pattern": "app.orgn.com", "custom_domain": true }],
+  "routes": [{ "pattern": "cde.orgn.com", "custom_domain": true }],
   "assets": {
     "directory": "../app/dist",
     "binding": "ASSETS",
@@ -18,7 +18,7 @@
     "run_worker_first": true
   },
   "vars": {
-    "APP_URL": "https://app.orgn.com",
+    "APP_URL": "https://cde.orgn.com",
     "ID_ORGN_URL": "https://id.orgn.com",
     "ID_ORGN_CLIENT_ID": "vU3lIIaieXkg4dzpd6GVee76CsDNHFRD",
     "OPENCODE_CHANNEL": "prod",

@@ -1,7 +1,7 @@
 name: deploy-opencode-gate
 
 # Auto-deploys the id-orgn app-gate Worker (packages/function/src/app-gate.ts) + the
-# gated SPA to Cloudflare (app.orgn.com) on push to the orgn branch.
+# gated SPA to Cloudflare (cde.orgn.com) on push to the orgn branch.
 #
 # Required GitHub repo secrets:
 #   CLOUDFLARE_API_TOKEN   - scopes: Account › Workers Scripts:Edit, Account › Workers KV/Assets,
