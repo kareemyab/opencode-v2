@@ -22,8 +22,12 @@
     "ID_ORGN_URL": "https://id.orgn.com",
     "ID_ORGN_CLIENT_ID": "vU3lIIaieXkg4dzpd6GVee76CsDNHFRD",
     "OPENCODE_CHANNEL": "prod",
-    // Network-isolated opencode backend the Worker proxies /__api to. Empty = data plane
-    // returns 502 (shell + id-orgn login still work). Set once a backend is reachable.
-    "OPENCODE_BACKEND_URL": ""
+    // Static fallback backend the Worker proxies /__api to. Empty = the data plane resolves a
+    // per-request Daytona sandbox from the X-OpenCode-Target-URL header (SSRF-allowlisted to
+    // *.proxy.daytona.orgn.com).
+    "OPENCODE_BACKEND_URL": "",
+    // Daytona API for minting per-sandbox preview tokens (private previews). The matching
+    // DAYTONA_API_KEY is a Cloudflare secret (set via the workflow / wrangler secret put).
+    "DAYTONA_API_URL": "https://daytona.orgn.com"
   }
 }

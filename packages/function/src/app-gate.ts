@@ -37,6 +37,7 @@ import {
   type IdOrgnConfig,
   type SessionData,
 } from "./id-orgn-core"
+import { daytonaAuthHeaders, parseDaytonaTarget } from "./daytona"
 
 type Env = {
   ASSETS: Fetcher
@@ -47,6 +48,9 @@ type Env = {
   SESSION_SECRET: string
   OPENCODE_CHANNEL: string
   OPENCODE_BACKEND_URL: string
+  // Daytona API for minting per-sandbox preview tokens (private previews). Optional.
+  DAYTONA_API_URL?: string
+  DAYTONA_API_KEY?: string
 }
 
 const PROXY_PREFIX = "/__api"
@@ -205,8 +209,14 @@ app.all(`${PROXY_PREFIX}/*`, async (c) => {
     setCookie = resolved.setCookie
   }
 
-  const backend = c.env.OPENCODE_BACKEND_URL
+  // Resolve the upstream opencode: a per-request Daytona sandbox via X-OpenCode-Target-URL
+  // (SSRF-allowlisted to *.proxy.daytona.orgn.com), else the configured OPENCODE_BACKEND_URL.
+  const requested = c.req.header("x-opencode-target-url")
+  const requestedTarget = parseDaytonaTarget(requested)
+  if (requested && !requestedTarget) return c.json({ error: "invalid_target" }, 400)
+  const backend = requestedTarget ? requestedTarget.origin : c.env.OPENCODE_BACKEND_URL
   if (!backend) return c.json({ error: "backend_not_configured" }, 502)
+  const daytona = requestedTarget ?? parseDaytonaTarget(backend)
 
   const incoming = new URL(c.req.url)
   const target = new URL(backend)
@@ -216,9 +226,16 @@ app.all(`${PROXY_PREFIX}/*`, async (c) => {
     target.searchParams.append(k, v)
   }
 
-  // WebSocket upgrade (PTY): forward the raw request so Cloudflare preserves the upgrade.
+  // Daytona auth: skip-preview-warning + (for private previews) a server-minted preview token.
+  const daytonaHeaders = daytona ? await daytonaAuthHeaders(c.env, daytona) : {}
+
+  // WebSocket upgrade (PTY): forward with cleaned + Daytona headers, preserving the upgrade.
   if (c.req.header("upgrade")?.toLowerCase() === "websocket") {
-    return fetch(target.toString(), c.req.raw as unknown as RequestInit)
+    const wsHeaders = new Headers(c.req.raw.headers)
+    wsHeaders.delete("cookie")
+    wsHeaders.delete("authorization")
+    for (const [k, v] of Object.entries(daytonaHeaders)) wsHeaders.set(k, v)
+    return fetch(target.toString(), { method: c.req.method, headers: wsHeaders } as RequestInit)
   }
 
   const fwd = new Headers()
@@ -226,6 +243,7 @@ app.all(`${PROXY_PREFIX}/*`, async (c) => {
     const v = c.req.header(h)
     if (v) fwd.set(h, v)
   }
+  for (const [k, v] of Object.entries(daytonaHeaders)) fwd.set(k, v)
   const method = c.req.method
   const hasBody = method !== "GET" && method !== "HEAD"
   const upstream = await fetch(target.toString(), {
@@ -235,7 +253,8 @@ app.all(`${PROXY_PREFIX}/*`, async (c) => {
     redirect: "manual",
     // @ts-expect-error - duplex is required when streaming a request body (runtime supports it)
     duplex: hasBody ? "half" : undefined,
-  })
+  }).catch(() => null)
+  if (!upstream) return c.json({ error: "backend_unreachable" }, 502)
 
   const respHeaders = new Headers(upstream.headers)
   respHeaders.delete("set-cookie") // backend must not set cookies through the gate
