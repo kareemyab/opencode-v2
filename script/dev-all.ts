@@ -7,7 +7,11 @@
 // Both run from source with hot reload. Press Ctrl-C (or let either crash) and the
 // whole stack is torn down together.
 //
-//   bun script/dev-all.ts                     # server :4096, app :3000
+// Defaults to the PROD channel so the local UI matches production (no DEV badge,
+// prod default layout). Override with OPENCODE_CHANNEL=dev for the dev channel.
+//
+//   bun script/dev-all.ts                     # server :4096, app :3000 (prod channel)
+//   OPENCODE_CHANNEL=dev bun script/dev-all.ts # dev channel instead
 //   bun script/dev-all.ts --port 8080         # server :8080, app points at it
 //   bun script/dev-all.ts --app-port 4444     # app on :4444
 //   bun script/dev-all.ts --hostname 0.0.0.0  # bind the server to all interfaces
@@ -28,6 +32,8 @@ const port = values.port
 const appPort = values["app-port"]
 const hostname = values.hostname
 const appTargetHost = hostname === "0.0.0.0" ? "localhost" : hostname
+// Default to the prod channel so the local UI renders like production. Override with OPENCODE_CHANNEL=dev.
+const channel = process.env.OPENCODE_CHANNEL ?? "prod"
 
 const RESET = "\x1b[0m"
 const targets = [
@@ -47,13 +53,13 @@ const targets = [
       "--hostname",
       hostname,
     ],
-    env: {} as Record<string, string>,
+    env: { OPENCODE_CHANNEL: channel } as Record<string, string>,
   },
   {
     name: "app",
     color: "\x1b[35m", // magenta
     cmd: ["bun", "run", "--cwd", "packages/app", "dev", "--", "--port", appPort],
-    env: { VITE_OPENCODE_SERVER_HOST: appTargetHost, VITE_OPENCODE_SERVER_PORT: port },
+    env: { VITE_OPENCODE_SERVER_HOST: appTargetHost, VITE_OPENCODE_SERVER_PORT: port, OPENCODE_CHANNEL: channel },
   },
 ]
 
@@ -99,7 +105,7 @@ for (const [i, p] of procs.entries())
   })
 
 console.log(`${targets[0].color}[server]${RESET} http://localhost:${port}`)
-console.log(`${targets[1].color}[app]${RESET}    http://localhost:${appPort}\n`)
+console.log(`${targets[1].color}[app]${RESET}    http://localhost:${appPort}  (channel: ${channel})\n`)
 
 async function pump(stream: ReadableStream<Uint8Array>, color: string, name: string) {
   const reader = stream.getReader()

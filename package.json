@@ -12,7 +12,6 @@
     "dev:web:prod": "OPENCODE_CHANNEL=prod bun --cwd packages/app dev",
     "dev:server": "bun run --cwd packages/opencode --conditions=browser src/index.ts serve --port 4096",
     "dev:stack": "bun script/dev-all.ts",
-    "dev:stack:prod": "OPENCODE_CHANNEL=prod bun script/dev-all.ts",
     "prod:local": "bun script/prod-local.ts",
     "build:local": "OPENCODE_CHANNEL=prod bun ./packages/opencode/script/build.ts --single --skip-install",
     "dev:console": "ulimit -n 10240 2>/dev/null; bun run --cwd packages/console/app dev",
