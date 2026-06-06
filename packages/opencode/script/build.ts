@@ -213,7 +213,9 @@ for (const item of targets) {
   await Bun.file(`dist/${name}/package.json`).write(
     JSON.stringify(
       {
-        name,
+        // Published under the @ofoundation org on npmjs. Dir + bun target stay unscoped
+        // (`opencode-<os>-<arch>`); only the published package name is scoped.
+        name: `@ofoundation/${name}`,
         version: Script.version,
         preferUnplugged: true,
         os: [item.os],

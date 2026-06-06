@@ -28,6 +28,9 @@ target
 
 # Local dev files
 opencode-dev
+
+# npm auth for the orgn registry (token supplied via $NPM_TOKEN env, never committed)
+.npmrc
 UPCOMING_CHANGELOG.md
 logs/
 *.bun-build

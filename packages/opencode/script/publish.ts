@@ -19,14 +19,21 @@ async function publish(dir: string, name: string, version: string) {
     console.log(`already published ${name}@${version}`)
     return
   }
+  await $`find . -maxdepth 1 -name '*.tgz' -delete`.cwd(dir) // drop stale tarballs so `npm publish *.tgz` matches exactly one
   await $`bun pm pack`.cwd(dir)
-  await $`npm publish *.tgz --access public --tag ${Script.channel}`.cwd(dir)
+  const dryRun = process.env.DRY_RUN === "1" ? ["--dry-run"] : []
+  await $`npm publish *.tgz --access public --tag ${Script.channel} ${dryRun}`.cwd(dir)
 }
 
+// Map published (scoped) package name -> version, and -> its (unscoped) dist dir.
+// build.ts writes a scoped `name` (@orgn/opencode-<os>-<arch>) into each dist/<dir>/package.json
+// while keeping the directory unscoped, so we must track the dir separately.
 const binaries: Record<string, string> = {}
+const binaryDirs: Record<string, string> = {}
 for (const filepath of new Bun.Glob("*/package.json").scanSync({ cwd: "./dist" })) {
-  const pkg = await Bun.file(`./dist/${filepath}`).json()
-  binaries[pkg.name] = pkg.version
+  const bin = await Bun.file(`./dist/${filepath}`).json()
+  binaries[bin.name] = bin.version
+  binaryDirs[bin.name] = filepath.replace(/\/package\.json$/, "")
 }
 console.log("binaries", binaries)
 const version = Object.values(binaries)[0]
@@ -37,15 +44,15 @@ await $`cp ./script/postinstall.mjs ./dist/${pkg.name}/postinstall.mjs`
 await Bun.file(`./dist/${pkg.name}/LICENSE`).write(await Bun.file("../../LICENSE").text())
 await Bun.file(`./dist/${pkg.name}/bin/${pkg.name}.exe`).write(
   [
-    `echo "Error: ${pkg.name}-ai's postinstall script was not run." >&2`,
+    `echo "Error: @ofoundation/${pkg.name}'s postinstall script was not run." >&2`,
     'echo "" >&2',
     'echo "This occurs when using --ignore-scripts during installation, or when using a" >&2',
     'echo "package manager like pnpm that does not run postinstall scripts by default." >&2',
     'echo "" >&2',
     'echo "To fix this, run the postinstall script manually:" >&2',
-    `echo "  cd node_modules/${pkg.name}-ai && node postinstall.mjs" >&2`,
+    `echo "  cd node_modules/@ofoundation/${pkg.name} && node postinstall.mjs" >&2`,
     'echo "" >&2',
-    `echo "Or reinstall ${pkg.name}-ai without the --ignore-scripts flag." >&2`,
+    `echo "Or reinstall @ofoundation/${pkg.name} without the --ignore-scripts flag." >&2`,
     "exit 1",
     "",
   ].join("\n"),
@@ -54,7 +61,7 @@ await Bun.file(`./dist/${pkg.name}/bin/${pkg.name}.exe`).write(
 await Bun.file(`./dist/${pkg.name}/package.json`).write(
   JSON.stringify(
     {
-      name: pkg.name + "-ai",
+      name: `@ofoundation/${pkg.name}`,
       bin: {
         [pkg.name]: `./bin/${pkg.name}.exe`,
       },
@@ -73,10 +80,10 @@ await Bun.file(`./dist/${pkg.name}/package.json`).write(
 )
 
 const tasks = Object.entries(binaries).map(async ([name]) => {
-  await publish(`./dist/${name}`, name, binaries[name])
+  await publish(`./dist/${binaryDirs[name]}`, name, binaries[name])
 })
 await Promise.all(tasks)
-await publish(`./dist/${pkg.name}`, `${pkg.name}-ai`, version)
+await publish(`./dist/${pkg.name}`, `@ofoundation/${pkg.name}`, version)
 
 const image = "ghcr.io/anomalyco/opencode"
 const platforms = "linux/amd64,linux/arm64"
@@ -84,7 +91,10 @@ const tags = [`${image}:${version}`, `${image}:${Script.channel}`]
 const tagFlags = tags.flatMap((t) => ["-t", t])
 
 // registries
-if (!Script.preview) {
+// Upstream-only distribution (ghcr.io/anomalyco docker image, AUR, anomalyco Homebrew tap).
+// Never run for the orgn fork: gated behind preview channel AND an explicit opt-in env so a
+// stray `latest`/explicit-version publish can't push to anomalyco-owned repos.
+if (!Script.preview && process.env.OPENCODE_PUBLISH_UPSTREAM === "1") {
   await $`docker buildx build --platform ${platforms} ${tagFlags} --push .`
   // Calculate SHA values
   const arm64Sha = await $`sha256sum ./dist/opencode-linux-arm64.tar.gz | cut -d' ' -f1`.text().then((x) => x.trim())
