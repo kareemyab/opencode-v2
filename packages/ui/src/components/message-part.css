@@ -130,10 +130,11 @@
     white-space: pre-wrap;
     word-break: break-word;
     overflow: hidden;
-    background: var(--surface-base);
-    border: 1px solid var(--border-weak-base);
+    background: var(--surface-base, #1f1f1f);
+    border: 1px solid var(--border-weak-base, #2b2b2b);
+    color: var(--foreground, var(--text-strong));
     padding: 8px 12px;
-    border-radius: 6px;
+    border-radius: 0;
 
     [data-highlight="file"] {
       color: var(--syntax-property);
@@ -304,9 +305,14 @@
   }
 }
 
+[data-component="text-part"] [data-component="markdown"] code:not(pre code),
+[data-component="reasoning-part"] [data-component="markdown"] code:not(pre code) {
+  color: #00d492;
+}
+
 @media (prefers-color-scheme: dark) {
-  [data-component="reasoning-part"] [data-component="markdown"] :not(pre) > code {
-    opacity: 0.6;
+  [data-component="reasoning-part"] [data-component="markdown"] code:not(pre code) {
+    opacity: 0.85;
   }
 }
 

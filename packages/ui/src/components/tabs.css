@@ -135,7 +135,7 @@
     }
   }
 
-  #review-panel &[data-variant="normal"][data-orientation="horizontal"] {
+  #review-panel &[data-variant="normal"][data-orientation="horizontal"]:not([data-scope="session-panel"]) {
     background-color: var(--background-stronger);
 
     [data-slot="tabs-list"] {
@@ -632,4 +632,186 @@
 
 [data-component="tabs-drag-preview"] > * {
   position: relative;
+}
+
+[data-component="tabs"][data-scope="session-panel"],
+[data-component="tabs"][data-scope="filetree"] {
+  --tabs-compact-pill-radius: 0;
+}
+
+[data-component="tabs"][data-scope="session-panel"] {
+  --tabs-bar-height: 32px;
+  background-color: var(--background-base);
+}
+
+[data-component="tabs"][data-scope="session-panel"] [data-slot="tabs-list"],
+[data-component="tabs"][data-scope="filetree"] [data-slot="tabs-list"] {
+  gap: 0;
+  padding-inline: 8px;
+  align-items: center;
+}
+
+[data-component="tabs"][data-scope="session-panel"] [data-slot="tabs-list"] {
+  height: 32px;
+  min-height: 32px;
+  align-items: stretch;
+  background-color: var(--background-base);
+  border-bottom: 1px solid var(--border-weak-base);
+
+  /* Single bottom rule on the list — ::after duplicated the border in the flex gap */
+  &::after {
+    display: none;
+  }
+}
+
+[data-component="tabs"][data-scope="session-panel"] [data-slot="tabs-trigger-wrapper"]:not(.session-section-tab) {
+  height: 32px;
+  min-height: 32px;
+  max-height: 32px;
+  margin-block: 0;
+  padding-inline: 8px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-right: none;
+  border-radius: 0;
+  background-color: transparent;
+  color: var(--text-weak);
+  box-sizing: border-box;
+
+  &::after {
+    display: none;
+  }
+
+  [data-slot="tabs-trigger"] {
+    height: 32px;
+    min-height: 32px;
+    padding: 0 4px !important;
+  }
+
+  &:hover:not(:disabled):not(:has([data-selected])) {
+    color: var(--text-strong);
+    background-color: transparent;
+  }
+
+  &:has([data-selected]) {
+    color: var(--text-strong);
+    background-color: transparent;
+    border-bottom-color: var(--text-strong);
+  }
+}
+
+[data-component="tabs"][data-scope="session-panel"] [data-slot="tabs-trigger-wrapper"],
+[data-component="tabs"][data-scope="filetree"] [data-slot="tabs-trigger-wrapper"] {
+  border-radius: 0;
+}
+
+[data-component="tabs"][data-scope="session-panel"] [data-slot="tabs-trigger"],
+[data-component="tabs"][data-scope="filetree"] [data-slot="tabs-trigger"] {
+  border-radius: 0;
+}
+
+[data-component="tabs"][data-scope="session-panel"] [data-component="icon-button"],
+[data-component="tabs"][data-scope="filetree"] [data-component="icon-button"] {
+  border-radius: 0;
+}
+
+[data-component="tabs"][data-scope="session-panel"] [data-component="tabs-drag-preview"]::before {
+  border-radius: 0;
+}
+
+[data-component="tabs"][data-scope="session-panel"] [data-slot="tabs-trigger-wrapper"].session-section-tab,
+[data-component="tabs"][data-scope="filetree"] [data-slot="tabs-trigger-wrapper"].session-section-tab {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  max-width: 32px;
+  flex-shrink: 0;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-right: none;
+  border-radius: 0;
+  background-color: transparent;
+  color: var(--text-weak);
+  gap: 0;
+  font-size: 0;
+  box-sizing: border-box;
+
+  [data-slot="tabs-trigger"],
+  .session-section-tab__button {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    padding: 0;
+    border-radius: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &:hover:not(:disabled):not(:has([data-selected])) {
+    color: var(--text-strong);
+    background-color: transparent;
+  }
+
+  &:has([data-selected]) {
+    color: var(--text-strong);
+    border-bottom-color: var(--text-strong);
+    background-color: transparent;
+  }
+
+  .session-section-tab__badge {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    min-width: 14px;
+    height: 14px;
+    padding: 0 3px;
+    border-radius: 0;
+    background-color: var(--background-stronger);
+    color: var(--text-strong);
+    font-family: var(--font-family-sans);
+    font-size: 10px;
+    font-weight: var(--font-weight-medium);
+    line-height: 14px;
+    text-align: center;
+    pointer-events: none;
+  }
+}
+
+[data-component="tabs"][data-scope="filetree"] {
+  background-color: transparent;
+
+  [data-slot="tabs-list"] {
+    height: 48px;
+    padding-inline: 8px;
+    gap: 0;
+    background-color: var(--background-stronger);
+    border-bottom: 1px solid var(--border-weak-base);
+
+    &::after {
+      flex-grow: 1;
+      height: 100%;
+      border-bottom: 1px solid var(--border-weak-base);
+      background-color: var(--background-stronger);
+    }
+  }
+
+  &[data-variant="pill"] [data-slot="tabs-trigger-wrapper"] {
+    border-radius: 0;
+  }
+
+  &[data-variant="pill"] [data-slot="tabs-trigger-wrapper"].session-section-tab {
+    height: 32px;
+    border-radius: 0;
+    background-color: transparent;
+
+    &:hover:not(:disabled):not(:has([data-selected])) {
+      background-color: transparent;
+    }
+
+    &:has([data-selected]) {
+      background-color: transparent;
+    }
+  }
 }

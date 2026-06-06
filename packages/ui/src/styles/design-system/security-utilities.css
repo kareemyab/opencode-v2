@@ -1,0 +1,50 @@
+/**
+ * ORGN TEE / security surface utilities.
+ */
+@layer components {
+  [data-security] .s-terminal {
+    background: var(--s-terminal-bg);
+    color: var(--s-terminal-text);
+    font-family: var(--font-terminal, var(--app-font-mono));
+    border-radius: 0;
+  }
+
+  [data-security] .s-card {
+    background: var(--s-card-bg);
+    border: 1px solid var(--s-card-border);
+    border-radius: 0;
+    color: var(--s-text-primary);
+  }
+
+  [data-security] .s-text-verified {
+    color: var(--s-teal);
+  }
+
+  [data-security] .s-text-pending {
+    color: var(--s-yellow);
+  }
+
+  [data-security] .s-text-critical {
+    color: var(--s-severity-critical);
+  }
+
+  [data-security] .s-badge-verified {
+    color: var(--s-teal);
+    border: 1px solid var(--s-teal);
+    background: var(--s-teal-dim);
+    border-radius: 0;
+    font-family: var(--app-font-family);
+    font-size: var(--font-size-small, 13px);
+    padding: 2px 6px;
+  }
+
+  [data-security] .s-badge-pending {
+    color: var(--s-yellow);
+    border: 1px solid var(--s-yellow);
+    background: var(--s-severity-medium-dim);
+    border-radius: 0;
+    font-family: var(--app-font-family);
+    font-size: var(--font-size-small, 13px);
+    padding: 2px 6px;
+  }
+}

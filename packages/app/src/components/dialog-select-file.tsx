@@ -352,7 +352,8 @@ export function DialogSelectFile(props: { mode?: DialogSelectFileMode; onOpenFil
     void tabs().open(value)
     void file.load(path)
     if (!view().reviewPanel.opened()) view().reviewPanel.open()
-    layout.fileTree.setTab("all")
+    if (layout.fileTree.opened()) layout.fileTree.close()
+    tabs().setActive("repo-files")
     props.onOpenFile?.(path)
     tabs().setActive(value)
   }

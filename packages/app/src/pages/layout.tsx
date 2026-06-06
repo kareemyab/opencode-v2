@@ -64,7 +64,7 @@ import { useTheme, type ColorScheme } from "@opencode-ai/ui/theme/context"
 import { useCommand, type CommandOption } from "@/context/command"
 import { ConstrainDragXAxis, getDraggableId } from "@/utils/solid-dnd"
 import { DebugBar } from "@/components/debug-bar"
-import { Titlebar, type TitlebarUpdate } from "@/components/titlebar"
+import { SidebarToggleButton, Titlebar, type TitlebarUpdate } from "@/components/titlebar"
 import { ServerConnection, useServer } from "@/context/server"
 import { useLanguage, type Locale } from "@/context/language"
 import { pathKey } from "@/utils/path-key"
@@ -89,7 +89,7 @@ import {
   type WorkspaceSidebarContext,
 } from "./layout/sidebar-workspace"
 import { ProjectDragOverlay, SortableProject, type ProjectSidebarContext } from "./layout/sidebar-project"
-import { SidebarContent } from "./layout/sidebar-shell"
+import { SidebarContent, SIDEBAR_RAIL_WIDTH } from "./layout/sidebar-shell"
 import { ShellBreadcrumb, ShellSidebarToggle, ShellUserMenu } from "./layout/shell-nav"
 import { runUpdateAndRestart } from "./layout/update"
 
@@ -1839,7 +1839,7 @@ export default function Layout(props: ParentProps) {
   })
 
   const side = createMemo(() => Math.max(layout.sidebar.width(), 244))
-  const panel = createMemo(() => Math.max(side() - 64, 0))
+  const panel = createMemo(() => Math.max(side() - SIDEBAR_RAIL_WIDTH, 0))
 
   const loadedSessionDirs = new Set<string>()
 
@@ -2096,9 +2096,8 @@ export default function Layout(props: ParentProps) {
     return (
       <div
         classList={{
-          "flex flex-col min-h-0 min-w-0 box-border rounded-tl-[12px] px-3": true,
+          "flex flex-col min-h-0 min-w-0 box-border px-3": true,
           "border border-b-0 border-border-weak-base": !merged(),
-          "border-l border-t border-border-weaker-base": merged(),
           "bg-background-base": merged() || hover(),
           "bg-background-stronger": !merged() && !hover(),
           "flex-1 min-w-0": panelProps.mobile,
@@ -2132,8 +2131,8 @@ export default function Layout(props: ParentProps) {
           {(project) => (
             <>
               <div class="shrink-0 pl-1 py-1">
-                <div class="group/project flex items-start justify-between gap-2 py-2 pl-2 pr-0">
-                  <div class="flex flex-col min-w-0">
+                <div class="group/project flex items-center gap-2 py-2 pl-2 pr-0">
+                  <div class="flex min-w-0 flex-1 flex-col">
                     <InlineEditor
                       id={`project:${projectId()}`}
                       value={projectName}
@@ -2161,21 +2160,31 @@ export default function Layout(props: ParentProps) {
                     </Tooltip>
                   </div>
 
-                  <DropdownMenu modal={!sidebarHovering()}>
-                    <DropdownMenu.Trigger
-                      as={IconButton}
-                      icon="dot-grid"
-                      variant="ghost"
-                      data-action="project-menu"
-                      data-project={slug()}
-                      class="shrink-0 size-6 rounded-md transition-opacity data-[expanded]:bg-surface-base-active"
-                      classList={{
-                        "opacity-100": panelProps.mobile || merged(),
-                        "opacity-0 group-hover/project:opacity-100 group-focus-within/project:opacity-100 data-[expanded]:opacity-100":
-                          !panelProps.mobile && !merged(),
-                      }}
-                      aria-label={language.t("common.moreOptions")}
-                    />
+                  <div class="flex shrink-0 items-center gap-1">
+                    <Show when={merged() && !panelProps.mobile}>
+                      <SidebarToggleButton
+                        compact
+                        opened={layout.sidebar.opened()}
+                        onToggle={() => layout.sidebar.toggle()}
+                        command={command}
+                        language={language}
+                      />
+                    </Show>
+                    <DropdownMenu modal={!sidebarHovering()}>
+                      <DropdownMenu.Trigger
+                        as={IconButton}
+                        icon="dot-grid"
+                        variant="ghost"
+                        data-action="project-menu"
+                        data-project={slug()}
+                        class="shrink-0 size-6 rounded-md transition-opacity data-[expanded]:bg-surface-base-active"
+                        classList={{
+                          "opacity-100": panelProps.mobile || merged(),
+                          "opacity-0 group-hover/project:opacity-100 group-focus-within/project:opacity-100 data-[expanded]:opacity-100":
+                            !panelProps.mobile && !merged(),
+                        }}
+                        aria-label={language.t("common.moreOptions")}
+                      />
                     <DropdownMenu.Portal>
                       <DropdownMenu.Content class="mt-1">
                         <DropdownMenu.Item
@@ -2223,8 +2232,9 @@ export default function Layout(props: ParentProps) {
                         </DropdownMenu.Item>
                       </DropdownMenu.Content>
                     </DropdownMenu.Portal>
-                  </DropdownMenu>
-                </div>
+                    </DropdownMenu>
+                  </div>
+              </div>
               </div>
 
               <div class="flex-1 min-h-0 flex flex-col">
@@ -2542,7 +2552,7 @@ export default function Layout(props: ParentProps) {
                     direction="horizontal"
                     size={layout.sidebar.width()}
                     min={244}
-                    max={typeof window === "undefined" ? 1000 : window.innerWidth * 0.3 + 64}
+                    max={typeof window === "undefined" ? 1000 : window.innerWidth * 0.3 + SIDEBAR_RAIL_WIDTH}
                     onResize={(w) => {
                       setState("sizing", true)
                       if (sizet !== undefined) clearTimeout(sizet)
@@ -2555,7 +2565,7 @@ export default function Layout(props: ParentProps) {
 
               <div
                 class="hidden xl:block pointer-events-none absolute top-0 right-0 z-0 border-t border-border-weaker-base"
-                style={{ left: "calc(4rem + 12px)" }}
+                style={{ left: SIDEBAR_RAIL_WIDTH > 0 ? `calc(${SIDEBAR_RAIL_WIDTH}px + 12px)` : "12px" }}
               />
 
               <div class="xl:hidden">
@@ -2592,7 +2602,7 @@ export default function Layout(props: ParentProps) {
                     !state.sizing,
                 }}
                 style={{
-                  "--main-left": layout.sidebar.opened() ? `${side()}px` : "4rem",
+                  "--main-left": layout.sidebar.opened() ? `${side()}px` : `${SIDEBAR_RAIL_WIDTH}px`,
                 }}
               >
                 <main
@@ -2608,7 +2618,9 @@ export default function Layout(props: ParentProps) {
 
               <div
                 classList={{
-                  "hidden xl:flex absolute inset-y-0 left-16 z-30": true,
+                  "hidden xl:flex absolute inset-y-0 z-30": true,
+                  "left-16": SIDEBAR_RAIL_WIDTH > 0,
+                  "left-0": SIDEBAR_RAIL_WIDTH === 0,
                   "opacity-100 translate-x-0 pointer-events-auto": state.peeked && !layout.sidebar.opened(),
                   "opacity-0 -translate-x-2 pointer-events-none": !state.peeked || layout.sidebar.opened(),
                   "transition-[opacity,transform] motion-reduce:transition-none": true,
@@ -2639,7 +2651,12 @@ export default function Layout(props: ParentProps) {
                   "duration-180 ease-out": state.peeked && !layout.sidebar.opened(),
                   "duration-120 ease-in": !state.peeked || layout.sidebar.opened(),
                 }}
-                style={{ left: `calc(4rem + ${panel()}px)` }}
+                style={{
+                  left:
+                    SIDEBAR_RAIL_WIDTH > 0
+                      ? `calc(${SIDEBAR_RAIL_WIDTH}px + ${panel()}px)`
+                      : `${panel()}px`,
+                }}
               >
                 <div class="h-full w-px" style={{ "box-shadow": "var(--shadow-sidebar-overlay)" }} />
               </div>

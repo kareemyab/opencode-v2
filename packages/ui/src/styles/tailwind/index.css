@@ -56,11 +56,22 @@
   --tracking-tight: var(--letter-spacing-tight);
   --tracking-tightest: var(--letter-spacing-tightest);
 
-  --radius-xs: 0.125rem;
-  --radius-sm: 0.25rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.625rem;
+  --radius-xs: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-brand-green: var(--color-brand-green);
+  --color-brand-purple: var(--color-brand-purple);
 
   --shadow-xs: var(--shadow-xs);
   --shadow-md: var(--shadow-md);

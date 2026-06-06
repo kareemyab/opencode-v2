@@ -1,0 +1,26 @@
+/**
+ * ORGN design system — typography (Berkeley Mono universal).
+ * Single font knob: --font-berkeley-mono → --app-font-family.
+ * font-sans, font-mono, and aliases all resolve to Berkeley Mono.
+ */
+:root {
+  --font-berkeley-mono: "Berkeley Mono";
+  --app-font-family: var(--font-berkeley-mono), ui-monospace, "Courier New", monospace;
+  --app-font-mono: var(--font-berkeley-mono), ui-monospace, "Courier New", monospace;
+  --font-display: var(--app-font-family);
+  --font-body: var(--app-font-family);
+  --font-terminal: var(--app-font-mono);
+  --font-code: var(--app-font-mono);
+
+  --font-family-sans: var(--app-font-family);
+  --font-family-mono: var(--app-font-mono);
+  --font-family-text: var(--app-font-family);
+  --v2-font-family-sans: var(--app-font-family);
+}
+
+@layer base {
+  html,
+  body {
+    font-family: var(--app-font-family);
+  }
+}

@@ -1,23 +1,33 @@
 [data-dock-surface="shell"] {
-  background-color: var(--surface-raised-stronger-non-alpha);
-  box-shadow: var(--shadow-xs-border);
+  background-color: var(--background);
+  border: 1px solid var(--border-weak-base, var(--border));
+  box-shadow: none;
   position: relative;
   z-index: 10;
-  border-radius: var(--radius-xl);
+  border-radius: 0;
   overflow: clip;
 }
 
+[data-dock-surface="shell"]:focus-within {
+  box-shadow: none;
+}
+
+[data-dock-surface="shell"] [data-component="prompt-toolbar"] {
+  border-top: 1px solid var(--border-weak-base, var(--border));
+}
+
 [data-dock-surface="tray"] {
-  background-color: var(--background-base);
-  border: 1px solid var(--border-weak-base);
+  background-color: var(--background);
+  border: 1px solid var(--border-weak-base, var(--border));
   position: relative;
   z-index: 0;
-  border-radius: var(--radius-xl);
+  border-radius: 0;
   overflow: clip;
 }
 
 [data-dock-surface="tray"][data-dock-attach="top"] {
-  margin-top: -0.875rem;
+  margin-top: -1px;
+  border-top: none;
   border-top-left-radius: 0;
   border-top-right-radius: 0;
 }

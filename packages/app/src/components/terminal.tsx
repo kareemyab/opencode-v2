@@ -1,7 +1,3 @@
-import { withAlpha } from "@opencode-ai/ui/theme/color"
-import { useTheme } from "@opencode-ai/ui/theme/context"
-import { resolveThemeVariant } from "@opencode-ai/ui/theme/resolve"
-import type { HexColor } from "@opencode-ai/ui/theme/types"
 import { showToast } from "@/utils/toast"
 import type { FitAddon, Ghostty, Terminal as Term } from "ghostty-web"
 import { type ComponentProps, createEffect, createMemo, onCleanup, onMount, splitProps } from "solid-js"
@@ -48,19 +44,12 @@ type TerminalColors = {
   selectionBackground: string
 }
 
-const DEFAULT_TERMINAL_COLORS: Record<"light" | "dark", TerminalColors> = {
-  light: {
-    background: "#fcfcfc",
-    foreground: "#211e1e",
-    cursor: "#211e1e",
-    selectionBackground: withAlpha("#211e1e", 0.2),
-  },
-  dark: {
-    background: "#191515",
-    foreground: "#d4d4d4",
-    cursor: "#d4d4d4",
-    selectionBackground: withAlpha("#d4d4d4", 0.25),
-  },
+/** TEE terminal palette — always dark, spectral teal on black (design system). */
+const TEE_TERMINAL_COLORS: TerminalColors = {
+  background: "#000000",
+  foreground: "#2fffd7",
+  cursor: "#2fffd7",
+  selectionBackground: "rgba(47, 255, 215, 0.25)",
 }
 
 const debugTerminal = (...values: unknown[]) => {
@@ -158,7 +147,6 @@ export const Terminal = (props: TerminalProps) => {
   const platform = usePlatform()
   const sdk = useSDK()
   const settings = useSettings()
-  const theme = useTheme()
   const language = useLanguage()
   const server = useServer()
   const directory = sdk.directory
@@ -227,26 +215,7 @@ export const Terminal = (props: TerminalProps) => {
       })
   }
 
-  const getTerminalColors = (): TerminalColors => {
-    const mode = theme.mode() === "dark" ? "dark" : "light"
-    const fallback = DEFAULT_TERMINAL_COLORS[mode]
-    const currentTheme = theme.themes()[theme.themeId()]
-    if (!currentTheme) return fallback
-    const variant = mode === "dark" ? currentTheme.dark : currentTheme.light
-    if (!variant?.seeds && !variant?.palette) return fallback
-    const resolved = resolveThemeVariant(variant, mode === "dark")
-    const text = resolved["text-stronger"] ?? fallback.foreground
-    const background = resolved["background-stronger"] ?? fallback.background
-    const alpha = mode === "dark" ? 0.25 : 0.2
-    const base = text.startsWith("#") ? (text as HexColor) : (fallback.foreground as HexColor)
-    const selectionBackground = withAlpha(base, alpha)
-    return {
-      background,
-      foreground: text,
-      cursor: text,
-      selectionBackground,
-    }
-  }
+  const getTerminalColors = (): TerminalColors => TEE_TERMINAL_COLORS
 
   const terminalColors = createMemo(getTerminalColors)
 
@@ -651,6 +620,7 @@ export const Terminal = (props: TerminalProps) => {
   return (
     <div
       ref={container}
+      data-security
       data-component="terminal"
       data-prevent-autofocus
       tabIndex={-1}
@@ -658,7 +628,7 @@ export const Terminal = (props: TerminalProps) => {
       classList={{
         ...local.classList,
         "select-text": true,
-        "size-full px-6 py-3 font-mono relative overflow-hidden": true,
+        "s-terminal size-full px-6 py-3 font-mono relative overflow-hidden": true,
         [local.class ?? ""]: !!local.class,
       }}
       {...others}

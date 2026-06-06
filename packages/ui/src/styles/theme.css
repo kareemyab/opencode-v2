@@ -1,8 +1,5 @@
 :root {
-  --font-berkeley-mono: "Berkeley Mono";
-  --font-family-sans: var(--font-berkeley-mono), ui-monospace, "Courier New", monospace;
   --font-family-sans--font-feature-settings: normal;
-  --font-family-mono: var(--font-berkeley-mono), ui-monospace, "Courier New", monospace;
   --font-family-mono--font-feature-settings: normal;
 
   --font-size-small: 13px;
@@ -42,11 +39,11 @@
   --container-6xl: 72rem;
   --container-7xl: 80rem;
 
-  --radius-xs: 0.125rem;
-  --radius-sm: 0.25rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.625rem;
+  --radius-xs: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
 
   --shadow-xs:
     0 1px 2px -0.5px light-dark(hsl(0 0% 0% / 0.04), hsl(0 0% 0% / 0.06)),
@@ -350,11 +347,11 @@
     color-scheme: dark;
     --text-mix-blend-mode: plus-lighter;
 
-    /* OC-2 fallback variables (dark) */
-    --background-base: #101010;
-    --background-weak: #1e1e1e;
-    --background-strong: #121212;
-    --background-stronger: #151515;
+    /* OC-2 fallback variables (dark) — orgn chat smoke scale */
+    --background-base: #000000;
+    --background-weak: #141414;
+    --background-strong: #000000;
+    --background-stronger: #000000;
     --surface-base: rgba(255, 255, 255, 0.031);
     --base: rgba(255, 255, 255, 0.034);
     --surface-base-hover: rgba(255, 255, 255, 0.039);

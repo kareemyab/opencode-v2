@@ -57,7 +57,6 @@ import { useFileComponent } from "@opencode-ai/ui/context/file"
 import { shouldMarkBoundaryGesture, normalizeWheelDelta } from "@/pages/session/message-gesture"
 import { SessionContextUsage } from "@/components/session-context-usage"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
-import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { useLanguage } from "@/context/language"
 import { useSessionKey } from "@/pages/session/session-layout"
 import { useServerSDK } from "@/context/server-sdk"
@@ -65,7 +64,11 @@ import { usePlatform } from "@/context/platform"
 import { useSettings } from "@/context/settings"
 import { useSDK } from "@/context/sdk"
 import { useSync } from "@/context/sync"
+import { SidebarToggleButton } from "@/components/titlebar"
 import { notifySessionTabsRemoved } from "@/components/titlebar-session-events"
+import { useCommand } from "@/context/command"
+import { useLayout } from "@/context/layout"
+import { createMediaQuery } from "@solid-primitives/media"
 import { messageAgentColor } from "@/utils/agent"
 import { sessionTitle } from "@/utils/session-title"
 import { makeTimer } from "@solid-primitives/timer"
@@ -122,8 +125,6 @@ const taskDescription = (part: PartType, sessionID: string) => {
   const value = part.state.input?.description
   if (typeof value === "string" && value) return value
 }
-
-const pace = (width: number) => Math.round(Math.max(1200, Math.min(3200, (Math.max(width, 360) * 2000) / 900)))
 
 const boundaryTarget = (root: HTMLElement, target: EventTarget | null) => {
   const current = target instanceof Element ? target : undefined
@@ -292,8 +293,11 @@ export function MessageTimeline(props: {
   const settings = useSettings()
   const dialog = useDialog()
   const language = useLanguage()
+  const command = useCommand()
+  const layout = useLayout()
   const { params, sessionKey } = useSessionKey()
   const platform = usePlatform()
+  const xl = createMediaQuery("(min-width: 1280px)")
 
   let virtualizer: VirtualizerHandle | undefined
   const sessionID = createMemo(() => params.id)
@@ -557,13 +561,9 @@ export function MessageTimeline(props: {
     open: false,
     dismiss: null as "escape" | "outside" | null,
   })
-  const [bar, setBar] = createStore({
-    ms: pace(640),
-  })
   const [toolOpen, setToolOpen] = createStore<Record<string, boolean | undefined>>({})
 
   let more: HTMLButtonElement | undefined
-  let head: HTMLDivElement | undefined
   let listRoot: HTMLDivElement | undefined
   let listFrame: number | undefined
   let contentFrame: number | undefined
@@ -571,13 +571,6 @@ export function MessageTimeline(props: {
   let bottomAnchorFrames = 0
   let measuredBottomAnchored = true
   const [scrollRoot, setScrollRoot] = createSignal<HTMLDivElement>()
-
-  const updateTitleMetrics = () => {
-    if (!head || head.clientWidth <= 0) return
-    setBar("ms", pace(head.clientWidth))
-  }
-
-  createResizeObserver(() => head, updateTitleMetrics)
 
   const isMeasuredBottom = (root: HTMLDivElement) => root.scrollHeight - root.clientHeight - root.scrollTop <= 4
 
@@ -1120,7 +1113,7 @@ export function MessageTimeline(props: {
                 <div class="flex w-max min-w-full justify-end gap-2">
                   <Index each={comments()}>
                     {(comment) => (
-                      <div class="shrink-0 max-w-[260px] rounded-[6px] border border-border-weak-base bg-background-stronger px-2.5 py-2">
+                      <div class="shrink-0 max-w-[260px] border border-border-weak-base bg-background-weak px-2.5 py-2">
                         <div class="flex items-center gap-1.5 min-w-0 text-11-medium text-text-strong">
                           <FileIcon node={{ path: comment().path, type: "file" }} class="size-3.5 shrink-0" />
                           <span class="truncate">{getFilename(comment().path)}</span>
@@ -1269,7 +1262,7 @@ export function MessageTimeline(props: {
           onClick={props.onResumeScroll}
         >
           <div
-            class="flex items-center justify-center w-8 h-6 rounded-[6px] border border-border-weaker-base bg-[color-mix(in_srgb,var(--surface-raised-stronger-non-alpha)_80%,transparent)] backdrop-blur-[0.75px] transition-colors group-hover:border-[var(--border-weak-base)] group-hover:[--icon-base:var(--icon-hover)]"
+            class="flex items-center justify-center w-8 h-6 border border-border-weaker-base bg-[color-mix(in_srgb,var(--surface-raised-stronger-non-alpha)_80%,transparent)] backdrop-blur-[0.75px] transition-colors group-hover:border-[var(--border-weak-base)] group-hover:[--icon-base:var(--icon-hover)]"
             style={{
               "box-shadow":
                 "0 51px 60px 0 rgba(0,0,0,0.10), 0 15px 18px 0 rgba(0,0,0,0.12), 0 6.386px 7.513px 0 rgba(0,0,0,0.12), 0 2.31px 2.717px 0 rgba(0,0,0,0.20)",
@@ -1296,33 +1289,33 @@ export function MessageTimeline(props: {
       >
         <Show when={showHeader()}>
           <div
-            ref={(el) => {
-              head = el
-              updateTitleMetrics()
-            }}
             data-session-title
             classList={{
-              "sticky top-0 z-30 bg-[linear-gradient(to_bottom,var(--background-stronger)_48px,transparent)]": true,
+              "sticky top-0 z-40 isolate bg-[linear-gradient(to_bottom,var(--background-stronger)_48px,transparent)]": true,
               "w-full": true,
               "pb-4": true,
-              "pl-2 pr-3 md:pl-4 md:pr-3": true,
-              "md:max-w-200 md:mx-auto 2xl:max-w-[1000px]": props.centered,
             }}
           >
-            <Show when={workingStatus() !== "hidden" && settings.general.showSessionProgressBar()}>
-              <div data-component="session-progress" data-state={workingStatus()} aria-hidden="true">
-                <div
-                  data-component="session-progress-bar"
-                  style={{
-                    background: tint() ?? "var(--icon-interactive-base)",
-                    animation: `session-progress-whip ${bar.ms}ms infinite`,
-                  }}
+            <div class="flex h-12 w-full items-center gap-1 pl-1 md:gap-2 md:pl-2">
+              <Show when={xl() && !layout.sidebar.opened()}>
+                <SidebarToggleButton
+                  compact
+                  class="shrink-0"
+                  opened={false}
+                  onToggle={() => layout.sidebar.toggle()}
+                  command={command}
+                  language={language}
                 />
-              </div>
-            </Show>
-            <div class="h-12 w-full flex items-center justify-between gap-2">
-              <div class="flex items-center gap-1 min-w-0 flex-1 pr-3">
-                <div class="flex items-center min-w-0 grow-1">
+              </Show>
+              <div
+                classList={{
+                  "flex h-12 min-w-0 flex-1 items-center justify-between gap-2 pr-3 md:pr-4": true,
+                  "pl-2 md:pl-4": !xl() || layout.sidebar.opened(),
+                  "md:max-w-200 md:mx-auto 2xl:max-w-[1000px]": props.centered,
+                }}
+              >
+                <div class="flex min-w-0 flex-1 items-center gap-1 pr-3">
+                <div class="flex min-w-0 grow-1 items-center gap-1">
                   <Show when={parentID()}>
                     <button
                       type="button"
@@ -1377,7 +1370,7 @@ export function MessageTimeline(props: {
                         data-slot="session-title-child"
                         value={title.draft}
                         disabled={titleMutation.isPending}
-                        class="text-14-medium text-text-strong grow-1 min-w-0 rounded-[6px] pl-1 -ml-1"
+                        class="text-14-medium text-text-strong grow-1 min-w-0 pl-1 -ml-1"
                         style={{ "--inline-input-shadow": "var(--shadow-xs-border-select)" }}
                         onInput={(event) => setTitle("draft", event.currentTarget.value)}
                         onKeyDown={(event) => {
@@ -1398,9 +1391,9 @@ export function MessageTimeline(props: {
                   </Show>
                 </div>
               </div>
-              <Show when={sessionID()} keyed>
+                <Show when={sessionID()} keyed>
                 {(id) => (
-                  <div class="shrink-0 flex items-center gap-3">
+                  <div class="relative z-[60] flex shrink-0 items-center gap-3 pointer-events-auto">
                     <SessionContextUsage placement="bottom" />
                     <Show when={!parentID()}>
                       <DropdownMenu
@@ -1416,7 +1409,7 @@ export function MessageTimeline(props: {
                           as={IconButton}
                           icon="dot-grid"
                           variant="ghost"
-                          class="size-6 rounded-md data-[expanded]:bg-surface-base-active"
+                          class="size-6 data-[expanded]:bg-surface-base-active"
                           classList={{
                             "bg-surface-base-active": share.open || title.pendingShare,
                           }}
@@ -1578,6 +1571,7 @@ export function MessageTimeline(props: {
                   </div>
                 )}
               </Show>
+              </div>
             </div>
           </div>
         </Show>

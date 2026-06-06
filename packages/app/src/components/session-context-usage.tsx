@@ -3,14 +3,12 @@ import { Tooltip, type TooltipProps } from "@opencode-ai/ui/tooltip"
 import { ProgressCircle } from "@opencode-ai/ui/progress-circle"
 import { Button } from "@opencode-ai/ui/button"
 
-import { useFile } from "@/context/file"
-import { useLayout } from "@/context/layout"
+import type { useLayout } from "@/context/layout"
 import { useSync } from "@/context/sync"
 import { useLanguage } from "@/context/language"
 import { useProviders } from "@/hooks/use-providers"
 import { getSessionContextMetrics } from "@/components/session/session-context-metrics"
 import { useSessionLayout } from "@/pages/session/session-layout"
-import { createSessionTabs } from "@/pages/session/helpers"
 
 interface SessionContextUsageProps {
   variant?: "button" | "indicator"
@@ -19,29 +17,19 @@ interface SessionContextUsageProps {
 
 function openSessionContext(args: {
   view: ReturnType<ReturnType<typeof useLayout>["view"]>
-  layout: ReturnType<typeof useLayout>
   tabs: ReturnType<ReturnType<typeof useLayout>["tabs"]>
 }) {
   if (!args.view.reviewPanel.opened()) args.view.reviewPanel.open()
-  if (args.layout.fileTree.opened() && args.layout.fileTree.tab() !== "all") args.layout.fileTree.setTab("all")
-  void args.tabs.open("context")
   args.tabs.setActive("context")
 }
 
 export function SessionContextUsage(props: SessionContextUsageProps) {
   const sync = useSync()
-  const file = useFile()
-  const layout = useLayout()
   const language = useLanguage()
   const providers = useProviders()
   const { params, tabs, view } = useSessionLayout()
 
   const variant = createMemo(() => props.variant ?? "button")
-  const tabState = createSessionTabs({
-    tabs,
-    pathFromTab: file.pathFromTab,
-    normalizeTab: (tab) => (tab.startsWith("file://") ? file.tab(tab) : tab),
-  })
   const messages = createMemo(() => (params.id ? (sync.data.message[params.id] ?? []) : []))
 
   const usd = createMemo(
@@ -61,13 +49,13 @@ export function SessionContextUsage(props: SessionContextUsageProps) {
   const openContext = () => {
     if (!params.id) return
 
-    if (tabState.activeTab() === "context") {
-      tabs().close("context")
+    const active = tabs().active()
+    if (active === "context") {
+      tabs().setActive("review")
       return
     }
     openSessionContext({
       view: view(),
-      layout,
       tabs: tabs(),
     })
   }
@@ -110,7 +98,7 @@ export function SessionContextUsage(props: SessionContextUsageProps) {
             <Button
               type="button"
               variant="ghost"
-              class="size-6"
+              class="relative z-[60] size-6 pointer-events-auto"
               onClick={openContext}
               aria-label={language.t("context.usage.view")}
             >

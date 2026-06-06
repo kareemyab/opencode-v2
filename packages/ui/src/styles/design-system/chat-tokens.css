@@ -1,0 +1,90 @@
+/**
+ * ORGN chat interface tokens — aligned with CHAT_INTERFACE_DESIGN_SYSTEM.md
+ * Smoke ramp, stream text, inline code, links, and shadcn semantic bridge (dark-first).
+ */
+:root {
+  --smoke-dark-1: #0d0d0d;
+  --smoke-dark-2: #111111;
+  --smoke-dark-3: #141414;
+  --smoke-dark-4: #171717;
+  --smoke-dark-5: #1a1a1a;
+  --smoke-dark-6: #2b2b2b;
+  --smoke-dark-7: #3b3b3b;
+  --smoke-dark-8: #4b4b4b;
+  --smoke-dark-9: #716c6b;
+  --smoke-dark-10: #8d8888;
+  --smoke-dark-11: #b7b1b1;
+  --smoke-dark-12: #f1ecec;
+
+  --stream-text: hsl(240 10% 3.9% / 0.85);
+  --stream-text-strong: hsl(240 10% 3.9%);
+  --code-inline-bg: #f5f5f5;
+  --code-inline-border: #e0e0e0;
+  --code-inline-size: 0.8125rem;
+  --link: hsl(221 83% 53%);
+  --list-marker-color: currentcolor;
+}
+
+[data-color-scheme="dark"] {
+  --background: #000000;
+  --foreground: hsl(220 13% 91%);
+  --card: #000000;
+  --card-foreground: hsl(220 13% 91%);
+  --popover: #141414;
+  --popover-foreground: hsl(220 13% 91%);
+  --primary: hsl(0 0% 98%);
+  --primary-foreground: hsl(240 5.9% 10%);
+  --secondary: hsl(240 3.7% 15.9%);
+  --secondary-foreground: hsl(0 0% 98%);
+  --muted: hsl(240 3.7% 15.9%);
+  --muted-foreground: hsl(240 5% 64.9%);
+  --accent: hsl(240 3.7% 15.9%);
+  --accent-foreground: hsl(0 0% 98%);
+  --border: hsl(0 0% 17%);
+  --input: hsl(240 4% 42%);
+  --ring: hsl(240 4.9% 83.9%);
+
+  --stream-text: #f8f8f2;
+  --stream-text-strong: #f8f8f2;
+  --code-inline-bg: rgb(255 255 255 / 10%);
+  --code-inline-border: rgb(255 255 255 / 20%);
+  --link: hsl(204 94% 68%);
+
+  --shell-panel-bg: rgb(5 5 5 / 90%);
+  --shell-border: var(--smoke-dark-6);
+  --shell-muted-text: rgb(255 255 255 / 56%);
+}
+
+[data-color-scheme="dark"] [data-component="prompt-input"] {
+  color: var(--foreground);
+  caret-color: hsl(160 84% 39%);
+}
+
+[data-color-scheme="dark"] [data-component="prompt-input"]::placeholder,
+[data-color-scheme="dark"] [data-component="session-composer-text"],
+[data-color-scheme="dark"] [data-component="session-new-design-text"] {
+  color: var(--muted-foreground);
+}
+
+[data-color-scheme="dark"] [data-dock-surface="shell"],
+[data-color-scheme="dark"] [data-dock-surface="tray"] {
+  background-color: var(--background);
+  border-color: var(--border-weak-base, var(--border));
+}
+
+[data-color-scheme="dark"] [data-component="text-input-v2"] {
+  outline-color: var(--border);
+  box-shadow: none;
+}
+
+[data-color-scheme="dark"] [data-component="text-input-v2"]:where(:focus-within):not([data-disabled], [data-invalid]) {
+  outline-color: var(--input);
+}
+
+[data-color-scheme="dark"] [data-component="select-select-trigger"] {
+  border-color: var(--border-weak-base, var(--border));
+}
+
+[data-color-scheme="dark"] [data-component="session-prompt-dock"] {
+  background-color: var(--background);
+}

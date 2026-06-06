@@ -12,6 +12,10 @@ import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Tooltip, TooltipKeybind } from "@opencode-ai/ui/tooltip"
 import { type LocalProject } from "@/context/layout"
 
+/** ORGN shell: icon rail stays mounted but is not shown (peek/aim wiring preserved). */
+export const SIDEBAR_RAIL_WIDTH = 0
+export const SIDEBAR_RAIL_HIDDEN = true
+
 export const SidebarContent = (props: {
   mobile?: boolean
   /** Render only the icon rail (no expandable session panel) — used by the tab-design shell frame. */
@@ -51,8 +55,12 @@ export const SidebarContent = (props: {
   const rail = (
     <div
       data-component="sidebar-rail"
-      class="w-16 h-full shrink-0 bg-background-base flex flex-col items-center overflow-hidden"
+      classList={{
+        "w-16 h-full shrink-0 bg-background-base flex flex-col items-center overflow-hidden": true,
+        hidden: SIDEBAR_RAIL_HIDDEN,
+      }}
       onMouseMove={props.aimMove}
+      aria-hidden={SIDEBAR_RAIL_HIDDEN}
     >
         <div class="flex-1 min-h-0 w-full">
           <DragDropProvider

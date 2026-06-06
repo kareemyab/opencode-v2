@@ -186,7 +186,7 @@ function StatusPopoverView(props: { state: StatusPopoverState }) {
       triggerProps={{
         variant: "ghost-muted",
         size: "large",
-        class: "!w-9 shrink-0",
+        class: "size-8 min-h-8 min-w-8 shrink-0",
         state: props.state.shown ? "pressed" : undefined,
         "aria-label": props.state.label,
       }}

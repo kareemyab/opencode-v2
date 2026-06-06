@@ -1,0 +1,75 @@
+/**
+ * ORGN design system — semantic token bridge.
+ * Maps apps/agent shadcn-style tokens onto opencode-v2 OC/v2 primitives.
+ */
+:root {
+  --background: var(--v2-background-bg-base, var(--background-base));
+  --foreground: var(--v2-text-text-base, var(--text-strong));
+  --card: var(--v2-background-bg-layer-01, var(--background-strong));
+  --card-foreground: var(--v2-text-text-base, var(--text-strong));
+  --popover: var(--v2-background-bg-layer-02, var(--background-stronger));
+  --popover-foreground: var(--v2-text-text-base, var(--text-strong));
+  --primary: var(--v2-background-bg-contrast, var(--button-primary-base));
+  --primary-foreground: var(--v2-text-text-contrast, var(--text-invert-strong));
+  --secondary: var(--v2-background-bg-layer-01, var(--button-secondary-base));
+  --secondary-foreground: var(--v2-text-text-base, var(--text-strong));
+  --muted: var(--v2-background-bg-layer-01, var(--surface-weak));
+  --muted-foreground: var(--v2-text-text-muted, var(--text-weak));
+  --accent: var(--v2-background-bg-accent, var(--surface-interactive-base));
+  --accent-foreground: var(--v2-text-text-contrast, var(--text-on-interactive-base));
+  --destructive: var(--surface-critical-strong, #fc533a);
+  --destructive-foreground: var(--text-on-critical-base, #ffffff);
+  --border: var(--border-weak-base, var(--v2-border-border-base, var(--border-base)));
+  --input: var(--v2-border-border-strong, var(--border-strong-base));
+  --ring: var(--v2-border-border-focus, var(--border-selected));
+
+  --color-brand-green: #00d492;
+  --color-brand-green-hover: #00b87a;
+  --color-brand-green-bg: rgb(0 212 146 / 10%);
+  --color-brand-purple: #7c3aed;
+  --color-brand-yellow: #ca8a04;
+  --color-brand-orange: #d97706;
+  --color-status-green: var(--color-brand-green);
+  --syntax-string: var(--color-brand-green);
+  --syntax-success: var(--color-brand-green);
+  --icon-success-base: var(--color-brand-green);
+  --markdown-code: var(--color-brand-green);
+  --link: var(--text-interactive-base, var(--v2-text-text-accent));
+
+  --shell-panel-bg: rgb(250 250 250 / 0.9);
+  --shell-strip-bg: rgb(15 23 42 / 0.03);
+  --shell-grid-line: rgb(15 23 42 / 0.05);
+  --shell-border: rgb(15 23 42 / 0.09);
+  --shell-muted-text: rgb(15 23 42 / 0.62);
+
+  --radius: 0px;
+}
+
+[data-color-scheme="dark"] {
+  --background: #000000;
+  --foreground: hsl(220 13% 91%);
+  --card: #000000;
+  --card-foreground: hsl(220 13% 91%);
+  --popover: #141414;
+  --popover-foreground: hsl(220 13% 91%);
+  --muted: hsl(240 3.7% 15.9%);
+  --muted-foreground: hsl(240 5% 64.9%);
+  --border: #2b2b2b;
+  --input: #67676f;
+  --ring: hsl(240 4.9% 83.9%);
+  --link: hsl(204 94% 68%);
+
+  --shell-panel-bg: rgb(5 5 5 / 0.9);
+  --shell-strip-bg: rgb(255 255 255 / 0.015);
+  --shell-grid-line: rgb(255 255 255 / 0.05);
+  --shell-border: #2b2b2b;
+  --shell-muted-text: rgb(255 255 255 / 0.56);
+
+  --color-brand-green: #00d492;
+  --color-brand-green-hover: #00b87a;
+  --color-brand-green-bg: rgb(0 212 146 / 10%);
+  --color-brand-purple: #a77dff;
+  --color-brand-yellow: #f1df38;
+  --color-brand-orange: #eddb2c;
+  --color-status-green: var(--color-brand-green);
+}

@@ -1,5 +1,7 @@
 export { SessionHeader } from "./session-header"
 export { SessionContextTab } from "./session-context-tab"
+export { SessionTaskTab } from "./session-task-tab"
+export { SessionSectionTabTrigger } from "./session-section-tab"
 export { SortableTab, FileVisual } from "./session-sortable-tab"
 export { SortableTerminalTab } from "./session-sortable-terminal-tab"
 export { NewSessionView } from "./session-new-view"
