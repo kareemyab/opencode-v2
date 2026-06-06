@@ -9,6 +9,7 @@ import { dict as zh } from "@/i18n/zh"
 import { handleNotificationClick } from "@/utils/notification-click"
 import { authFromToken } from "@/utils/server"
 import pkg from "../package.json"
+import { APP_URL } from "@opencode-ai/ui/brand"
 import { ServerConnection } from "./context/server"
 
 const DEFAULT_SERVER_URL_KEY = "opencode.settings.dat:defaultServerUrl"
@@ -69,7 +70,7 @@ const notify: Platform["notify"] = async (title, description, href) => {
 
   const notification = new Notification(title, {
     body: description ?? "",
-    icon: "https://opencode.ai/favicon-96x96-v3.png",
+    icon: "/orgn-favicon-96x96.png",
   })
 
   notification.onclick = () => {
@@ -100,7 +101,7 @@ if (!(root instanceof HTMLElement) && import.meta.env.DEV) {
 }
 
 const getCurrentUrl = () => {
-  if (location.hostname.includes("opencode.ai")) return "http://localhost:4096"
+  if (location.hostname === new URL(APP_URL).hostname) return "http://localhost:4096"
   if (import.meta.env.DEV)
     return `http://${import.meta.env.VITE_OPENCODE_SERVER_HOST ?? "localhost"}:${import.meta.env.VITE_OPENCODE_SERVER_PORT ?? "4096"}`
   return location.origin

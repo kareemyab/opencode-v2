@@ -3,6 +3,17 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { promisify } from "node:util"
 
+import {
+  APP_IDS,
+  APP_NAMES,
+  ARTIFACT_NAME,
+  DEEP_LINK_SCHEME,
+  LEGACY_DEEP_LINK_SCHEME,
+  PRODUCT_NAME,
+  RPM_PACKAGE_NAME,
+  type OrgnChannel,
+  updatePublishUrl,
+} from "@opencode-ai/ui/brand"
 import type { Configuration } from "electron-builder"
 
 const execFileAsync = promisify(execFile)
@@ -20,14 +31,14 @@ async function signWindows(configuration: { path: string }) {
   )
 }
 
-const channel = (() => {
+const channel = ((): OrgnChannel => {
   const raw = process.env.OPENCODE_CHANNEL
   if (raw === "dev" || raw === "beta" || raw === "prod") return raw
   return "dev"
 })()
 
 const getBase = (): Configuration => ({
-  artifactName: "opencode-desktop-${os}-${arch}.${ext}",
+  artifactName: ARTIFACT_NAME,
   directories: {
     output: "dist",
     buildResources: "resources",
@@ -53,10 +64,10 @@ const getBase = (): Configuration => ({
   dmg: {
     sign: true,
   },
-  protocols: {
-    name: "OpenCode",
-    schemes: ["opencode"],
-  },
+  protocols: [
+    { name: PRODUCT_NAME, schemes: [DEEP_LINK_SCHEME] },
+    { name: `${PRODUCT_NAME} Legacy`, schemes: [LEGACY_DEEP_LINK_SCHEME] },
+  ],
   win: {
     icon: `resources/icons/icon.ico`,
     signtoolOptions: {
@@ -85,29 +96,33 @@ function getConfig() {
     case "dev": {
       return {
         ...base,
-        appId: "ai.opencode.desktop.dev",
-        productName: "OpenCode Dev",
-        rpm: { packageName: "opencode-dev" },
+        appId: APP_IDS.dev,
+        productName: APP_NAMES.dev,
+        rpm: { packageName: `${RPM_PACKAGE_NAME}-dev` },
       }
     }
     case "beta": {
+      const publishUrl = updatePublishUrl("beta")
       return {
         ...base,
-        appId: "ai.opencode.desktop.beta",
-        productName: "OpenCode Beta",
-        protocols: { name: "OpenCode Beta", schemes: ["opencode"] },
-        publish: { provider: "github", owner: "anomalyco", repo: "opencode-beta", channel: "latest" },
-        rpm: { packageName: "opencode-beta" },
+        appId: APP_IDS.beta,
+        productName: APP_NAMES.beta,
+        ...(publishUrl
+          ? { publish: { provider: "generic" as const, url: publishUrl, channel: "latest" } }
+          : {}),
+        rpm: { packageName: `${RPM_PACKAGE_NAME}-beta` },
       }
     }
     case "prod": {
+      const publishUrl = updatePublishUrl("prod")
       return {
         ...base,
-        appId: "ai.opencode.desktop",
-        productName: "OpenCode",
-        protocols: { name: "OpenCode", schemes: ["opencode"] },
-        publish: { provider: "github", owner: "anomalyco", repo: "opencode", channel: "latest" },
-        rpm: { packageName: "opencode" },
+        appId: APP_IDS.prod,
+        productName: APP_NAMES.prod,
+        ...(publishUrl
+          ? { publish: { provider: "generic" as const, url: publishUrl, channel: "latest" } }
+          : {}),
+        rpm: { packageName: RPM_PACKAGE_NAME },
       }
     }
   }

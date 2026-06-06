@@ -24,6 +24,7 @@ import { initI18n, t } from "./i18n"
 import { initializationData, initializationReady } from "./initialization"
 import { resetZoom, setPinchZoomEnabled, webviewZoom, zoomIn, zoomOut } from "./webview-zoom"
 import "./styles.css"
+import { DESKTOP_STORAGE, DEEP_LINK_EVENT, LEGACY_DESKTOP_STORAGE } from "@opencode-ai/ui/brand"
 import { useTheme } from "@opencode-ai/ui/theme/context"
 
 const root = document.getElementById("root")
@@ -56,13 +57,13 @@ if (import.meta.env.VITE_SENTRY_DSN) {
 
 void initI18n()
 
-const deepLinkEvent = "opencode:deep-link"
+const deepLinkEvent = DEEP_LINK_EVENT
 
 const emitDeepLinks = (urls: string[]) => {
   if (urls.length === 0) return
-  window.__OPENCODE__ ??= {}
-  const pending = window.__OPENCODE__.deepLinks ?? []
-  window.__OPENCODE__.deepLinks = [...pending, ...urls]
+  window.__ORGN__ ??= {}
+  const pending = window.__ORGN__.deepLinks ?? window.__OPENCODE__?.deepLinks ?? []
+  window.__ORGN__.deepLinks = [...pending, ...urls]
   window.dispatchEvent(new CustomEvent(deepLinkEvent, { detail: { urls } }))
 }
 
@@ -232,7 +233,7 @@ const createPlatform = (): Platform => {
 
       const notification = new Notification(title, {
         body: description ?? "",
-        icon: "https://opencode.ai/favicon-96x96-v3.png",
+        icon: "/orgn-favicon-96x96.png",
       })
       notification.onclick = () => {
         void window.api.showWindow()
@@ -306,7 +307,9 @@ render(() => {
   const platform = createPlatform()
   const [windowConfig] = createResource(() => window.api.getWindowConfig().catch(() => ({ updaterEnabled: false })))
   const loadLocale = async () => {
-    const current = await platform.storage?.("opencode.global.dat").getItem("language")
+    const current =
+      (await platform.storage?.(DESKTOP_STORAGE.globalDat).getItem("language")) ??
+      (await platform.storage?.(LEGACY_DESKTOP_STORAGE.globalDat).getItem("language"))
     const legacy = current ? undefined : await platform.storage?.().getItem("language.v1")
     const raw = current ?? legacy
     if (!raw) return

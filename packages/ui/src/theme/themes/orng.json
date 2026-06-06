@@ -1,6 +1,6 @@
 {
-  "$schema": "https://opencode.ai/desktop-theme.json",
-  "name": "Orng",
+  "$schema": "https://orgn.com/desktop-theme.json",
+  "name": "Orng (deprecated)",
   "id": "orng",
   "light": {
     "palette": {

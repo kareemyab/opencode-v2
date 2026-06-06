@@ -6,8 +6,9 @@ import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
 import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
 
 import { useCommand } from "@/context/command"
-import { DESKTOP_MENU, desktopMenuVisible, type DesktopMenuAction, type DesktopMenuEntry } from "@/desktop-menu"
 import { usePlatform } from "@/context/platform"
+import { DESKTOP_MENU, desktopMenuVisible, type DesktopMenuAction, type DesktopMenuEntry } from "@/desktop-menu"
+import { PRODUCT_NAME } from "@opencode-ai/ui/brand"
 
 export function WindowsAppMenu(props: {
   command: ReturnType<typeof useCommand>
@@ -51,14 +52,14 @@ export function WindowsAppMenu(props: {
       {props.variant === "v2" ? (
         <div
           data-component="desktop-icon-button"
-          class="flex h-7 w-9 shrink-0 items-center justify-center rounded-[6px] px-1"
+          class="flex h-7 w-9 shrink-0 items-center justify-center rounded-none px-1"
         >
           <DropdownMenu.Trigger
             as={IconButtonV2}
             variant="ghost-muted"
             size="large"
             icon={<IconV2 name="menu" />}
-            aria-label="OpenCode menu"
+            aria-label={`${PRODUCT_NAME} menu`}
             onPointerDown={rememberFocus}
             onKeyDown={rememberFocus}
           />
@@ -69,7 +70,7 @@ export function WindowsAppMenu(props: {
           icon="menu"
           variant="ghost"
           class="titlebar-icon rounded-md shrink-0"
-          aria-label="OpenCode menu"
+          aria-label="orgn menu"
           onPointerDown={rememberFocus}
           onKeyDown={rememberFocus}
         />
@@ -77,7 +78,7 @@ export function WindowsAppMenu(props: {
       <DropdownMenu.Portal>
         <DropdownMenu.Content class="desktop-app-menu">
           <DropdownMenu.Group>
-            <DropdownMenu.GroupLabel class="desktop-app-menu-heading">OpenCode</DropdownMenu.GroupLabel>
+            <DropdownMenu.GroupLabel class="desktop-app-menu-heading">{PRODUCT_NAME}</DropdownMenu.GroupLabel>
             {DESKTOP_MENU.filter((menu) => desktopMenuVisible(menu, "windows")).map((menu) => (
               <DesktopMenuSubmenu label={menu.label}>
                 {menu.items

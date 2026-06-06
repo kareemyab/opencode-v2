@@ -12,7 +12,9 @@ import contextMenu from "electron-context-menu"
 
 import type { ServerReadyData, WslConfig } from "../preload/types"
 import { checkAppExists, resolveAppPath, wslPath } from "./apps"
+import { APP_IDS, APP_NAMES } from "@opencode-ai/ui/brand"
 import { CHANNEL, UPDATER_ENABLED } from "./constants"
+import { extractDeepLinkUrls, registerDeepLinkProtocolHandlers } from "./deep-link-protocol"
 import { registerIpcHandlers, sendDeepLinks, sendMenuCommand } from "./ipc"
 import { forwardInitializationFailure } from "./initialization"
 import { exportDebugLogs, initCrashReporter, initLogging, startNetLog, write as writeLog } from "./logging"
@@ -38,16 +40,6 @@ import { migrate } from "./migrate"
 import { checkUpdate, checkForUpdates, installUpdate, setupAutoUpdater } from "./updater"
 import { Deferred, Effect, Fiber } from "effect"
 
-const APP_NAMES: Record<string, string> = {
-  dev: "OpenCode Dev",
-  beta: "OpenCode Beta",
-  prod: "OpenCode",
-}
-const APP_IDS: Record<string, string> = {
-  dev: "ai.opencode.desktop.dev",
-  beta: "ai.opencode.desktop.beta",
-  prod: "ai.opencode.desktop",
-}
 const TEST_ONBOARDING = process.env.OPENCODE_TEST_ONBOARDING === "1"
 const jsCallStackFeature = "DocumentPolicyIncludeJSCallStacksInCrashReports"
 
@@ -109,7 +101,7 @@ const main = Effect.gen(function* () {
 
   process.env.OPENCODE_DISABLE_EMBEDDED_WEB_UI = "true"
 
-  const appId = app.isPackaged ? APP_IDS[CHANNEL] : "ai.opencode.desktop.dev"
+  const appId = app.isPackaged ? APP_IDS[CHANNEL] : APP_IDS.dev
   const onboardingTestRoot = ((): string | undefined => {
     if (!TEST_ONBOARDING) return
 
@@ -125,7 +117,7 @@ const main = Effect.gen(function* () {
     process.env.XDG_STATE_HOME = join(root, "state")
     return root
   })()
-  app.setName(app.isPackaged ? APP_NAMES[CHANNEL] : "OpenCode Dev")
+  app.setName(app.isPackaged ? APP_NAMES[CHANNEL] : APP_NAMES.dev)
   app.setAppUserModelId(appId)
   app.setPath(
     "userData",
@@ -162,7 +154,7 @@ const main = Effect.gen(function* () {
   preferAppEnv(app.getPath("userData"))
 
   app.on("second-instance", (_event: Event, argv: string[]) => {
-    const urls = argv.filter((arg: string) => arg.startsWith("opencode://"))
+    const urls = extractDeepLinkUrls(argv)
     if (urls.length) {
       logger.log("deep link received via second-instance", { urls })
       emitDeepLinks(urls)
@@ -244,7 +236,7 @@ const main = Effect.gen(function* () {
   yield* Effect.promise(() => app.whenReady())
 
   if (!TEST_ONBOARDING) migrate()
-  app.setAsDefaultProtocolClient("opencode")
+  registerDeepLinkProtocolHandlers((scheme) => app.setAsDefaultProtocolClient(scheme))
   registerRendererProtocol()
   setDockIcon()
   setupAutoUpdater()

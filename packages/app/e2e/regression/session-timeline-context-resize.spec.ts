@@ -1,8 +1,8 @@
 import { expect, test, type Page } from "@playwright/test"
-import { mockOpenCodeServer } from "../utils/mock-server"
+import { mockOrgnServer } from "../utils/mock-server"
 import { expectAppVisible, expectSessionTitle } from "../utils/waits"
 
-const directory = "C:/OpenCode/ContextResizeRegression"
+const directory = "C:/orgn/ContextResizeRegression"
 const projectID = "proj_context_resize_regression"
 const sessionID = "ses_context_resize_regression"
 const title = "Context resize regression"
@@ -209,7 +209,7 @@ function contextTool(partID: string, messageID: string, tool: string, input: Rec
 }
 
 async function mockServer(page: Page) {
-  await mockOpenCodeServer(page, {
+  await mockOrgnServer(page, {
     directory,
     project: project(),
     provider: provider(),
@@ -254,7 +254,7 @@ function provider() {
     all: [
       {
         id: "opencode",
-        name: "OpenCode",
+        name: "orgn",
         models: { "claude-opus-4-6": { id: "claude-opus-4-6", name: "Claude Opus 4.6", limit: { context: 200_000 } } },
       },
     ],

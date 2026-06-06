@@ -1,0 +1,29 @@
+# ORGN desktop rebrand — final audit (2026-06-06)
+# Command: rg banned patterns in packages/desktop packages/app packages/ui
+
+## OpenCode product name (excluding tests and markdown)
+(no matches)
+
+## opencode.ai URLs (excluding tests and markdown)
+(no matches)
+
+## anomalyco (excluding package.json and markdown)
+(no matches)
+
+## ai.opencode.desktop (excluding migrate.ts, store.ts)
+(no matches)
+
+## Baseline comparison
+
+| Metric | audit-baseline.txt (Phase 0) | audit-final.txt (Phase 5) |
+|---|---|---|
+| Total grep lines | 579 | 0 banned matches in source |
+| OpenCode in desktop path source | 200+ | 0 |
+| opencode.ai in desktop path source | 50+ | 0 |
+| Scope | desktop, app, ui | desktop, app, ui (same) |
+
+Intentional compat patterns (not violations) documented in `i18n-replace-allowlist.txt`:
+- Provider IDs, config paths, legacy storage keys, legacy deep links in tests
+- `migrate.ts` legacy Tauri app IDs
+
+## Status: PASS — rebrand program complete (Phases 0–5)

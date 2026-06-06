@@ -8,7 +8,7 @@
 
   background: var(--background-bg-layer-01);
   box-shadow: var(--elevation-floating);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 
   font-style: normal;
   font-weight: 530;
