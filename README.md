@@ -7,7 +7,7 @@
   </a>
 </p>
 
-> **orgn fork — desktop rebrand active.** This worktree implements the [ORGN Desktop v2 rebrand](docs/contracts/orgn-desktop-v2-rebrand/). User-facing identity in `packages/desktop`, `packages/app`, and `packages/ui` is **orgn**. Runtime config paths remain on `opencode` (compat mode). See [`DECISIONS.md`](docs/contracts/orgn-desktop-v2-rebrand/DECISIONS.md) and [`UPSTREAM-MERGE.md`](docs/contracts/orgn-desktop-v2-rebrand/UPSTREAM-MERGE.md).
+> **orgn fork — desktop rebrand active.** User-visible identity in `packages/desktop`, `packages/app`, and `packages/ui` is **orgn**. Runtime config paths remain on `opencode` (compat mode).
 >
 > **Desktop dev:** `bun run dev:desktop` · **Brand module:** `packages/ui/src/brand/constants.ts`
 

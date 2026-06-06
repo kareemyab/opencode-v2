@@ -9,8 +9,6 @@ GLOBS=(
   --glob '!node_modules'
   --glob '!.artifacts'
   --glob '!**/*.md'
-  --glob '!**/i18n-replace-allowlist.txt'
-  --glob '!**/audit-*.txt'
   --glob '!**/*.test.ts'
 )
 
@@ -49,7 +47,7 @@ fi
 
 if [ "$fail" -ne 0 ]; then
   echo ""
-  echo "See docs/contracts/orgn-desktop-v2-rebrand/i18n-replace-allowlist.txt for allowed exceptions."
+  echo "Branding check failed in packages/desktop, packages/app, or packages/ui."
   exit 1
 fi
 

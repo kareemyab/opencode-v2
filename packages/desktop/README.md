@@ -36,7 +36,7 @@ Import as `@opencode-ai/ui/brand`. Key exports:
 | `UPDATE_PUBLISH_URLS` | DigitalOcean generic feed base URLs |
 | `SUPPORT_URL` | `https://orgn.com/support` |
 
-Runtime config paths stay on `opencode` (compat mode) — see `docs/contracts/orgn-desktop-v2-rebrand/DECISIONS.md`.
+Runtime config paths stay on `opencode` (compat mode).
 
 ## Channels
 
@@ -86,11 +86,3 @@ Monorepo typecheck workflow runs:
 
 - `bash scripts/check-orgn-branding.sh`
 - `bash scripts/audit-orgn-telemetry.sh`
-
-## Contract docs
-
-Full rebrand program: `docs/contracts/orgn-desktop-v2-rebrand/`
-
-- `DECISIONS.md` — locked product choices
-- `UPSTREAM-MERGE.md` — merging upstream OpenCode
-- `FOLLOW-UP-TICKETS.md` — deferred work titles
