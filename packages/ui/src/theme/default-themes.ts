@@ -1,4 +1,5 @@
 import type { DesktopTheme } from "./types"
+import orgnThemeJson from "./themes/orgn.json"
 import oc2ThemeJson from "./themes/oc-2.json"
 import amoledThemeJson from "./themes/amoled.json"
 import auraThemeJson from "./themes/aura.json"
@@ -24,7 +25,9 @@ import nightowlThemeJson from "./themes/nightowl.json"
 import nordThemeJson from "./themes/nord.json"
 import oneDarkThemeJson from "./themes/one-dark.json"
 import oneDarkProThemeJson from "./themes/onedarkpro.json"
+// Legacy upstream theme (id: opencode) — kept for merge compat; NOT the orgn default (hidden from picker).
 import opencodeThemeJson from "./themes/opencode.json"
+// Deprecated orgn orange experiment — do NOT use as default; hidden from picker.
 import orngThemeJson from "./themes/orng.json"
 import osakaJadeThemeJson from "./themes/osaka-jade.json"
 import palenightThemeJson from "./themes/palenight.json"
@@ -37,6 +40,7 @@ import vercelThemeJson from "./themes/vercel.json"
 import vesperThemeJson from "./themes/vesper.json"
 import zenburnThemeJson from "./themes/zenburn.json"
 
+export const orgnTheme = orgnThemeJson as DesktopTheme
 export const oc2Theme = oc2ThemeJson as DesktopTheme
 export const amoledTheme = amoledThemeJson as DesktopTheme
 export const auraTheme = auraThemeJson as DesktopTheme
@@ -76,6 +80,7 @@ export const vesperTheme = vesperThemeJson as DesktopTheme
 export const zenburnTheme = zenburnThemeJson as DesktopTheme
 
 export const DEFAULT_THEMES: Record<string, DesktopTheme> = {
+  orgn: orgnTheme,
   "oc-2": oc2Theme,
   amoled: amoledTheme,
   aura: auraTheme,
