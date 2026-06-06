@@ -1,11 +1,20 @@
+import {
+  APP_IDS,
+  APP_NAMES,
+  COMPANY_URL,
+  PRODUCT_TAGLINE,
+  SUPPORT_URL,
+  type OrgnChannel,
+} from "@opencode-ai/ui/brand"
 import { resolveChannel } from "./utils"
 
 const arg = process.argv[2]
-const channel = arg === "dev" || arg === "beta" || arg === "prod" ? arg : resolveChannel()
+const channel: OrgnChannel =
+  arg === "dev" || arg === "beta" || arg === "prod" ? arg : resolveChannel()
 
-const appId = channel === "prod" ? "ai.opencode.desktop" : `ai.opencode.desktop.${channel}`
-const productName = channel === "prod" ? "OpenCode" : `OpenCode ${channel.charAt(0).toUpperCase() + channel.slice(1)}`
-const summary = `Open source AI coding agent${channel !== "prod" ? ` (${channel})` : ""}`
+const appId = APP_IDS[channel]
+const productName = APP_NAMES[channel]
+const summary = `${PRODUCT_TAGLINE}${channel !== "prod" ? ` (${channel})` : ""}`
 
 const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
@@ -17,13 +26,13 @@ const xml = `<?xml version="1.0" encoding="UTF-8"?>
   <name>${productName}</name>
   <summary>${summary}</summary>
 
-  <developer id="ly.anoma">
-    <name>Anomaly Innovations Inc.</name>
+  <developer id="com.orgn">
+    <name>orgn</name>
   </developer>
 
   <description>
     <p>
-      OpenCode is an open source agent that helps you write and run code with any AI model.
+      orgn is a confidential agentic development environment. Run anything. See nothing.
     </p>
   </description>
 
@@ -31,17 +40,30 @@ const xml = `<?xml version="1.0" encoding="UTF-8"?>
 
   <content_rating type="oars-1.1" />
 
-  <url type="bugtracker">https://github.com/anomalyco/opencode/issues</url>
-  <url type="homepage">https://opencode.ai</url>
-  <url type="vcs-browser">https://github.com/anomalyco/opencode</url>
+  <url type="bugtracker">${SUPPORT_URL}</url>
+  <url type="homepage">${COMPANY_URL}</url>
+  <url type="help">${COMPANY_URL}/docs</url>
 
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/anomalyco/opencode/b75d4d1c5ec449585d515c756fc81f080a157a9a/packages/web/src/assets/lander/screenshot.png</image>
+      <image>${COMPANY_URL}/og.png</image>
     </screenshot>
   </screenshots>
 </component>
 `
 
+const desktop = `[Desktop Entry]
+Type=Application
+Name=${productName}
+GenericName=orgn
+Comment=${PRODUCT_TAGLINE}
+Exec=${productName} %U
+Icon=${appId}
+Categories=Development;IDE;
+StartupWMClass=${productName}
+Terminal=false
+`
+
 await Bun.write(`resources/${appId}.metainfo.xml`, xml)
-console.log(`Generated metainfo for ${channel} at resources/${appId}.metainfo.xml`)
+await Bun.write(`resources/${appId}.desktop`, desktop)
+console.log(`Generated Linux metadata for ${channel} at resources/${appId}.metainfo.xml and resources/${appId}.desktop`)
