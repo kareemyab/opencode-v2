@@ -1,0 +1,29 @@
+{
+  // id-orgn app-gate Worker — used for BOTH local dev (`wrangler dev`) and the prod deploy
+  // (GH Actions `wrangler deploy` on push to orgn). Production (SST infra/app.ts for the
+  // upstream opencode.ai) does not read this file.
+  //
+  // Non-secret config lives in `vars` (committed). SECRETS (ID_ORGN_CLIENT_SECRET,
+  // SESSION_SECRET) are NOT here — they're Cloudflare secrets set by the workflow from GH
+  // secrets. For local dev, packages/function/.dev.vars overrides `vars` and supplies the
+  // secrets (gitignored).
+  "name": "opencode-app-gate",
+  "main": "src/app-gate.ts",
+  "compatibility_date": "2025-06-01",
+  "routes": [{ "pattern": "app.orgn.com", "custom_domain": true }],
+  "assets": {
+    "directory": "../app/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": true
+  },
+  "vars": {
+    "APP_URL": "https://app.orgn.com",
+    "ID_ORGN_URL": "https://id.orgn.com",
+    "ID_ORGN_CLIENT_ID": "vU3lIIaieXkg4dzpd6GVee76CsDNHFRD",
+    "OPENCODE_CHANNEL": "prod",
+    // Network-isolated opencode backend the Worker proxies /__api to. Empty = data plane
+    // returns 502 (shell + id-orgn login still work). Set once a backend is reachable.
+    "OPENCODE_BACKEND_URL": ""
+  }
+}
