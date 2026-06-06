@@ -22,6 +22,14 @@ export const setOptionIfSupported = (value: unknown, key: string, next: unknown)
   value.setOption(key, next)
 }
 
+/** ghostty-web exposes mutable `options` (no xterm setOption API). */
+export const setGhosttyTerminalOption = (value: unknown, key: string, next: unknown) => {
+  if (!isRecord(value)) return
+  const options = value.options
+  if (!isRecord(options)) return
+  options[key] = next
+}
+
 export const getHoveredLinkText = (value: unknown) => {
   if (!isRecord(value)) return
   const link = value.currentHoveredLink

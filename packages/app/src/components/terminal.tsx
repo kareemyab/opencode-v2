@@ -9,17 +9,23 @@ import { useSDK } from "@/context/sdk"
 import { useServer } from "@/context/server"
 import { terminalUIFontStack, useSettings } from "@/context/settings"
 import type { LocalPTY } from "@/context/terminal"
-import { disposeIfDisposable, getHoveredLinkText, setOptionIfSupported } from "@/utils/runtime-adapters"
+import {
+  disposeIfDisposable,
+  getHoveredLinkText,
+  setGhosttyTerminalOption,
+  setOptionIfSupported,
+} from "@/utils/runtime-adapters"
 import { terminalWriter } from "@/utils/terminal-writer"
 import { terminalWebSocketURL } from "@/utils/terminal-websocket-url"
 
 const TOGGLE_TERMINAL_ID = "terminal.toggle"
 const DEFAULT_TOGGLE_TERMINAL_KEYBIND = "ctrl+`"
 const TERMINAL_CANVAS_FONT = terminalUIFontStack
+const TERMINAL_FONT_PROBE = "Helvetica Neue"
 
 const applyTerminalFont = (value: Term | undefined) => {
   if (!value) return
-  setOptionIfSupported(value, "fontFamily", TERMINAL_CANVAS_FONT)
+  setGhosttyTerminalOption(value, "fontFamily", TERMINAL_CANVAS_FONT)
 }
 export interface TerminalProps extends ComponentProps<"div"> {
   pty: LocalPTY
@@ -377,8 +383,14 @@ export const Terminal = (props: TerminalProps) => {
 
       t.open(container)
       applyTerminalFont(t)
+      t.textarea?.style.setProperty("font-family", TERMINAL_CANVAS_FONT, "important")
+      requestAnimationFrame(() => {
+        if (disposed) return
+        applyTerminalFont(t)
+        scheduleFit()
+      })
       if (typeof document !== "undefined" && document.fonts) {
-        void document.fonts.load(`13px ${TERMINAL_CANVAS_FONT}`).then(() => {
+        void document.fonts.load(`13px "${TERMINAL_FONT_PROBE}"`).then(() => {
           if (disposed) return
           applyTerminalFont(t)
           scheduleFit()

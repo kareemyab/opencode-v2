@@ -87,7 +87,7 @@ export function terminalInput(font: string | undefined) {
 
 /** Terminal canvas uses a proportional system UI font — never Berkeley Mono. */
 export const terminalUIFontStack =
-  '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif'
+  '"Helvetica Neue", Helvetica, "Segoe UI", Roboto, Arial, sans-serif'
 
 export function terminalFontFamily(_font: string | undefined) {
   return terminalUIFontStack

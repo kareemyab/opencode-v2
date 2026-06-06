@@ -10,6 +10,10 @@
     border-radius: 0;
   }
 
+  [data-security][data-component="terminal"] textarea {
+    font-family: var(--font-terminal) !important;
+  }
+
   [data-security][data-component="terminal-panel"] {
     background: var(--terminal-background, var(--s-terminal-bg));
     color: var(--terminal-foreground, hsl(0 0% 83%));
