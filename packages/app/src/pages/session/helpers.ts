@@ -5,6 +5,13 @@ import { same } from "@/utils/same"
 
 const emptyTabs: string[] = []
 
+export const SESSION_SECTION_TABS = ["review", "repo-files", "task", "context"] as const
+export type SessionSectionTab = (typeof SESSION_SECTION_TABS)[number]
+
+const sessionSectionTabs = new Set<string>(SESSION_SECTION_TABS)
+
+export const isSessionSectionTab = (tab: string): tab is SessionSectionTab => sessionSectionTabs.has(tab)
+
 type Tabs = {
   active: Accessor<string | undefined>
   all: Accessor<string[]>
@@ -31,7 +38,7 @@ export const createSessionTabs = (input: TabsInput) => {
         .tabs()
         .all()
         .flatMap((tab) => {
-          if (tab === "context" || tab === "review") return []
+          if (isSessionSectionTab(tab)) return []
           const value = input.pathFromTab(tab) ? input.normalizeTab(tab) : tab
           if (seen.has(value)) return []
           seen.add(value)
@@ -43,8 +50,10 @@ export const createSessionTabs = (input: TabsInput) => {
   )
   const activeTab = createMemo(() => {
     const active = input.tabs().active()
-    if (active === "context") return active
-    if (active === "review" && review()) return active
+    if (active && isSessionSectionTab(active)) {
+      if (active === "review" && !review()) return openedTabs()[0] ?? "empty"
+      return active
+    }
     if (active && input.pathFromTab(active)) return input.normalizeTab(active)
 
     const first = openedTabs()[0]

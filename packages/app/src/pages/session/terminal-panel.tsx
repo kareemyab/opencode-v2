@@ -194,11 +194,13 @@ export function TerminalPanel() {
     <div
       ref={root}
       id="terminal-panel"
+      data-security
+      data-component="terminal-panel"
       role="region"
       aria-label={language.t("terminal.title")}
       aria-hidden={!opened()}
       inert={!opened()}
-      class="relative w-full shrink-0 overflow-hidden bg-background-stronger"
+      class="relative w-full shrink-0 overflow-hidden s-terminal"
       classList={{
         "border-t border-border-weak-base": opened(),
         "transition-[height] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[height] motion-reduce:transition-none":
@@ -234,7 +236,7 @@ export function TerminalPanel() {
               <div class="h-10 flex items-center gap-2 px-2 border-b border-border-weaker-base bg-background-stronger overflow-hidden">
                 <For each={handoff()}>
                   {(title) => (
-                    <div class="px-2 py-1 rounded-md bg-surface-base text-14-regular text-text-weak truncate max-w-40">
+                    <div class="px-2 py-1 bg-surface-base text-14-regular text-text-weak truncate max-w-40">
                       {title}
                     </div>
                   )}

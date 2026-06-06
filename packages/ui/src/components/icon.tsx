@@ -103,14 +103,22 @@ const icons = {
   providers: `<path d="M10.0001 4.37562V2.875M13 4.37793V2.87793M7.00014 4.37793V2.875M10 17.1279V15.6279M13 17.1279V15.6279M7 17.1279V15.6279M15.625 13.0029H17.125M15.625 7.00293H17.125M15.625 10.0029H17.125M2.875 10.0029H4.375M2.875 13.0029H4.375M2.875 7.00293H4.375M4.375 4.37793H15.625V15.6279H4.375V4.37793ZM12.6241 10.0022C12.6241 11.4519 11.4488 12.6272 9.99908 12.6272C8.54934 12.6272 7.37408 11.4519 7.37408 10.0022C7.37408 8.55245 8.54934 7.3772 9.99908 7.3772C11.4488 7.3772 12.6241 8.55245 12.6241 10.0022Z" stroke="currentColor" stroke-linecap="square"/>`,
   models: `<path fill-rule="evenodd" clip-rule="evenodd" d="M17.5 10C12.2917 10 10 12.2917 10 17.5C10 12.2917 7.70833 10 2.5 10C7.70833 10 10 7.70833 10 2.5C10 7.70833 12.2917 10 17.5 10Z" stroke="currentColor"/>`,
   "arrow-undo-down": `<path d="M4.08333 11.0859L1.75 8.7526L4.08333 6.41927M2.33333 8.7526L12.5417 8.7526L12.5417 3.21094L7 3.21094" stroke="currentColor" stroke-width="1" stroke-linecap="square"/>`,
+  "git-pull-request": `<circle cx="18" cy="18" r="3" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="6" cy="6" r="3" stroke="currentColor" stroke-width="2" fill="none"/><path d="M13 6h3a2 2 0 0 1 2 2v7" stroke="currentColor" stroke-width="2" fill="none"/><path d="M6 9v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`,
+  "list-todo": `<rect x="3" y="5" width="6" height="6" rx="1" stroke="currentColor" stroke-width="2" fill="none"/><path d="m3 17 2 2 4-4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 6h8M13 12h8M13 18h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`,
+  document: `<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v4a2 2 0 0 0 2 2h4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+  "folder-tree": `<path d="M20 10a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2.5a1 1 0 0 1-.8-.4l-.9-1.2A1 1 0 0 0 15 3h-2a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1Z" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 21a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1h-2.9a1 1 0 0 1-.88-.55l-.42-.85a1 1 0 0 0-.92-.6H13a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1Z" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 5a2 2 0 0 0 2 2h3M3 3v13a2 2 0 0 0 2 2h3" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
 }
 
 const spriteID = "opencode-icon-sprite"
 const symbol = (name: keyof typeof icons) => `opencode-icon-${name}`
 let spriteInserted = false
 
+const lucideIcons = new Set<keyof typeof icons>(["git-pull-request", "list-todo", "document", "folder-tree"])
+
 function viewBox(name: keyof typeof icons) {
-  return name === "magnifying-glass" || name === "arrow-undo-down" ? "0 0 16 16" : "0 0 20 20"
+  if (name === "magnifying-glass" || name === "arrow-undo-down") return "0 0 16 16"
+  if (lucideIcons.has(name)) return "0 0 24 24"
+  return "0 0 20 20"
 }
 
 function ensureSprite() {

@@ -1,5 +1,5 @@
 import { useIsRouting, useLocation } from "@solidjs/router"
-import { batch, createEffect, onCleanup, onMount } from "solid-js"
+import { batch, createEffect, createSignal, onCleanup, onMount } from "solid-js"
 import { createStore } from "solid-js/store"
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { Tooltip } from "@opencode-ai/ui/tooltip"
@@ -79,6 +79,8 @@ export function DebugBar() {
   const language = useLanguage()
   const location = useLocation()
   const routing = useIsRouting()
+  const [collapsed, setCollapsed] = createSignal(false)
+  let zone: HTMLDivElement | undefined
   const [state, setState] = createStore({
     cls: undefined as number | undefined,
     delay: undefined as number | undefined,
@@ -162,6 +164,17 @@ export function DebugBar() {
   })
 
   onMount(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!collapsed() || !zone) return
+      const rect = zone.getBoundingClientRect()
+      const inside =
+        e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom
+      if (!inside) setCollapsed(false)
+    }
+
+    document.addEventListener("mousemove", onMove, { passive: true })
+    onCleanup(() => document.removeEventListener("mousemove", onMove))
+
     const obs: PerformanceObserver[] = []
     const fps: Array<{ at: number; dur: number }> = []
     const long: Array<{ at: number; dur: number }> = []
@@ -361,10 +374,25 @@ export function DebugBar() {
   })
 
   return (
-    <aside
-      aria-label={language.t("debugBar.ariaLabel")}
-      class="pointer-events-auto fixed bottom-3 right-3 z-50 w-[308px] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-none border border-border-base bg-surface-raised-stronger-non-alpha p-0.5 text-text-strong shadow-[var(--shadow-lg-border-base)] sm:bottom-4 sm:right-4 sm:w-[324px]"
+    <div
+      ref={(el) => {
+        zone = el
+      }}
+      classList={{
+        "fixed bottom-3 right-3 z-50 sm:bottom-4 sm:right-4": true,
+        "pointer-events-none": collapsed(),
+      }}
     >
+      <aside
+        aria-label={language.t("debugBar.ariaLabel")}
+        aria-hidden={collapsed()}
+        onPointerEnter={() => setCollapsed(true)}
+        classList={{
+          "w-[308px] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-none border border-border-base bg-surface-raised-stronger-non-alpha p-0.5 text-text-strong shadow-[var(--shadow-lg-border-base)] transition-opacity duration-150 sm:w-[324px]": true,
+          "pointer-events-auto opacity-100": !collapsed(),
+          "pointer-events-none opacity-0": collapsed(),
+        }}
+      >
       <div class="grid grid-cols-5 gap-px font-mono">
         <Cell
           label={language.t("debugBar.nav.label")}
@@ -438,6 +466,7 @@ export function DebugBar() {
           wide
         />
       </div>
-    </aside>
+      </aside>
+    </div>
   )
 }

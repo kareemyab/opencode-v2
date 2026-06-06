@@ -12,6 +12,7 @@ import {
   untrack,
   type JSX,
 } from "solid-js"
+import { createMediaQuery } from "@solid-primitives/media"
 import { createStore } from "solid-js/store"
 import { useLocation, useMatch, useNavigate, useParams } from "@solidjs/router"
 import { IconButton } from "@opencode-ai/ui/icon-button"
@@ -62,7 +63,7 @@ type TauriApi = {
 const tauriApi = () => (window as unknown as { __TAURI__?: TauriApi }).__TAURI__
 const currentDesktopWindow = () => tauriApi()?.window?.getCurrentWindow?.()
 const currentThemeWindow = () => tauriApi()?.webviewWindow?.getCurrentWebviewWindow?.()
-const legacyTitlebarHeight = 40
+const legacyTitlebarHeight = 32
 const v2TitlebarHeight = 47
 const minTitlebarZoom = 0.25
 const windowsControlsBaseWidth = 138 // 3 native Windows caption buttons at 46px each.
@@ -91,6 +92,8 @@ export function Titlebar(props: {
   const location = useLocation()
   const params = useParams()
   const useV2Titlebar = createMemo(() => settings.general.newLayoutDesigns())
+  const xl = createMediaQuery("(min-width: 1280px)")
+  const showTitlebarMobileControls = createMemo(() => !xl())
 
   const mac = createMemo(() => platform.platform === "desktop" && platform.os === "macos")
   const windows = createMemo(() => platform.platform === "desktop" && platform.os === "windows")
@@ -236,9 +239,9 @@ export function Titlebar(props: {
   return (
     <header
       classList={{
-        "shrink-0 relative flex flex-row": true,
-        "h-[47px] bg-v2-background-bg-deep overflow-visible border-b border-border-weak-base": useV2Titlebar(),
-        "h-10 bg-background-base overflow-hidden": !useV2Titlebar(),
+        "relative flex flex-row": true,
+        "shrink-0 h-[47px] bg-v2-background-bg-deep overflow-visible border-b border-border-weak-base": useV2Titlebar(),
+        "pointer-events-none absolute inset-x-0 top-0 left-0 z-50 h-0 overflow-visible p-0 m-0": !useV2Titlebar(),
       }}
       style={{
         "min-height": minHeight(),
@@ -533,151 +536,33 @@ export function Titlebar(props: {
         </Match>
         <Match when>
           <div
-            class="grid h-full min-h-full w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center"
+            class="pointer-events-none relative w-full h-0 p-0 m-0"
             style={{ zoom: counterZoom() }}
           >
-            <div
-              classList={{
-                "flex items-center min-w-0": true,
-                "pl-2": !mac(),
-              }}
-            >
-              <Show when={windows() || linux()}>
-                <WindowsAppMenu command={command} platform={platform} />
-              </Show>
-              <Show when={mac()}>
-                {/*<div class="h-full shrink-0" style={{ width: `${72 / zoom()}px` }} />*/}
-                <div class="xl:hidden w-10 shrink-0 flex items-center justify-center">
-                  <IconButton
-                    icon="menu"
-                    variant="ghost"
-                    class="titlebar-icon rounded-md"
-                    onClick={layout.mobileSidebar.toggle}
-                    aria-label={language.t("sidebar.menu.toggle")}
-                    aria-expanded={layout.mobileSidebar.opened()}
-                  />
-                </div>
-              </Show>
-              <Show when={!mac()}>
-                <div class="xl:hidden w-[48px] shrink-0 flex items-center justify-center">
-                  <IconButton
-                    icon="menu"
-                    variant="ghost"
-                    class="titlebar-icon rounded-md"
-                    onClick={layout.mobileSidebar.toggle}
-                    aria-label={language.t("sidebar.menu.toggle")}
-                    aria-expanded={layout.mobileSidebar.opened()}
-                  />
-                </div>
-              </Show>
-              <div class="flex items-center gap-1 shrink-0">
-                <TooltipKeybind
-                  class={web() ? "hidden xl:flex shrink-0 ml-14" : "hidden xl:flex shrink-0 ml-2"}
-                  placement="bottom"
-                  title={language.t("command.sidebar.toggle")}
-                  keybind={command.keybind("sidebar.toggle")}
-                >
-                  <Button
-                    variant="ghost"
-                    class="group/sidebar-toggle titlebar-icon w-8 h-6 p-0 box-border"
-                    onClick={layout.sidebar.toggle}
-                    aria-label={language.t("command.sidebar.toggle")}
-                    aria-expanded={layout.sidebar.opened()}
-                  >
-                    <Icon size="small" name={layout.sidebar.opened() ? "sidebar-active" : "sidebar"} />
-                  </Button>
-                </TooltipKeybind>
-                <div class="hidden xl:flex items-center shrink-0">
-                  <Show when={params.dir}>
-                    <div
-                      class="flex items-center shrink-0 w-8 mr-1"
-                      aria-hidden={layout.sidebar.opened() ? "true" : undefined}
-                    >
-                      <div
-                        class="transition-opacity"
-                        classList={{
-                          "opacity-100 duration-120 ease-out": !layout.sidebar.opened(),
-                          "opacity-0 duration-120 ease-in delay-0 pointer-events-none": layout.sidebar.opened(),
-                        }}
-                      >
-                        <TooltipKeybind
-                          placement="bottom"
-                          title={language.t("command.session.new")}
-                          keybind={command.keybind("session.new")}
-                          openDelay={2000}
-                        >
-                          <Button
-                            variant="ghost"
-                            icon={creating() ? "new-session-active" : "new-session"}
-                            class="titlebar-icon w-8 h-6 p-0 box-border"
-                            disabled={layout.sidebar.opened()}
-                            tabIndex={layout.sidebar.opened() ? -1 : undefined}
-                            onClick={() => {
-                              if (!params.dir) return
-                              navigate(`/${params.dir}/session`)
-                            }}
-                            aria-label={language.t("command.session.new")}
-                            aria-current={creating() ? "page" : undefined}
-                          />
-                        </TooltipKeybind>
-                      </div>
-                    </div>
-                  </Show>
-                  <div
-                    class="flex items-center shrink-0"
-                    classList={{
-                      "-translate-x-[36px]": layout.sidebar.opened() && !!params.dir,
-                      "duration-180 ease-out": !layout.sidebar.opened(),
-                      "duration-180 ease-in": layout.sidebar.opened(),
-                    }}
-                  >
-                    <Show when={hasProjects() && nav()}>
-                      <div class="flex items-center gap-0 transition-transform">
-                        <Tooltip placement="bottom" value={language.t("common.goBack")} openDelay={2000}>
-                          <Button
-                            variant="ghost"
-                            icon="chevron-left"
-                            class="titlebar-icon w-6 h-6 p-0 box-border"
-                            disabled={!canBack()}
-                            onClick={back}
-                            aria-label={language.t("common.goBack")}
-                          />
-                        </Tooltip>
-                        <Tooltip placement="bottom" value={language.t("common.goForward")} openDelay={2000}>
-                          <Button
-                            variant="ghost"
-                            icon="chevron-right"
-                            class="titlebar-icon w-6 h-6 p-0 box-border"
-                            disabled={!canForward()}
-                            onClick={forward}
-                            aria-label={language.t("common.goForward")}
-                          />
-                        </Tooltip>
-                      </div>
-                    </Show>
-                    <div id="opencode-titlebar-left" class="flex items-center gap-3 min-w-0 px-2" />
-                    <ChannelIndicator />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="min-w-0 flex items-center justify-center pointer-events-none">
+            <Show when={windows() || linux() || showTitlebarMobileControls()}>
               <div
-                id="opencode-titlebar-center"
-                class="pointer-events-auto min-w-0 flex justify-center w-fit max-w-full"
-              />
-            </div>
+                id="opencode-titlebar-left"
+                class="pointer-events-auto absolute top-0 left-0 flex h-8 items-start [app-region:no-drag] p-0 m-0"
+              >
+                <LegacyTitlebarLeftControls
+                  mac={mac()}
+                  windows={windows()}
+                  linux={linux()}
+                  zoom={zoom()}
+                  mobileSidebarOpened={layout.mobileSidebar.opened()}
+                  onToggleMobileSidebar={() => layout.mobileSidebar.toggle()}
+                  command={command}
+                  language={language}
+                  platform={platform}
+                />
+              </div>
+            </Show>
 
-            <div
-              classList={{
-                "flex items-center min-w-0 justify-end": true,
-                "pr-2": !windows(),
-              }}
-              data-tauri-drag-region
-              onMouseDown={drag}
-            >
-              <div id="opencode-titlebar-right" class="flex items-center gap-1 shrink-0 justify-end" />
+            <div class="pointer-events-auto absolute top-0 right-0 left-auto flex h-8 items-start min-w-0 justify-end [app-region:no-drag] p-0 m-0">
+              <div
+                id="opencode-titlebar-right"
+                class="relative z-[60] flex h-8 items-start gap-0 shrink-0 justify-end p-0 m-0 leading-none"
+              />
               <Show when={windows()}>
                 {!tauriApi() && <div class="shrink-0" style={{ width: windowsControlsWidth() }} />}
                 <div data-tauri-decorum-tb class="flex flex-row" />
@@ -687,6 +572,87 @@ export function Titlebar(props: {
         </Match>
       </Switch>
     </header>
+  )
+}
+
+export function SidebarToggleButton(props: {
+  opened: boolean
+  onToggle: () => void
+  command: ReturnType<typeof useCommand>
+  language: ReturnType<typeof useLanguage>
+  class?: string
+  compact?: boolean
+}) {
+  return (
+    <TooltipKeybind
+      class={props.class ?? "shrink-0"}
+      placement="bottom"
+      title={props.language.t("command.sidebar.toggle")}
+      keybind={props.command.keybind("sidebar.toggle")}
+    >
+      <Button
+        variant="ghost"
+        classList={{
+          "group/sidebar-toggle titlebar-icon p-0 box-border shrink-0": true,
+          "size-6": props.compact,
+          "size-8 min-w-8 min-h-8": !props.compact,
+        }}
+        onClick={props.onToggle}
+        aria-label={props.language.t("command.sidebar.toggle")}
+        aria-expanded={props.opened}
+      >
+        <Icon size="small" name={props.opened ? "sidebar-active" : "sidebar"} />
+      </Button>
+    </TooltipKeybind>
+  )
+}
+
+export function LegacyTitlebarLeftControls(props: {
+  mac: boolean
+  windows: boolean
+  linux: boolean
+  zoom: number
+  mobileSidebarOpened: boolean
+  onToggleMobileSidebar: () => void
+  command: ReturnType<typeof useCommand>
+  language: ReturnType<typeof useLanguage>
+  platform: ReturnType<typeof usePlatform>
+}) {
+  return (
+    <div
+      class="pointer-events-auto flex h-8 items-start min-w-0 gap-0 p-0 m-0 pl-2"
+      style={{
+        "padding-left": props.mac ? `${Math.max(0, 84 / props.zoom - 8)}px` : undefined,
+      }}
+    >
+      <Show when={props.windows || props.linux}>
+        <WindowsAppMenu command={props.command} platform={props.platform} />
+      </Show>
+      <Show when={props.mac}>
+        <div class="xl:hidden w-10 shrink-0 flex items-center justify-center">
+          <IconButton
+            icon="menu"
+            variant="ghost"
+            class="titlebar-icon rounded-md"
+            onClick={props.onToggleMobileSidebar}
+            aria-label={props.language.t("sidebar.menu.toggle")}
+            aria-expanded={props.mobileSidebarOpened}
+          />
+        </div>
+      </Show>
+      <Show when={!props.mac}>
+        <div class="xl:hidden w-[48px] shrink-0 flex items-center justify-center">
+          <IconButton
+            icon="menu"
+            variant="ghost"
+            class="titlebar-icon rounded-md"
+            onClick={props.onToggleMobileSidebar}
+            aria-label={props.language.t("sidebar.menu.toggle")}
+            aria-expanded={props.mobileSidebarOpened}
+          />
+        </div>
+      </Show>
+    </div>
   )
 }
 

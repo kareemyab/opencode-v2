@@ -80,9 +80,17 @@ export type LayoutRoute =
   | { type: "dir-new-sesssion"; dir: string; dirBase64: string; server?: ServerConnection.Key }
   | { type: "session"; dir: string; dirBase64: string; sessionId: string; server?: ServerConnection.Key }
 
+const PERSISTED_SECTION_TABS = new Set(["review", "repo-files", "task"])
+
+function withoutPersistedSectionTabs(all: string[]) {
+  return all.filter((tab) => !PERSISTED_SECTION_TABS.has(tab))
+}
+
 function nextSessionTabsForOpen(current: SessionTabs | undefined, tab: string): SessionTabs {
   const all = current?.all ?? []
-  if (tab === "review") return { all: all.filter((x) => x !== "review"), active: tab }
+  if (tab === "review" || tab === "repo-files" || tab === "task") {
+    return { all: all.filter((x) => x !== tab), active: tab }
+  }
   if (tab === "context") return { all: [tab, ...all.filter((x) => x !== tab)], active: tab }
   if (!all.includes(tab)) return { all: [...all, tab], active: tab }
   return { all, active: tab }
@@ -186,7 +194,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         if (!isRecord(review)) return review
         if (typeof review.panelOpened === "boolean") return review
 
-        const opened = isRecord(fileTree) && typeof fileTree.opened === "boolean" ? fileTree.opened : true
+        const opened = isRecord(fileTree) && typeof fileTree.opened === "boolean" ? fileTree.opened : false
         return {
           ...review,
           panelOpened: opened,
@@ -636,7 +644,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         },
       },
       fileTree: {
-        opened: createMemo(() => store.fileTree?.opened ?? true),
+        opened: createMemo(() => store.fileTree?.opened ?? false),
         width: createMemo(() => store.fileTree?.width ?? DEFAULT_FILE_TREE_WIDTH),
         tab: createMemo(() => store.fileTree?.tab ?? "changes"),
         setTab(tab: "changes" | "all") {
@@ -888,7 +896,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
         return {
           tabs,
           active: createMemo(() => tabs().active),
-          all: createMemo(() => tabs().all.filter((tab) => tab !== "review")),
+          all: createMemo(() => withoutPersistedSectionTabs(tabs().all)),
           setActive(tab: string | undefined) {
             const session = key()
             const next = tab ? normalize(tab) : tab
@@ -900,7 +908,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           },
           setAll(all: string[]) {
             const session = key()
-            const next = normalizeAll(all).filter((tab) => tab !== "review")
+            const next = withoutPersistedSectionTabs(normalizeAll(all))
             if (!store.sessionTabs[session]) {
               setStore("sessionTabs", session, { all: next, active: undefined })
             } else {
@@ -917,7 +925,7 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
             const current = store.sessionTabs[session]
             if (!current) return
 
-            if (tab === "review") {
+            if (tab === "review" || tab === "repo-files" || tab === "task") {
               if (current.active !== tab) return
               setStore("sessionTabs", session, "active", current.all[0])
               return

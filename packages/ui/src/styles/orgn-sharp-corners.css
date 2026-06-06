@@ -1,12 +1,9 @@
 /**
- * orgn sharp-corner overrides.
- *
- * Radius tokens are zeroed at theme apply time. This file catches Tailwind
- * utilities and hardcoded radii that bypass tokens — must live in @layer
- * utilities to win over generated rounded-* classes.
+ * orgn sharp-corner overrides — brutalist geometry (design system).
+ * Zero radius globally; catches Tailwind utilities and arbitrary values.
  */
 @layer utilities {
-  [data-theme="orgn"] {
+  :root {
     --radius-xs: 0;
     --radius-sm: 0;
     --radius-md: 0;
@@ -14,8 +11,7 @@
     --radius-xl: 0;
   }
 
-  /* Standard Tailwind rounded utilities */
-  [data-theme="orgn"] :is(
+  :is(
       .rounded-sm,
       .rounded-md,
       .rounded-lg,
@@ -42,13 +38,11 @@
     border-radius: 0 !important;
   }
 
-  /* Arbitrary values e.g. rounded-[6px], rounded-[10px] */
-  [data-theme="orgn"] [class*="rounded-["] {
+  [class*="rounded-["] {
     border-radius: 0 !important;
   }
 
-  /* v2 component surfaces */
-  [data-theme="orgn"] :is(
+  :is(
       [data-component="session-composer"],
       [data-component="session-new-composer"],
       [data-component="session-new-design"],
@@ -59,13 +53,29 @@
       [data-component="menu-v2"],
       [data-component="select-v2"],
       [data-dock-surface="shell"],
-      [data-dock-surface="tray"]
+      [data-dock-surface="tray"],
+      [data-component="terminal-panel"],
+      [data-component="tabs"][data-scope="session-panel"],
+      [data-component="tabs"][data-scope="filetree"],
+      [data-component="tooltip"]
     ) {
     border-radius: 0 !important;
   }
 
-  /* Square controls — keep spinners/loaders circular */
-  [data-theme="orgn"] :is(
+  :is(
+      [data-component="tabs"][data-scope="session-panel"] [data-slot="tabs-trigger-wrapper"],
+      [data-component="tabs"][data-scope="session-panel"] [data-slot="tabs-trigger"],
+      [data-component="tabs"][data-scope="session-panel"] [data-component="icon-button"],
+      [data-component="tabs"][data-scope="session-panel"] .session-section-tab__badge,
+      [data-component="tabs"][data-scope="filetree"] [data-slot="tabs-trigger-wrapper"],
+      [data-component="tabs"][data-scope="filetree"] [data-slot="tabs-trigger"],
+      [data-component="tabs"][data-scope="filetree"] [data-component="icon-button"],
+      [data-component="tabs"][data-scope="filetree"] .session-section-tab__badge
+    ) {
+    border-radius: 0 !important;
+  }
+
+  :is(
       [data-slot="radio-v2-item-control"],
       [data-slot="radio-v2-item-indicator"],
       [data-component="project-avatar-v2"][data-kind="org"],

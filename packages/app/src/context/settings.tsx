@@ -58,30 +58,11 @@ export const sansDefault = berkeleyMonoDefault
 export const terminalDefault = berkeleyMonoDefault
 export const newLayoutDesignsDefault = import.meta.env.VITE_OPENCODE_CHANNEL !== "prod"
 
-const berkeleyMonoStack = '"Berkeley Mono", ui-monospace, "Courier New", monospace'
-const monoFallback = berkeleyMonoStack
-// Monospace-everything UI identity (design system): Berkeley Mono is the single UI font.
-// font-sans and font-mono both resolve to it; weight carries emphasis.
-const sansFallback = berkeleyMonoStack
-const terminalFallback = berkeleyMonoStack
-
-const monoBase = monoFallback
-const sansBase = sansFallback
-const terminalBase = terminalFallback
+/** Design system: Berkeley Mono is the only UI font — settings cannot override. */
+export const berkeleyMonoStack = "var(--app-font-family)"
 
 function input(font: string | undefined) {
   return font ?? ""
-}
-
-function family(font: string) {
-  if (/^[\w-]+$/.test(font)) return font
-  return `"${font.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`
-}
-
-function stack(font: string | undefined, base: string) {
-  const value = font?.trim() ?? ""
-  if (!value) return base
-  return `${family(value)}, ${base}`
 }
 
 export function monoInput(font: string | undefined) {
@@ -92,20 +73,20 @@ export function sansInput(font: string | undefined) {
   return input(font)
 }
 
-export function monoFontFamily(font: string | undefined) {
-  return stack(font, monoBase)
+export function monoFontFamily(_font: string | undefined) {
+  return berkeleyMonoStack
 }
 
-export function sansFontFamily(font: string | undefined) {
-  return stack(font, sansBase)
+export function sansFontFamily(_font: string | undefined) {
+  return berkeleyMonoStack
 }
 
 export function terminalInput(font: string | undefined) {
   return input(font)
 }
 
-export function terminalFontFamily(font: string | undefined) {
-  return stack(font, terminalBase)
+export function terminalFontFamily(_font: string | undefined) {
+  return berkeleyMonoStack
 }
 
 const defaultSettings: Settings = {
@@ -165,12 +146,10 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
     createEffect(() => {
       if (typeof document === "undefined") return
       const root = document.documentElement
-      const mono = monoFontFamily(store.appearance?.mono)
-      const sans = sansFontFamily(store.appearance?.sans)
-      root.style.setProperty("--font-family-mono", mono)
-      root.style.setProperty("--font-family-sans", sans)
-      root.style.setProperty("--font-family-text", sans)
-      root.style.setProperty("--v2-font-family-sans", sans)
+      root.style.setProperty("--font-family-mono", berkeleyMonoStack)
+      root.style.setProperty("--font-family-sans", berkeleyMonoStack)
+      root.style.setProperty("--font-family-text", berkeleyMonoStack)
+      root.style.setProperty("--v2-font-family-sans", berkeleyMonoStack)
     })
 
     createEffect(() => {
@@ -268,16 +247,16 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
           setStore("appearance", "fontSize", value)
         },
         font: withFallback(() => store.appearance?.mono, defaultSettings.appearance.mono),
-        setFont(value: string) {
-          setStore("appearance", "mono", value.trim() ? value : "")
+        setFont(_value: string) {
+          /* Berkeley Mono only — design system one-knob font identity */
         },
         uiFont: withFallback(() => store.appearance?.sans, defaultSettings.appearance.sans),
-        setUIFont(value: string) {
-          setStore("appearance", "sans", value.trim() ? value : "")
+        setUIFont(_value: string) {
+          /* Berkeley Mono only — design system one-knob font identity */
         },
         terminalFont: withFallback(() => store.appearance?.terminal, defaultSettings.appearance.terminal),
-        setTerminalFont(value: string) {
-          setStore("appearance", "terminal", value.trim() ? value : "")
+        setTerminalFont(_value: string) {
+          /* Berkeley Mono only — design system one-knob font identity */
         },
       },
       keybinds: {

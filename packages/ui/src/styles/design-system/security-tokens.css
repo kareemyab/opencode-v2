@@ -1,0 +1,229 @@
+/**
+ * ORGN Security / TEE Design Tokens
+ * Scoped to [data-security]. Adapted from apps/agent/styles/security-tokens.css.
+ */
+[data-security] {
+  --s-gray-000: #ffffff;
+  --s-gray-050: #fafafa;
+  --s-gray-075: #f7f7f7;
+  --s-gray-100: #f2f2f2;
+  --s-gray-125: #ededed;
+  --s-gray-150: #e5e5e5;
+  --s-gray-200: #d9d9d9;
+  --s-gray-250: #c4c4c4;
+  --s-gray-300: #a3a3a3;
+  --s-gray-400: #737373;
+  --s-gray-500: #525252;
+  --s-gray-600: #404040;
+  --s-gray-700: #2d2d2d;
+  --s-gray-800: #1a1a1a;
+  --s-gray-900: #0a0a0a;
+  --s-gray-950: #050505;
+  --s-gray-999: #000000;
+
+  --s-teal: #0d8f7a;
+  --s-teal-dim: #e0f5f0;
+  --s-teal-glow: rgb(13 143 122 / 20%);
+  --s-violet: #6344e0;
+  --s-violet-dim: #ede8ff;
+  --s-violet-glow: rgb(99 68 224 / 20%);
+  --s-blue: #2b7de9;
+  --s-yellow: #a38b00;
+  --s-deep-blue: #1a2eff;
+
+  --s-severity-critical: #dc2626;
+  --s-severity-critical-dim: #fef2f2;
+  --s-severity-critical-bg: rgb(220 38 38 / 8%);
+  --s-severity-high: #ea580c;
+  --s-severity-high-dim: #fff7ed;
+  --s-severity-high-bg: rgb(234 88 12 / 8%);
+  --s-severity-medium: #a38b00;
+  --s-severity-medium-dim: #fefce8;
+  --s-severity-medium-bg: rgb(163 139 0 / 8%);
+  --s-severity-low: #2563eb;
+  --s-severity-low-dim: #eff6ff;
+  --s-severity-low-bg: rgb(37 99 235 / 8%);
+  --s-severity-info: #6b7280;
+  --s-severity-info-bg: rgb(107 114 128 / 6%);
+
+  --s-bg: var(--s-gray-000);
+  --s-surface-void: var(--s-gray-000);
+  --s-surface-ground: var(--s-gray-050);
+  --s-surface-raised: var(--s-gray-100);
+  --s-surface-elevated: var(--s-gray-150);
+  --s-surface-overlay: var(--s-gray-200);
+  --s-surface-terminal: #0a0a0a;
+
+  --s-text-primary: var(--s-gray-900);
+  --s-text-secondary: var(--s-gray-600);
+  --s-text-muted: var(--s-gray-500);
+  --s-text-ghost: var(--s-gray-400);
+  --s-text-terminal: var(--s-teal);
+
+  --s-border-harsh: var(--s-gray-300);
+  --s-border-subtle: var(--s-gray-200);
+  --s-border-faint: var(--s-gray-150);
+  --s-border-accent: var(--s-teal);
+
+  --s-focus-ring: var(--s-violet);
+  --s-focus-glow: var(--s-violet-glow);
+  --s-interactive-hover: var(--s-gray-150);
+  --s-interactive-active: var(--s-teal-dim);
+
+  --s-terminal-bg: var(--s-surface-terminal);
+  --s-terminal-text: #2fffd7;
+  --s-terminal-text-dim: rgb(47 255 215 / 50%);
+  --s-terminal-glow: rgb(47 255 215 / 40%);
+  --s-terminal-scanline: rgb(0 0 0 / 25%);
+  --s-terminal-scanline-opacity: 1;
+  --s-terminal-prompt: #777777;
+  --s-terminal-system: #999999;
+  --s-terminal-error: var(--s-severity-critical);
+
+  --s-progress-track: var(--s-gray-200);
+  --s-progress-fill: var(--s-teal);
+  --s-progress-glow: var(--s-teal-glow);
+
+  --s-card-bg: var(--s-surface-raised);
+  --s-card-border: var(--s-border-harsh);
+  --s-grain-opacity: 0.04;
+
+  --radius: 0px;
+  --radius-md: 0px;
+  --radius-sm: 0px;
+  --radius-lg: 0px;
+
+  --font-display: var(--app-font-family);
+  --font-body: var(--app-font-family);
+  --font-terminal: var(--app-font-mono);
+
+  font-family: var(--app-font-family);
+  border-radius: 0;
+}
+
+[data-color-scheme="dark"] [data-security] {
+  --s-gray-000: #000000;
+  --s-gray-050: #0a0a0a;
+  --s-gray-075: #0f0f0f;
+  --s-gray-100: #111111;
+  --s-gray-125: #141414;
+  --s-gray-150: #1a1a1a;
+  --s-gray-200: #222222;
+  --s-gray-250: #2a2a2a;
+  --s-gray-300: #333333;
+  --s-gray-400: #555555;
+  --s-gray-500: #777777;
+  --s-gray-600: #999999;
+  --s-gray-700: #bbbbbb;
+  --s-gray-800: #dddddd;
+  --s-gray-900: #eeeeee;
+  --s-gray-950: #f5f5f5;
+  --s-gray-999: #ffffff;
+
+  --s-teal: #2fffd7;
+  --s-teal-dim: #0d4a3d;
+  --s-teal-glow: rgb(47 255 215 / 40%);
+  --s-violet: #7a5cff;
+  --s-violet-dim: #2a1f66;
+  --s-violet-glow: rgb(122 92 255 / 35%);
+  --s-blue: #4fa8ff;
+  --s-yellow: #f6fa21;
+
+  --s-severity-critical: #ff3333;
+  --s-severity-critical-dim: #4a0f0f;
+  --s-severity-critical-bg: rgb(255 51 51 / 8%);
+  --s-severity-high: #ff8c00;
+  --s-severity-high-dim: #4a2f00;
+  --s-severity-high-bg: rgb(255 140 0 / 8%);
+  --s-severity-medium: #f6fa21;
+  --s-severity-medium-dim: #3d3e08;
+  --s-severity-medium-bg: rgb(246 250 33 / 6%);
+  --s-severity-low: #4fa8ff;
+  --s-severity-low-dim: #0f2a4a;
+  --s-severity-low-bg: rgb(79 168 255 / 8%);
+  --s-severity-info: #777777;
+  --s-severity-info-bg: rgb(119 119 119 / 6%);
+
+  --s-surface-terminal: #000000;
+
+  --s-bg: var(--background);
+  --s-surface-void: var(--background);
+  --s-surface-ground: var(--card);
+  --s-surface-raised: var(--card);
+  --s-surface-elevated: var(--muted);
+  --s-surface-overlay: var(--muted);
+
+  --s-text-primary: var(--foreground);
+  --s-text-secondary: var(--text-base, var(--muted-foreground));
+  --s-text-muted: var(--text-weak, var(--muted-foreground));
+  --s-text-ghost: var(--muted-foreground);
+
+  --s-border-harsh: var(--border-weak-base, var(--border));
+  --s-border-subtle: var(--border-weak, var(--border));
+  --s-border-faint: var(--border-weak, var(--border));
+
+  --s-interactive-hover: var(--muted);
+  --s-interactive-active: var(--accent);
+}
+
+[data-security] button,
+[data-security] [role="button"],
+[data-security] a {
+  cursor: pointer;
+}
+
+@keyframes s-crt-flicker {
+  0% {
+    opacity: 0.97;
+  }
+  5% {
+    opacity: 0.96;
+  }
+  10% {
+    opacity: 0.98;
+  }
+  15% {
+    opacity: 0.97;
+  }
+  20% {
+    opacity: 0.99;
+  }
+  50% {
+    opacity: 0.97;
+  }
+  80% {
+    opacity: 0.98;
+  }
+  100% {
+    opacity: 0.97;
+  }
+}
+
+@keyframes s-cursor-blink {
+  0%,
+  49% {
+    opacity: 0.7;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes s-pulse-glow {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-security] * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

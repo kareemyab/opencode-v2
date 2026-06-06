@@ -271,12 +271,10 @@ export default function Page() {
   const isV2NewSessionPage = () =>
     shouldUseV2NewSessionPage({ newLayoutDesigns: newSessionDesign(), sessionID: params.id })
   const desktopReviewOpen = createMemo(() => isDesktop() && view().reviewPanel.opened() && !isV2NewSessionPage())
-  const desktopFileTreeOpen = createMemo(() => isDesktop() && layout.fileTree.opened() && !isV2NewSessionPage())
-  const desktopSidePanelOpen = createMemo(() => desktopReviewOpen() || desktopFileTreeOpen())
+  const desktopSidePanelOpen = desktopReviewOpen
   const sessionPanelWidth = createMemo(() => {
     if (!desktopSidePanelOpen()) return "100%"
-    if (desktopReviewOpen()) return `${layout.session.width()}px`
-    return `calc(100% - ${layout.fileTree.width()}px)`
+    return `${layout.session.width()}px`
   })
   const centered = createMemo(() => isDesktop() && !desktopReviewOpen())
 
@@ -454,9 +452,7 @@ export default function Page() {
   })
   const mobileChanges = createMemo(() => !isDesktop() && store.mobileTab === "changes")
   const wantsReview = createMemo(() =>
-    isDesktop()
-      ? desktopFileTreeOpen() || (desktopReviewOpen() && activeTab() === "review")
-      : store.mobileTab === "changes",
+    isDesktop() ? desktopReviewOpen() && activeTab() === "review" : store.mobileTab === "changes",
   )
   const vcsMode = createMemo<VcsMode | undefined>(() => {
     if (store.changes === "git" || store.changes === "branch") return store.changes
@@ -849,12 +845,29 @@ export default function Page() {
     }
   }
 
+  const [changesInit, setChangesInit] = createStore<Record<string, boolean>>({})
+
   createEffect(() => {
+    const key = sessionKey()
     const list = changesOptions()
-    if (list.includes(store.changes)) return
-    const next = list[0]
-    if (!next) return
-    setStore("changes", next)
+    if (!list.length) return
+
+    if (!changesInit[key]) {
+      if (list.includes("git")) {
+        setStore("changes", "git")
+        setChangesInit(key, true)
+        return
+      }
+      if (nogit() || list.length === 1) {
+        setStore("changes", list[0]!)
+        setChangesInit(key, true)
+      }
+      return
+    }
+
+    if (!list.includes(store.changes)) {
+      setStore("changes", list.includes("git") ? "git" : list[0]!)
+    }
   })
 
   createEffect(
@@ -867,9 +880,6 @@ export default function Page() {
       { defer: true },
     ),
   )
-
-  const fileTreeTab = () => layout.fileTree.tab()
-  const setFileTreeTab = (value: "changes" | "all") => layout.fileTree.setTab(value)
 
   const [tree, setTree] = createStore({
     reviewScroll: undefined as HTMLDivElement | undefined,
@@ -892,8 +902,7 @@ export default function Page() {
   )
 
   const showAllFiles = () => {
-    if (fileTreeTab() !== "changes") return
-    setFileTreeTab("all")
+    tabs().setActive("repo-files")
   }
 
   const focusInput = () => {
@@ -1032,18 +1041,6 @@ export default function Page() {
     </div>
   )
 
-  createEffect(
-    on(
-      activeFileTab,
-      (active) => {
-        if (!active) return
-        if (fileTreeTab() !== "changes") return
-        showAllFiles()
-      },
-      { defer: true },
-    ),
-  )
-
   const reviewDiffId = (path: string) => {
     const sum = checksum(path)
     if (!sum) return
@@ -1167,10 +1164,10 @@ export default function Page() {
   createEffect(() => {
     const dir = sdk.directory
     if (!isDesktop()) return
-    if (!layout.fileTree.opened()) return
+    if (!view().reviewPanel.opened()) return
+    if (activeTab() !== "repo-files") return
     if (sync.status === "loading") return
 
-    fileTreeTab()
     const refresh = treeDir !== dir
     treeDir = dir
     void (refresh ? file.tree.refresh("") : file.tree.list(""))
@@ -1745,22 +1742,17 @@ export default function Page() {
 
         <div
           classList={{
-            "@container relative shrink-0 flex flex-col min-h-0 h-full bg-background-stronger flex-1 md:flex-none": true,
+            "@container relative shrink-0 flex flex-col min-h-0 h-full bg-background-base flex-1 md:flex-none": true,
             "duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[width] motion-reduce:transition-none":
               !size.active() && !ui.reviewSnap,
             "transition-[width]": !isV2NewSessionPage(),
-            "rounded-[10px] shadow-[var(--v2-elevation-raised)]": settings.general.newLayoutDesigns() && !!params.id,
+            "shadow-[var(--v2-elevation-raised)]": settings.general.newLayoutDesigns() && !!params.id,
           }}
           style={{
             width: sessionPanelWidth(),
           }}
         >
-          <div
-            class="flex-1 min-h-0 overflow-hidden"
-            classList={{
-              "rounded-[10px]": settings.general.newLayoutDesigns(),
-            }}
-          >
+          <div class="flex-1 min-h-0 overflow-hidden">
             <Switch>
               <Match when={params.id && mobileChanges()}>
                 <div class="relative h-full overflow-hidden">

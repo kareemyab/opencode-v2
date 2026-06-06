@@ -541,8 +541,11 @@ export const dict = {
   "home.sessions.group.older": "Older",
 
   "session.tab.session": "Session",
-  "session.tab.review": "Review",
-  "session.tab.context": "Context",
+  "session.tab.review": "Changed files",
+  "session.tab.repoFiles": "Repo files",
+  "session.tab.task": "Task details",
+  "session.tab.context": "Context files",
+  "session.task.empty": "No task details yet",
   "session.panel.reviewAndFiles": "Review and files",
   "session.review.filesChanged": "{{count}} Files Changed",
   "session.review.change.one": "Change",

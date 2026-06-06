@@ -1,14 +1,14 @@
 [data-component="markdown"] {
-  /* Reset & Base Typography */
+  /* ORGN Response / Streamdown typography */
   min-width: 0;
   max-width: 100%;
-  overflow-wrap: break-word;
-  color: var(--text-strong);
+  overflow-wrap: anywhere;
+  color: var(--stream-text, var(--text-base));
   font-family: var(--font-family-sans);
-  font-size: var(--font-size-base); /* 14px */
-  line-height: 160%;
+  font-size: 0.875rem;
+  font-weight: 300;
+  line-height: 1.71429;
 
-  /* Spacing for flow */
   > *:first-child {
     margin-top: 0;
   }
@@ -16,43 +16,87 @@
     margin-bottom: 0;
   }
 
-  /* Headings: Same size, distinguished by color and spacing */
-  h1,
-  h2,
-  h3,
-  h4,
+  h1 {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--stream-text-strong, var(--text-strong));
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.71429;
+  }
+
+  h2 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--stream-text-strong, var(--text-strong));
+    margin-top: 0.75rem;
+    margin-bottom: 0.375rem;
+    line-height: 1.71429;
+  }
+
+  h3 {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--stream-text-strong, var(--text-strong));
+    margin-top: 0.5rem;
+    margin-bottom: 0.25rem;
+    line-height: 1.71429;
+  }
+
+  h4 {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--stream-text-strong, var(--text-strong));
+    margin-top: 0.5rem;
+    margin-bottom: 0.25rem;
+    line-height: 1.71429;
+  }
+
   h5,
   h6 {
-    font-size: 14px;
-    color: var(--text-strong);
-    font-weight: var(--font-weight-medium);
-    margin-top: 0px;
-    margin-bottom: 24px;
-    line-height: var(--line-height-large);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--stream-text-strong, var(--text-strong));
+    margin-top: 0.5rem;
+    margin-bottom: 0.25rem;
+    line-height: 1.71429;
   }
 
-  /* Emphasis & Strong: Neutral strong color */
+  h6 {
+    font-weight: 500;
+  }
+
   strong,
   b {
-    color: var(--text-strong);
-    font-weight: var(--font-weight-medium);
+    color: var(--stream-text-strong, var(--text-strong));
+    font-weight: 600;
   }
 
-  /* Paragraphs */
+  em,
+  i {
+    font-style: italic;
+  }
+
   p {
-    margin-bottom: 12px;
+    margin-top: 1.25em;
+    margin-bottom: 1.25em;
   }
 
-  /* Links */
   a {
-    color: var(--text-interactive-base);
-    text-decoration: none;
-    font-weight: inherit;
+    color: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
   }
 
   a:hover {
-    text-decoration: underline;
-    text-underline-offset: 2px;
+    color: var(--link, var(--text-interactive-base));
   }
 
   /* Lists */
@@ -89,7 +133,7 @@
   }
 
   li::marker {
-    color: var(--text-weak);
+    color: var(--list-marker-color, currentcolor);
   }
 
   /* Nested lists spacing */
@@ -104,27 +148,34 @@
     padding-left: 1.75rem;
   }
 
-  /* Blockquotes */
   blockquote {
-    border-left: 2px solid var(--border-weak-base);
-    margin: 1.5rem 0;
-    padding-left: 0.5rem;
-    color: var(--text-weak);
-    font-style: normal;
+    border-left: 4px solid color-mix(in srgb, var(--primary) 50%, transparent);
+    background: color-mix(in srgb, var(--primary) 5%, transparent);
+    margin: 1rem 0;
+    padding: 0.375rem 0 0.375rem 0.75rem;
+    font-size: 0.8125rem;
+    font-style: italic;
+    color: var(--stream-text, var(--text-base));
   }
 
-  /* Horizontal Rule - Invisible spacing only */
   hr {
     border: none;
-    height: 0;
-    margin: 40px 0;
+    height: 1px;
+    margin: 1.5rem 0;
+    background: linear-gradient(
+      to right,
+      transparent,
+      color-mix(in srgb, var(--border, var(--border-weak-base)) 50%, transparent),
+      transparent
+    );
   }
 
   .shiki {
     font-size: 13px;
     padding: 12px;
-    border-radius: 6px;
-    border: 0.5px solid var(--border-weak-base);
+    border-radius: 0;
+    border: 1px solid var(--border, var(--border-weak-base));
+    background: var(--smoke-dark-3, var(--surface-raised-base));
   }
 
   [data-component="markdown-code"] {
@@ -211,43 +262,52 @@
     }
   }
 
-  :not(pre) > code {
+  code:not(pre code) {
     font-family: var(--font-family-mono);
     font-feature-settings: var(--font-family-mono--font-feature-settings);
-    color: var(--syntax-string);
-    font-weight: var(--font-weight-medium);
-    /* font-size: 13px; */
-
-    /* padding: 2px 2px; */
-    /* margin: 0 1.5px; */
-    /* border-radius: 2px; */
-    /* background: var(--surface-base); */
-    /* box-shadow: 0 0 0 0.5px var(--border-weak-base); */
+    font-size: var(--code-inline-size, 0.75rem);
+    font-weight: 400;
+    color: var(--color-brand-green, #00d492);
+    background: var(--code-inline-bg);
+    border: 1px solid color-mix(in srgb, var(--border, var(--border-weak-base)) 50%, transparent);
+    border-radius: 0.375rem;
+    padding: 0.15rem 0.25rem;
   }
 
-  /* Tables */
   table {
     width: 100%;
     border-collapse: collapse;
-    margin: 24px 0;
-    font-size: var(--font-size-base);
+    margin: 1rem 0;
+    font-size: 0.8125rem;
     display: block;
     overflow-x: auto;
+    border: 1px solid var(--border, var(--border-weak-base));
   }
 
   th,
   td {
-    /* Minimal borders for structure, matching TUI "lines" roughly but keeping it web-clean */
-    border-bottom: 1px solid var(--border-weaker-base);
-    padding: 12px;
+    border: 1px solid var(--border, var(--border-weak-base));
+    padding: 0.75rem;
     text-align: left;
     vertical-align: top;
   }
 
   th {
-    color: var(--text-strong);
-    font-weight: var(--font-weight-medium);
-    border-bottom: 1px solid var(--border-weak-base);
+    color: var(--stream-text-strong, var(--text-strong));
+    font-weight: 600;
+    background: color-mix(in srgb, var(--muted) 50%, transparent);
+  }
+
+  tr {
+    border-bottom: 1px solid var(--border, var(--border-weak-base));
+  }
+
+  tr:nth-child(even) {
+    background: color-mix(in srgb, var(--muted) 20%, transparent);
+  }
+
+  tr:hover {
+    background: color-mix(in srgb, var(--muted) 30%, transparent);
   }
 
   /* Images */
@@ -258,6 +318,10 @@
     margin: 1.5rem 0;
     display: block;
   }
+}
+
+[data-component="markdown"] a.external-link > code {
+  color: #00d492;
 }
 
 [data-component="markdown"] a.external-link:hover > code {

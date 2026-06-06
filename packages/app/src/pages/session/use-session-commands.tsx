@@ -86,8 +86,9 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
   }
 
   const showAllFiles = () => {
-    if (layout.fileTree.tab() !== "changes") return
-    layout.fileTree.setTab("all")
+    if (!view().reviewPanel.opened()) view().reviewPanel.open()
+    if (layout.fileTree.opened()) layout.fileTree.close()
+    tabs().setActive("repo-files")
   }
 
   const selectionPreview = (path: string, selection: FileSelection) => {
@@ -470,7 +471,13 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
             id: "fileTree.toggle",
             title: language.t("command.fileTree.toggle"),
             keybind: "mod+\\",
-            onSelect: () => layout.fileTree.toggle(),
+            onSelect: () => {
+              if (view().reviewPanel.opened() && tabs().active() === "repo-files") {
+                view().reviewPanel.close()
+                return
+              }
+              showAllFiles()
+            },
           }),
         ]
       : []),

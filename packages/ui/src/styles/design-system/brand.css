@@ -1,0 +1,60 @@
+/**
+ * ORGN design system — brand infrastructure.
+ */
+:root {
+  --illustration-filter: none;
+}
+
+[data-color-scheme="dark"] {
+  --illustration-filter: invert(1) brightness(0.65) opacity(0.8);
+}
+
+@layer utilities {
+  .border-shell {
+    border-color: var(--shell-border);
+  }
+
+  .text-shell-muted {
+    color: var(--shell-muted-text);
+  }
+
+  .text-brand-green {
+    color: var(--color-brand-green);
+  }
+
+  [data-component="markdown"] code:not(pre code) {
+    color: #00d492;
+  }
+
+  .bg-brand-green {
+    background-color: var(--color-brand-green);
+  }
+
+  .bg-brand-green-bg {
+    background-color: var(--color-brand-green-bg);
+  }
+
+  .border-brand-green {
+    border-color: var(--color-brand-green);
+  }
+
+  .text-brand-purple {
+    color: var(--color-brand-purple);
+  }
+
+  .logo-invert-dark {
+    filter: invert(1) brightness(0.9);
+  }
+
+  .logo-invert-light {
+    filter: none;
+  }
+
+  [data-color-scheme="dark"] .logo-invert-dark {
+    filter: none;
+  }
+
+  [data-color-scheme="dark"] .logo-invert-light {
+    filter: invert(1) brightness(0.9);
+  }
+}
