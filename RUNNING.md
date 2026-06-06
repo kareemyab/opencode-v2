@@ -30,8 +30,9 @@ bun prod:local         # builds + serves UI **and** API together on :4096 (chann
 #  → open http://localhost:4096        (this IS prod; no DEV badge; no hot reload)
 
 # 2) "Let me edit the UI and watch it change"     →  dev server with hot reload
-bun dev:stack          # API on :4096 + vite UI on :3000 (HMR)
+bun dev:stack:prod     # API on :4096 + prod-channel UI on :3000 (HMR, looks like prod)
 #  → open http://localhost:3000        (edit packages/app/src/** → renders live)
+#  (use `bun dev:stack` for the dev channel; see "Make the dev UI look like prod")
 ```
 
 | | `bun prod:local` | `bun dev:stack` |
@@ -154,6 +155,18 @@ What renders where:
 | --- | --- | --- |
 | **`:3000`** | vite dev UI — **your from-source code, with HMR** | ✅ **yes** |
 | `:4096` | the API server (data the UI calls) | server code only |
+
+### Make the dev UI look like prod
+
+By default the dev server runs the **`dev` channel**, which is visibly different from prod — it shows a `DEV` badge **and a different default layout** (`settings.tsx`: `newLayoutDesignsDefault = VITE_OPENCODE_CHANNEL !== "prod"`). To edit against the **prod look** with hot reload still on, run the prod channel:
+
+```bash
+bun dev:stack:prod     # from-source server + prod-channel UI on :3000
+bun dev:web:prod       # prod-channel UI only (point at an existing :4096 server)
+# equivalent to: OPENCODE_CHANNEL=prod bun dev:stack  /  …bun dev:web
+```
+
+This renders **identical to prod** except for one thing: a small floating **performance overlay (DebugBar)** in the corner. That overlay is gated on vite's dev-mode flag (`import.meta.env.DEV`), not the channel, so it stays in any hot-reload server — only a real prod build (`bun prod:local`) removes it. It's just an overlay; the actual UI matches prod.
 
 ### Don't want a second server? (avoids port conflicts)
 
