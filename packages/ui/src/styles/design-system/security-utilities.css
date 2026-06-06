@@ -2,11 +2,18 @@
  * ORGN TEE / security surface utilities.
  */
 @layer components {
-  [data-security] .s-terminal {
-    background: var(--s-terminal-bg);
-    color: var(--s-terminal-text);
-    font-family: var(--font-terminal, var(--app-font-mono));
+  [data-security].s-terminal,
+  [data-security][data-component="terminal"] {
+    background: var(--terminal-background, var(--s-terminal-bg));
+    color: var(--terminal-foreground, hsl(0 0% 83%));
+    font-family: var(--font-terminal) !important;
     border-radius: 0;
+  }
+
+  [data-security][data-component="terminal-panel"] {
+    background: var(--terminal-background, var(--s-terminal-bg));
+    color: var(--terminal-foreground, hsl(0 0% 83%));
+    font-family: var(--font-terminal);
   }
 
   [data-security] .s-card {

@@ -85,8 +85,12 @@ export function terminalInput(font: string | undefined) {
   return input(font)
 }
 
+/** Terminal canvas uses a proportional system UI font — never Berkeley Mono. */
+export const terminalUIFontStack =
+  '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif'
+
 export function terminalFontFamily(_font: string | undefined) {
-  return berkeleyMonoStack
+  return terminalUIFontStack
 }
 
 const defaultSettings: Settings = {

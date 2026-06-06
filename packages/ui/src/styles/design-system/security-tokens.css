@@ -95,7 +95,8 @@
 
   --font-display: var(--app-font-family);
   --font-body: var(--app-font-family);
-  --font-terminal: var(--app-font-mono);
+  --font-terminal: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Helvetica, Arial,
+    sans-serif;
 
   font-family: var(--app-font-family);
   border-radius: 0;

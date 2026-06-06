@@ -1,10 +1,13 @@
 import { DropdownMenu } from "@opencode-ai/ui/dropdown-menu"
 import { Icon } from "@opencode-ai/ui/icon"
 import { Popover } from "@opencode-ai/ui/popover"
+import { TooltipKeybind } from "@opencode-ai/ui/tooltip"
 import { useTheme, type ColorScheme } from "@opencode-ai/ui/theme/context"
 import { createMemo, createSignal, For, Show, Suspense, type JSX } from "solid-js"
+import { useCommand } from "@/context/command"
 import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
+import { useSessionLayout } from "@/pages/session/session-layout"
 import {
   LspStatusPanel,
   McpStatusPanel,
@@ -113,6 +116,36 @@ function BottomBarPopoverItem(props: {
   )
 }
 
+function TerminalBarItem() {
+  const language = useLanguage()
+  const command = useCommand()
+  const { view } = useSessionLayout()
+  const opened = createMemo(() => view().terminal.opened())
+
+  return (
+    <TooltipKeybind
+      placement="top"
+      title={language.t("command.terminal.toggle")}
+      keybind={command.keybind("terminal.toggle")}
+    >
+      <button
+        type="button"
+        classList={{
+          "flex h-7 shrink-0 cursor-pointer items-center gap-1.5 border-0 bg-transparent border-l border-border-weak-base px-2 text-xs transition-colors": true,
+          "text-text-base": opened(),
+          "text-text-weak hover:bg-surface-raised-base-hover hover:text-text-base": !opened(),
+        }}
+        aria-label={language.t("command.terminal.toggle")}
+        aria-pressed={opened()}
+        onClick={() => view().terminal.toggle()}
+      >
+        <Icon name={opened() ? "terminal-active" : "terminal"} size="small" class="shrink-0" />
+        <span class="bottom-bar-label whitespace-nowrap">{language.t("terminal.title")}</span>
+      </button>
+    </TooltipKeybind>
+  )
+}
+
 function ServersBarItem() {
   const language = useLanguage()
   const counts = useDirectoryStatusCounts()
@@ -193,6 +226,9 @@ export function BottomActivityBar() {
           </div>
 
           <StatusBarItems />
+          <div class="flex shrink-0 items-center self-stretch">
+            <TerminalBarItem />
+          </div>
         </div>
       </div>
     </div>

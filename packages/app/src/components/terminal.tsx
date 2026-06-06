@@ -7,7 +7,7 @@ import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useSDK } from "@/context/sdk"
 import { useServer } from "@/context/server"
-import { terminalFontFamily, useSettings } from "@/context/settings"
+import { terminalUIFontStack, useSettings } from "@/context/settings"
 import type { LocalPTY } from "@/context/terminal"
 import { disposeIfDisposable, getHoveredLinkText, setOptionIfSupported } from "@/utils/runtime-adapters"
 import { terminalWriter } from "@/utils/terminal-writer"
@@ -15,6 +15,12 @@ import { terminalWebSocketURL } from "@/utils/terminal-websocket-url"
 
 const TOGGLE_TERMINAL_ID = "terminal.toggle"
 const DEFAULT_TOGGLE_TERMINAL_KEYBIND = "ctrl+`"
+const TERMINAL_CANVAS_FONT = terminalUIFontStack
+
+const applyTerminalFont = (value: Term | undefined) => {
+  if (!value) return
+  setOptionIfSupported(value, "fontFamily", TERMINAL_CANVAS_FONT)
+}
 export interface TerminalProps extends ComponentProps<"div"> {
   pty: LocalPTY
   autoFocus?: boolean
@@ -44,13 +50,25 @@ type TerminalColors = {
   selectionBackground: string
 }
 
-/** TEE terminal palette — always dark, spectral teal on black (design system). */
-const TEE_TERMINAL_COLORS: TerminalColors = {
-  background: "#000000",
-  foreground: "#2fffd7",
-  cursor: "#2fffd7",
-  selectionBackground: "rgba(47, 255, 215, 0.25)",
+const TERMINAL_COLOR_FALLBACK: TerminalColors = {
+  background: "hsl(0 0% 4%)",
+  foreground: "hsl(0 0% 83%)",
+  cursor: "hsl(0 0% 83%)",
+  selectionBackground: "hsla(206, 82%, 47%, 0.5)",
 }
+
+const readTerminalToken = (name: string, fallback: string) => {
+  if (typeof window === "undefined") return fallback
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+  return value || fallback
+}
+
+const getTerminalColors = (): TerminalColors => ({
+  background: readTerminalToken("--terminal-background", TERMINAL_COLOR_FALLBACK.background),
+  foreground: readTerminalToken("--terminal-foreground", TERMINAL_COLOR_FALLBACK.foreground),
+  cursor: readTerminalToken("--terminal-foreground", TERMINAL_COLOR_FALLBACK.cursor),
+  selectionBackground: TERMINAL_COLOR_FALLBACK.selectionBackground,
+})
 
 const debugTerminal = (...values: unknown[]) => {
   if (!import.meta.env.DEV) return
@@ -215,8 +233,6 @@ export const Terminal = (props: TerminalProps) => {
       })
   }
 
-  const getTerminalColors = (): TerminalColors => TEE_TERMINAL_COLORS
-
   const terminalColors = createMemo(getTerminalColors)
 
   const scheduleFit = () => {
@@ -260,13 +276,6 @@ export const Terminal = (props: TerminalProps) => {
     const colors = terminalColors()
     if (!term) return
     setOptionIfSupported(term, "theme", colors)
-  })
-
-  createEffect(() => {
-    const font = terminalFontFamily(settings.appearance.terminalFont())
-    if (!term) return
-    setOptionIfSupported(term, "fontFamily", font)
-    scheduleFit()
   })
 
   let zoom = platform.webviewZoom?.()
@@ -322,8 +331,8 @@ export const Terminal = (props: TerminalProps) => {
         cursorStyle: "bar",
         cols: restoreSize?.cols,
         rows: restoreSize?.rows,
-        fontSize: 14,
-        fontFamily: terminalFontFamily(settings.appearance.terminalFont()),
+        fontSize: 13,
+        fontFamily: TERMINAL_CANVAS_FONT,
         allowTransparency: false,
         convertEol: false,
         theme: terminalColors(),
@@ -367,6 +376,14 @@ export const Terminal = (props: TerminalProps) => {
       serializeAddon = serializer
 
       t.open(container)
+      applyTerminalFont(t)
+      if (typeof document !== "undefined" && document.fonts) {
+        void document.fonts.load(`13px ${TERMINAL_CANVAS_FONT}`).then(() => {
+          if (disposed) return
+          applyTerminalFont(t)
+          scheduleFit()
+        })
+      }
       useTerminalUiBindings({
         container,
         term: t,
@@ -624,11 +641,14 @@ export const Terminal = (props: TerminalProps) => {
       data-component="terminal"
       data-prevent-autofocus
       tabIndex={-1}
-      style={{ "background-color": terminalColors().background }}
+      style={{
+        "background-color": terminalColors().background,
+        "font-family": TERMINAL_CANVAS_FONT,
+      }}
       classList={{
         ...local.classList,
         "select-text": true,
-        "s-terminal size-full px-6 py-3 font-mono relative overflow-hidden": true,
+        "s-terminal size-full px-3 py-2 relative overflow-hidden": true,
         [local.class ?? ""]: !!local.class,
       }}
       {...others}
