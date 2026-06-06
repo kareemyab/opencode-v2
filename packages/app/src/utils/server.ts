@@ -30,8 +30,20 @@ export function createSdkForServer({
     }
   })()
 
+  // Same-origin server (the hosted id-orgn gateway, or the embedded prod binary): send the
+  // HttpOnly oc.session cookie with every request so the Worker can authorize the proxy.
+  const sameOrigin = (() => {
+    if (typeof location === "undefined") return false
+    try {
+      return new URL(server.url, location.href).origin === location.origin
+    } catch {
+      return false
+    }
+  })()
+
   return createOpencodeClient({
     ...config,
+    ...(sameOrigin ? { credentials: "include" as const } : {}),
     headers: {
       ...(config.headers instanceof Headers ? Object.fromEntries(config.headers.entries()) : config.headers),
       ...auth,

@@ -100,6 +100,9 @@ if (!(root instanceof HTMLElement) && import.meta.env.DEV) {
 }
 
 const getCurrentUrl = () => {
+  // Hosted, id-orgn-gated deploy: talk to the same-origin "/__api" proxy (the Cloudflare
+  // app-gate Worker), which authorizes via the oc.session cookie and forwards to the backend.
+  if (import.meta.env.VITE_OPENCODE_GATEWAY) return location.origin + "/__api"
   if (location.hostname.includes("opencode.ai")) return "http://localhost:4096"
   if (import.meta.env.DEV)
     return `http://${import.meta.env.VITE_OPENCODE_SERVER_HOST ?? "localhost"}:${import.meta.env.VITE_OPENCODE_SERVER_PORT ?? "4096"}`
@@ -107,6 +110,9 @@ const getCurrentUrl = () => {
 }
 
 const getDefaultUrl = () => {
+  // In the gated deploy the only valid server is the same-origin proxy; ignore any stale
+  // localStorage default so the default key matches the connection below.
+  if (import.meta.env.VITE_OPENCODE_GATEWAY) return getCurrentUrl()
   const lsDefault = readDefaultServerUrl()
   if (lsDefault) return lsDefault
   return getCurrentUrl()
@@ -114,8 +120,8 @@ const getDefaultUrl = () => {
 
 const clearAuthToken = () => {
   const params = new URLSearchParams(location.search)
-  if (!params.has("auth_token")) return
-  params.delete("auth_token")
+  if (!params.has("auth_token") && !params.has("code") && !params.has("state")) return
+  for (const key of ["auth_token", "code", "state"]) params.delete(key)
   history.replaceState(null, "", location.pathname + (params.size ? `?${params}` : "") + location.hash)
 }
 
