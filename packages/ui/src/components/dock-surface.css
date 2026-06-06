@@ -13,7 +13,7 @@
 }
 
 [data-dock-surface="shell"] [data-component="prompt-toolbar"] {
-  border-top: 1px solid var(--border-weak-base, var(--border));
+  border-top: none;
 }
 
 [data-dock-surface="tray"] {

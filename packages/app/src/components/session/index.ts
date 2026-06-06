@@ -1,3 +1,4 @@
+export { BottomActivityBar } from "./bottom-activity-bar"
 export { SessionHeader } from "./session-header"
 export { SessionContextTab } from "./session-context-tab"
 export { SessionTaskTab } from "./session-task-tab"

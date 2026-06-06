@@ -24,25 +24,25 @@ describe("promptPlaceholder", () => {
     )
   })
 
-  test("returns default placeholder with example when suggestions enabled", () => {
-    const value = promptPlaceholder({
-      mode: "normal",
-      commentCount: 0,
-      example: "translated-example",
-      suggest: true,
-      t,
-    })
-    expect(value).toBe("prompt.placeholder.normal:translated-example")
-  })
+  test("returns command hints placeholder in normal mode", () => {
+    expect(
+      promptPlaceholder({
+        mode: "normal",
+        commentCount: 0,
+        example: "translated-example",
+        suggest: true,
+        t,
+      }),
+    ).toBe("prompt.placeholder.hints")
 
-  test("returns simple placeholder when suggestions disabled", () => {
-    const value = promptPlaceholder({
-      mode: "normal",
-      commentCount: 0,
-      example: "translated-example",
-      suggest: false,
-      t,
-    })
-    expect(value).toBe("prompt.placeholder.simple")
+    expect(
+      promptPlaceholder({
+        mode: "normal",
+        commentCount: 0,
+        example: "translated-example",
+        suggest: false,
+        t,
+      }),
+    ).toBe("prompt.placeholder.hints")
   })
 })

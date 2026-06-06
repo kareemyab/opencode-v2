@@ -55,7 +55,6 @@ import { Popover as KobaltePopover } from "@kobalte/core/popover"
 import { normalize } from "@opencode-ai/ui/session-diff"
 import { useFileComponent } from "@opencode-ai/ui/context/file"
 import { shouldMarkBoundaryGesture, normalizeWheelDelta } from "@/pages/session/message-gesture"
-import { SessionContextUsage } from "@/components/session-context-usage"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useLanguage } from "@/context/language"
 import { useSessionKey } from "@/pages/session/session-layout"
@@ -1309,93 +1308,95 @@ export function MessageTimeline(props: {
               </Show>
               <div
                 classList={{
-                  "flex h-12 min-w-0 flex-1 items-center justify-between gap-2 pr-3 md:pr-4": true,
+                  "flex h-12 min-w-0 flex-1 items-center gap-2 pr-3 md:pr-4": true,
                   "pl-2 md:pl-4": !xl() || layout.sidebar.opened(),
                   "md:max-w-200 md:mx-auto 2xl:max-w-[1000px]": props.centered,
                 }}
               >
                 <div class="flex min-w-0 flex-1 items-center gap-1 pr-3">
-                <div class="flex min-w-0 grow-1 items-center gap-1">
-                  <Show when={parentID()}>
-                    <button
-                      type="button"
-                      data-slot="session-title-parent"
-                      class="min-w-0 max-w-[40%] truncate text-14-medium text-text-weak transition-colors hover:text-text-base"
-                      onClick={navigateParent}
-                    >
-                      {parentTitle()}
-                    </button>
-                    <span
-                      data-slot="session-title-separator"
-                      class="px-2 text-14-medium text-text-weak"
+                  <div class="group/session-title flex min-w-0 flex-1 items-center gap-1">
+                    <Show when={parentID()}>
+                      <button
+                        type="button"
+                        data-slot="session-title-parent"
+                        class="min-w-0 max-w-[40%] truncate text-14-medium text-text-weak transition-colors hover:text-text-base"
+                        onClick={navigateParent}
+                      >
+                        {parentTitle()}
+                      </button>
+                      <span
+                        data-slot="session-title-separator"
+                        class="px-2 text-14-medium text-text-weak"
+                        aria-hidden="true"
+                      >
+                        /
+                      </span>
+                    </Show>
+                    <div
+                      class="shrink-0 flex items-center justify-center overflow-hidden transition-[width,margin] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                      style={{
+                        width: working() ? "16px" : "0px",
+                        "margin-right": working() ? "8px" : "0px",
+                      }}
                       aria-hidden="true"
                     >
-                      /
-                    </span>
-                  </Show>
-                  <div
-                    class="shrink-0 flex items-center justify-center overflow-hidden transition-[width,margin] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
-                    style={{
-                      width: working() ? "16px" : "0px",
-                      "margin-right": working() ? "8px" : "0px",
-                    }}
-                    aria-hidden="true"
-                  >
-                    <Show when={workingStatus() !== "hidden"}>
-                      <div
-                        class="transition-opacity duration-200 ease-out"
-                        classList={{ "opacity-0": workingStatus() === "hiding" }}
-                      >
-                        <Spinner class="size-4" style={{ color: tint() ?? "var(--icon-interactive-base)" }} />
-                      </div>
-                    </Show>
-                  </div>
-                  <Show when={childTitle() || title.editing}>
-                    <Show
-                      when={title.editing}
-                      fallback={
-                        <h1
-                          data-slot="session-title-child"
-                          class="text-14-medium text-text-strong truncate grow-1 min-w-0"
-                          onDblClick={openTitleEditor}
+                      <Show when={workingStatus() !== "hidden"}>
+                        <div
+                          class="transition-opacity duration-200 ease-out"
+                          classList={{ "opacity-0": workingStatus() === "hiding" }}
                         >
-                          {childTitle()}
-                        </h1>
-                      }
-                    >
-                      <InlineInput
-                        ref={(el) => {
-                          titleRef = el
-                        }}
-                        data-slot="session-title-child"
-                        value={title.draft}
-                        disabled={titleMutation.isPending}
-                        class="text-14-medium text-text-strong grow-1 min-w-0 pl-1 -ml-1"
-                        style={{ "--inline-input-shadow": "var(--shadow-xs-border-select)" }}
-                        onInput={(event) => setTitle("draft", event.currentTarget.value)}
-                        onKeyDown={(event) => {
-                          event.stopPropagation()
-                          if (event.key === "Enter") {
-                            event.preventDefault()
-                            void saveTitleEditor()
-                            return
-                          }
-                          if (event.key === "Escape") {
-                            event.preventDefault()
-                            closeTitleEditor()
-                          }
-                        }}
-                        onBlur={closeTitleEditor}
-                      />
+                          <Spinner class="size-4" style={{ color: tint() ?? "var(--icon-interactive-base)" }} />
+                        </div>
+                      </Show>
+                    </div>
+                    <Show when={childTitle() || title.editing}>
+                      <Show
+                        when={title.editing}
+                        fallback={
+                          <h1
+                            data-slot="session-title-child"
+                            class="text-14-medium text-text-strong truncate min-w-0"
+                            onDblClick={openTitleEditor}
+                          >
+                            {childTitle()}
+                          </h1>
+                        }
+                      >
+                        <InlineInput
+                          ref={(el) => {
+                            titleRef = el
+                          }}
+                          data-slot="session-title-child"
+                          value={title.draft}
+                          disabled={titleMutation.isPending}
+                          class="text-14-medium text-text-strong min-w-0 pl-1 -ml-1"
+                          style={{ "--inline-input-shadow": "var(--shadow-xs-border-select)" }}
+                          onInput={(event) => setTitle("draft", event.currentTarget.value)}
+                          onKeyDown={(event) => {
+                            event.stopPropagation()
+                            if (event.key === "Enter") {
+                              event.preventDefault()
+                              void saveTitleEditor()
+                              return
+                            }
+                            if (event.key === "Escape") {
+                              event.preventDefault()
+                              closeTitleEditor()
+                            }
+                          }}
+                          onBlur={closeTitleEditor}
+                        />
+                      </Show>
                     </Show>
-                  </Show>
-                </div>
-              </div>
-                <Show when={sessionID()} keyed>
-                {(id) => (
-                  <div class="relative z-[60] flex shrink-0 items-center gap-3 pointer-events-auto">
-                    <SessionContextUsage placement="bottom" />
-                    <Show when={!parentID()}>
+                    <Show when={sessionID() && !parentID()} keyed>
+                      {(id) => (
+                        <div
+                          class="relative z-[60] flex shrink-0 items-center gap-1 opacity-0 pointer-events-none transition-opacity duration-150 group-hover/session-title:opacity-100 group-hover/session-title:pointer-events-auto group-focus-within/session-title:opacity-100 group-focus-within/session-title:pointer-events-auto"
+                          classList={{
+                            "opacity-100 pointer-events-auto":
+                              title.menuOpen || share.open || title.pendingShare,
+                          }}
+                        >
                       <DropdownMenu
                         gutter={4}
                         placement="bottom-end"
@@ -1409,7 +1410,7 @@ export function MessageTimeline(props: {
                           as={IconButton}
                           icon="dot-grid"
                           variant="ghost"
-                          class="size-6 data-[expanded]:bg-surface-base-active"
+                          class="size-6 transition-opacity data-[expanded]:bg-surface-base-active data-[expanded]:opacity-100"
                           classList={{
                             "bg-surface-base-active": share.open || title.pendingShare,
                           }}
@@ -1567,10 +1568,11 @@ export function MessageTimeline(props: {
                           </KobaltePopover.Content>
                         </KobaltePopover.Portal>
                       </KobaltePopover>
+                        </div>
+                      )}
                     </Show>
                   </div>
-                )}
-              </Show>
+                </div>
               </div>
             </div>
           </div>
