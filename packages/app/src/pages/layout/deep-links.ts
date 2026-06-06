@@ -87,6 +87,21 @@ export const parseNewSessionDeepLink = (input: string) => {
   return { directory, prompt }
 }
 
+export const parseAuthCallbackDeepLink = (input: string) => {
+  const url = parseUrl(input)
+  if (!url) return
+  if (url.hostname !== "auth-callback") return
+  const code = url.searchParams.get("code")
+  const state = url.searchParams.get("state")
+  if (!code || !state) return
+  return { code, state }
+}
+
+export const collectAuthCallbackDeepLinks = (urls: string[]) =>
+  urls
+    .map(parseAuthCallbackDeepLink)
+    .filter((link): link is { code: string; state: string } => !!link)
+
 export const collectOpenProjectDeepLinks = (urls: string[]) =>
   urls.map(parseDeepLink).filter((directory): directory is string => !!directory)
 

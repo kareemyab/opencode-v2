@@ -27,6 +27,8 @@ import {
   Show,
 } from "solid-js"
 import { Dynamic } from "solid-js/web"
+import { AuthProvider } from "@/context/auth"
+import { AuthGate } from "@/components/auth-gate"
 import { CommandProvider } from "@/context/command"
 import { CommentsProvider } from "@/context/comments"
 import { FileProvider } from "@/context/file"
@@ -310,12 +312,14 @@ export function AppInterface(props: {
   disableHealthCheck?: boolean
 }) {
   return (
+    <AuthProvider>
     <ServerProvider
       defaultServer={props.defaultServer}
       canonicalLocalServer={props.canonicalLocalServer}
       servers={props.servers}
     >
       <GlobalProvider>
+        <AuthGate>
         <ConnectionGate disableHealthCheck={props.disableHealthCheck}>
           <Dynamic
             component={props.router ?? Router}
@@ -340,7 +344,9 @@ export function AppInterface(props: {
             </Route>
           </Dynamic>
         </ConnectionGate>
+        </AuthGate>
       </GlobalProvider>
     </ServerProvider>
+    </AuthProvider>
   )
 }

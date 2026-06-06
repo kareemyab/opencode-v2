@@ -59,11 +59,40 @@ new sst.cloudflare.x.Astro("Web", {
   },
 })
 
-new sst.cloudflare.StaticSite("WebApp", {
+// The web app is fronted by a Cloudflare Worker (packages/function/src/app-gate.ts) that
+// gates the SPA shell behind id-orgn and same-origin-proxies the data plane to a
+// network-isolated opencode backend. The SPA itself is served via the Workers static-assets
+// binding. NOTE: `packages/app/dist` must be built (`bun turbo build`) before deploy.
+const SESSION_SECRET = new sst.Secret("SESSION_SECRET")
+const ID_ORGN_CLIENT_SECRET = new sst.Secret("ID_ORGN_CLIENT_SECRET")
+
+new sst.cloudflare.Worker("WebApp", {
   domain: "app." + domain,
-  path: "packages/app",
-  build: {
-    command: "bun turbo build",
-    output: "./dist",
+  handler: "packages/function/src/app-gate.ts",
+  environment: {
+    APP_URL: "https://app." + domain,
+    ID_ORGN_URL: process.env.ID_ORGN_URL ?? "",
+    ID_ORGN_CLIENT_ID: process.env.ID_ORGN_CLIENT_ID ?? "",
+    ID_ORGN_CLIENT_SECRET: ID_ORGN_CLIENT_SECRET.value,
+    SESSION_SECRET: SESSION_SECRET.value,
+    OPENCODE_CHANNEL: process.env.OPENCODE_CHANNEL ?? "prod",
+    OPENCODE_BACKEND_URL: process.env.OPENCODE_BACKEND_URL ?? "",
+  },
+  transform: {
+    worker: (args) => {
+      args.logpush = true
+      // Workers static-assets binding -> the built SPA. SST 4.13.1 has no first-class
+      // assets field, so inject the raw Cloudflare assets config here. The Worker runs first
+      // for the auth + proxy prefixes and gates everything else before serving an asset.
+      // VERIFY these field names against the installed @pulumi/cloudflare version at deploy
+      // time (camelCase Pulumi vs snake_case CF API) — this is the one deploy-validated bit.
+      ;(args as any).assets = {
+        directory: "packages/app/dist",
+        binding: "ASSETS",
+        htmlHandling: "auto-trailing-slash",
+        notFoundHandling: "single-page-application",
+        runWorkerFirst: ["/api/auth/*", "/__api/*", "/*"],
+      }
+    },
   },
 })
