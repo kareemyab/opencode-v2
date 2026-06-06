@@ -14,6 +14,8 @@ type Entry = {
 
 const max = 200
 const cache = new Map<string, Entry>()
+let mermaidID = 0
+let mermaidPromise: Promise<typeof import("mermaid").default> | undefined
 
 if (typeof window !== "undefined" && DOMPurify.isSupported) {
   DOMPurify.addHook("afterSanitizeAttributes", (node: Element) => {
@@ -45,6 +47,95 @@ const iconPaths = {
 function sanitize(html: string) {
   if (!DOMPurify.isSupported) return ""
   return DOMPurify.sanitize(html, config)
+}
+
+function loadMermaid() {
+  mermaidPromise ??= import("mermaid").then((mod) => {
+    mod.default.initialize({
+      startOnLoad: false,
+      securityLevel: "strict",
+      theme: "base",
+      flowchart: {
+        htmlLabels: false,
+      },
+      themeVariables: {
+        darkMode: true,
+        background: "transparent",
+        mainBkg: "#e8e7ff",
+        primaryColor: "#e8e7ff",
+        primaryTextColor: "#111111",
+        primaryBorderColor: "#9b99c9",
+        secondaryColor: "#fff6a8",
+        secondaryTextColor: "#111111",
+        secondaryBorderColor: "#c7b94a",
+        tertiaryColor: "#181818",
+        tertiaryTextColor: "#f4f4f5",
+        tertiaryBorderColor: "#3f3f46",
+        clusterBkg: "#ffffd6",
+        clusterBorder: "#c7b94a",
+        titleColor: "#f4f4f5",
+        textColor: "#f4f4f5",
+        lineColor: "#737373",
+        edgeLabelBackground: "#181818",
+        nodeTextColor: "#111111",
+        noteBkgColor: "#fff6a8",
+        noteTextColor: "#111111",
+        noteBorderColor: "#c7b94a",
+      },
+    })
+    return mod.default
+  })
+  return mermaidPromise
+}
+
+function sanitizeMermaidSVG(svg: string) {
+  if (!DOMPurify.isSupported) return
+  const safe = DOMPurify.sanitize(svg, {
+    USE_PROFILES: { svg: true, svgFilters: true },
+    FORBID_TAGS: ["script", "foreignObject"],
+  })
+  const template = document.createElement("template")
+  template.innerHTML = safe
+  const element = template.content.firstElementChild
+  if (!(element instanceof SVGSVGElement)) return
+  element.dataset.slot = "markdown-mermaid-svg"
+  element.setAttribute("role", "img")
+  element.setAttribute("aria-label", "Mermaid diagram")
+  return element
+}
+
+function mermaidSource(source: string) {
+  const template = document.createElement("template")
+  template.dataset.slot = "markdown-mermaid-source"
+  template.textContent = source
+  return template
+}
+
+async function renderMermaidDiagrams(html: string) {
+  const container = document.createElement("div")
+  container.innerHTML = html
+  const diagrams = Array.from(
+    container.querySelectorAll('[data-component="markdown-mermaid"][data-state="source"]'),
+  ).filter((element): element is HTMLDivElement => element instanceof HTMLDivElement)
+  if (diagrams.length === 0) return html
+
+  const mermaid = await loadMermaid()
+  for (const diagram of diagrams) {
+    const source = diagram.querySelector("code")?.textContent?.trim()
+    if (!source) continue
+
+    try {
+      const rendered = await mermaid.render(`markdown-mermaid-${++mermaidID}`, source)
+      const svg = sanitizeMermaidSVG(rendered.svg)
+      if (!svg) continue
+      diagram.replaceChildren(svg, mermaidSource(source))
+      diagram.dataset.state = "rendered"
+    } catch {
+      diagram.dataset.state = "error"
+    }
+  }
+
+  return container.innerHTML
 }
 
 function escape(text: string) {
@@ -122,6 +213,7 @@ function setCopyState(button: HTMLButtonElement, labels: CopyLabels, copied: boo
 function ensureCodeWrapper(block: HTMLPreElement, labels: CopyLabels) {
   const parent = block.parentElement
   if (!parent) return
+  if (parent.getAttribute("data-component") === "markdown-mermaid") return
   const wrapped = parent.getAttribute("data-component") === "markdown-code"
   if (!wrapped) {
     const wrapper = document.createElement("div")
@@ -138,6 +230,22 @@ function ensureCodeWrapper(block: HTMLPreElement, labels: CopyLabels) {
 
   if (buttons.length === 0) {
     parent.appendChild(createCopyButton(labels))
+    return
+  }
+
+  for (const button of buttons.slice(1)) {
+    button.remove()
+  }
+}
+
+function ensureMermaidCopyButton(block: HTMLDivElement, labels: CopyLabels) {
+  if (!block.querySelector('[data-slot="markdown-mermaid-source"]')) return
+  const buttons = Array.from(block.querySelectorAll('[data-slot="markdown-copy-button"]')).filter(
+    (el): el is HTMLButtonElement => el instanceof HTMLButtonElement,
+  )
+
+  if (buttons.length === 0) {
+    block.appendChild(createCopyButton(labels))
     return
   }
 
@@ -180,6 +288,12 @@ function decorate(root: HTMLDivElement, labels: CopyLabels) {
   for (const block of blocks) {
     ensureCodeWrapper(block, labels)
   }
+  const mermaidBlocks = Array.from(root.querySelectorAll('[data-component="markdown-mermaid"]')).filter(
+    (el): el is HTMLDivElement => el instanceof HTMLDivElement,
+  )
+  for (const block of mermaidBlocks) {
+    ensureMermaidCopyButton(block, labels)
+  }
   markCodeLinks(root)
 }
 
@@ -199,7 +313,10 @@ function setupCodeCopy(root: HTMLDivElement, getLabels: () => CopyLabels) {
     const button = target.closest('[data-slot="markdown-copy-button"]')
     if (!(button instanceof HTMLButtonElement)) return
     const code = button.closest('[data-component="markdown-code"]')?.querySelector("code")
-    const content = code?.textContent ?? ""
+    const mermaid = button
+      .closest('[data-component="markdown-mermaid"]')
+      ?.querySelector('[data-slot="markdown-mermaid-source"]')
+    const content = code?.textContent ?? mermaid?.textContent ?? ""
     if (!content) return
     const clipboard = navigator?.clipboard
     if (!clipboard) return
@@ -277,8 +394,9 @@ export function Markdown(
 
           const next = await Promise.resolve(marked.parse(block.src))
           const safe = sanitize(next)
-          if (key && hash) touch(key, { hash, html: safe })
-          return safe
+          const withMermaid = src.streaming ? safe : await renderMermaidDiagrams(safe)
+          if (key && hash) touch(key, { hash, html: withMermaid })
+          return withMermaid
         }),
       )
         .then((list) => list.join(""))

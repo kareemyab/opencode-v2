@@ -423,26 +423,49 @@ function renderMathExpressions(html: string): string {
     .join("")
 }
 
+function escapeHTML(text: string): string {
+  return text
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;")
+}
+
+function isMermaidLanguage(language: string | undefined): boolean {
+  return language?.trim().toLowerCase().split(/\s+/)[0] === "mermaid"
+}
+
+function mermaidBlock(code: string): string {
+  return `<div data-component="markdown-mermaid" data-state="source"><pre><code>${escapeHTML(code)}</code></pre></div>`
+}
+
 async function highlightCodeBlocks(html: string): Promise<string> {
   const codeBlockRegex = /<pre><code(?:\s+class="language-([^"]*)")?>([\s\S]*?)<\/code><\/pre>/g
   const matches = [...html.matchAll(codeBlockRegex)]
   if (matches.length === 0) return html
 
-  const highlighter = await getSharedHighlighter({
-    themes: ["orgn"],
-    langs: [],
-    preferredHighlighter: "shiki-wasm",
-  })
-
   let result = html
+  let highlighter: Awaited<ReturnType<typeof getSharedHighlighter>> | undefined
   for (const match of matches) {
     const [fullMatch, lang, escapedCode] = match
     const code = escapedCode
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
-      .replace(/&amp;/g, "&")
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
+      .replaceAll("&lt;", "<")
+      .replaceAll("&gt;", ">")
+      .replaceAll("&amp;", "&")
+      .replaceAll("&quot;", '"')
+      .replaceAll("&#39;", "'")
+
+    if (isMermaidLanguage(lang)) {
+      result = result.replace(fullMatch, () => mermaidBlock(code))
+      continue
+    }
+
+    highlighter ??= await getSharedHighlighter({
+      themes: ["orgn"],
+      langs: [],
+      preferredHighlighter: "shiki-wasm",
+    })
 
     let language = lang || "text"
     if (!(language in bundledLanguages)) {
@@ -483,6 +506,8 @@ export const { use: useMarked, provider: MarkedProvider } = createSimpleContext(
       }),
       markedShiki({
         async highlight(code, lang) {
+          if (isMermaidLanguage(lang)) return mermaidBlock(code)
+
           const highlighter = await getSharedHighlighter({
             themes: ["orgn"],
             langs: [],

@@ -235,8 +235,26 @@
     color: var(--icon-base);
   }
 
-  [data-component="markdown-code"]:hover [data-slot="markdown-copy-button"] {
+  [data-component="markdown-code"]:hover [data-slot="markdown-copy-button"],
+  [data-component="markdown-mermaid"]:hover [data-slot="markdown-copy-button"] {
     opacity: 1;
+  }
+
+  [data-component="markdown-mermaid"] {
+    position: relative;
+    margin-top: 12px;
+    margin-bottom: 32px;
+    overflow-x: auto;
+    border: 1px solid var(--border, var(--border-weak-base));
+    background: var(--surface-raised-base);
+    padding: 12px;
+  }
+
+  [data-slot="markdown-mermaid-svg"] {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 0 auto;
   }
 
   [data-slot="markdown-copy-button"] [data-slot="check-icon"] {
