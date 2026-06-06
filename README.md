@@ -1,4 +1,19 @@
 <p align="center">
+  <a href="https://orgn.com">
+    <picture>
+      <source srcset="packages/ui/src/assets/orgn-logo-wordmark.svg" media="(prefers-color-scheme: dark)">
+      <img src="packages/ui/src/assets/orgn-logo-wordmark.svg" alt="orgn logo" height="48">
+    </picture>
+  </a>
+</p>
+
+> **orgn fork — desktop rebrand active.** This worktree implements the [ORGN Desktop v2 rebrand](docs/contracts/orgn-desktop-v2-rebrand/). User-facing identity in `packages/desktop`, `packages/app`, and `packages/ui` is **orgn**. Runtime config paths remain on `opencode` (compat mode). See [`DECISIONS.md`](docs/contracts/orgn-desktop-v2-rebrand/DECISIONS.md) and [`UPSTREAM-MERGE.md`](docs/contracts/orgn-desktop-v2-rebrand/UPSTREAM-MERGE.md).
+>
+> **Desktop dev:** `bun run dev:desktop` · **Brand module:** `packages/ui/src/brand/constants.ts`
+
+---
+
+<p align="center">
   <a href="https://opencode.ai">
     <picture>
       <source srcset="packages/console/app/src/asset/logo-ornate-dark.svg" media="(prefers-color-scheme: dark)">
