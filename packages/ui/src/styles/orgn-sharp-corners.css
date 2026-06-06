@@ -1,0 +1,76 @@
+/**
+ * orgn sharp-corner overrides.
+ *
+ * Radius tokens are zeroed at theme apply time. This file catches Tailwind
+ * utilities and hardcoded radii that bypass tokens — must live in @layer
+ * utilities to win over generated rounded-* classes.
+ */
+@layer utilities {
+  [data-theme="orgn"] {
+    --radius-xs: 0;
+    --radius-sm: 0;
+    --radius-md: 0;
+    --radius-lg: 0;
+    --radius-xl: 0;
+  }
+
+  /* Standard Tailwind rounded utilities */
+  [data-theme="orgn"] :is(
+      .rounded-sm,
+      .rounded-md,
+      .rounded-lg,
+      .rounded-xl,
+      .rounded-2xl,
+      .rounded-3xl,
+      .rounded-t-sm,
+      .rounded-t-md,
+      .rounded-t-lg,
+      .rounded-t-xl,
+      .rounded-r-sm,
+      .rounded-r-md,
+      .rounded-r-lg,
+      .rounded-r-xl,
+      .rounded-b-sm,
+      .rounded-b-md,
+      .rounded-b-lg,
+      .rounded-b-xl,
+      .rounded-l-sm,
+      .rounded-l-md,
+      .rounded-l-lg,
+      .rounded-l-xl
+    ) {
+    border-radius: 0 !important;
+  }
+
+  /* Arbitrary values e.g. rounded-[6px], rounded-[10px] */
+  [data-theme="orgn"] [class*="rounded-["] {
+    border-radius: 0 !important;
+  }
+
+  /* v2 component surfaces */
+  [data-theme="orgn"] :is(
+      [data-component="session-composer"],
+      [data-component="session-new-composer"],
+      [data-component="session-new-design"],
+      [data-component="home-session-row"],
+      [data-component="button-v2"],
+      [data-component="text-input-v2"],
+      [data-component="icon-button-v2"],
+      [data-component="menu-v2"],
+      [data-component="select-v2"],
+      [data-dock-surface="shell"],
+      [data-dock-surface="tray"]
+    ) {
+    border-radius: 0 !important;
+  }
+
+  /* Square controls — keep spinners/loaders circular */
+  [data-theme="orgn"] :is(
+      [data-slot="radio-v2-item-control"],
+      [data-slot="radio-v2-item-indicator"],
+      [data-component="project-avatar-v2"][data-kind="org"],
+      [data-component="checkbox-v2"] [data-slot="checkbox-indicator"]
+    ):not(.rounded-full) {
+    border-radius: 0 !important;
+  }
+}
