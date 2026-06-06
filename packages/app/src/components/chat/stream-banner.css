@@ -27,49 +27,9 @@
   animation: stream-banner-shimmer 2s ease-in-out infinite;
 }
 
-.token-stream-loader {
-  --grid-size: 5;
-  --dot-size: 4px;
-  --dot-gap: 3px;
-  --speed: 1;
-
-  display: grid;
-  grid-template-columns: repeat(var(--grid-size), var(--dot-size));
-  gap: var(--dot-gap);
-  width: max-content;
-}
-
-.token-stream-loader .dot {
-  width: var(--dot-size);
-  height: var(--dot-size);
-  border-radius: 50%;
-  background: var(--color-dot, currentColor);
-  opacity: 0.16;
-  transform: translateZ(0) scale(1);
-  will-change: transform, opacity;
-  animation: token-stream calc(2s / var(--speed, 1)) linear infinite;
-  animation-delay: calc(var(--col, 0) * 320ms / var(--speed, 1));
-}
-
-@keyframes token-stream {
-  0%,
-  100% {
-    opacity: 0.16;
-  }
-
-  10% {
-    opacity: 1;
-  }
-
-  25% {
-    opacity: 0.16;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .stream-banner-shimmer,
-  .animate-shimmer,
-  .token-stream-loader .dot {
+  .animate-shimmer {
     animation: none !important;
   }
 }

@@ -11,6 +11,9 @@ import PROMPT_KIMI from "./prompt/kimi.txt"
 
 import PROMPT_CODEX from "./prompt/codex.txt"
 import PROMPT_TRINITY from "./prompt/trinity.txt"
+import PROMPT_MERMAID from "./prompt/mermaid.txt"
+
+export const mermaid = PROMPT_MERMAID
 import type { Provider } from "@/provider/provider"
 import type { Agent } from "@/agent/agent"
 import { Permission } from "@/permission"

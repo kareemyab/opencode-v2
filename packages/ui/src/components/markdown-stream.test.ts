@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { stream } from "./markdown-stream"
+import { hasOpenTrailingFence, stream } from "./markdown-stream"
 
 describe("markdown stream", () => {
   test("heals incomplete emphasis while streaming", () => {
@@ -28,5 +28,15 @@ describe("markdown stream", () => {
         mode: "live",
       },
     ])
+  })
+
+  test("detects an open trailing code fence", () => {
+    expect(hasOpenTrailingFence("before\n\n```ts\nconst x = 1")).toBe(true)
+    expect(hasOpenTrailingFence("before\n\n```mermaid\ngraph TD\n  A-->B")).toBe(true)
+  })
+
+  test("treats closed fences and trailing prose as complete", () => {
+    expect(hasOpenTrailingFence("```mermaid\ngraph TD\n  A-->B\n```")).toBe(false)
+    expect(hasOpenTrailingFence("```mermaid\ngraph TD\n  A-->B\n```\n\nNext paragraph")).toBe(false)
   })
 })

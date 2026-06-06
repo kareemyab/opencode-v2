@@ -7,6 +7,7 @@ export type StreamBannerProps = {
   status: StreamBannerStatus
   errorMessage?: string | null
   customStatusMessage?: string | null
+  loaderColor?: string
   onDismiss?: () => void
 }
 
@@ -83,6 +84,7 @@ export function StreamBanner(props: StreamBannerProps) {
           message={statusMessage()}
           tone={hasError() ? "error" : "default"}
           showLoader={showLoader()}
+          loaderColor={props.loaderColor}
           onDismiss={hasError() ? handleDismiss : undefined}
         />
       </div>

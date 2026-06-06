@@ -22,6 +22,16 @@ function open(raw: string) {
   return !new RegExp(`^[\\t ]{0,3}${char}{${size},}[\\t ]*$`).test(last)
 }
 
+export function hasOpenTrailingFence(text: string) {
+  if (refs(text)) return false
+  const tokens = marked.lexer(text)
+  const tail = tokens.findLastIndex((token) => token.type !== "space")
+  if (tail < 0) return false
+  const last = tokens[tail]
+  if (!last || last.type !== "code") return false
+  return open(last.raw)
+}
+
 function heal(text: string) {
   return remend(text, { linkMode: "text-only" })
 }

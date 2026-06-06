@@ -80,6 +80,7 @@ export type SessionItemProps = {
   showTooltip?: boolean
   showChild?: boolean
   level?: number
+  bleed?: boolean
   sidebarExpanded: Accessor<boolean>
   clearHoverProjectSoon: () => void
   prefetchSession: (session: Session, priority?: "high" | "low") => void
@@ -187,6 +188,8 @@ export const SessionItem = (props: SessionItemProps): JSX.Element => {
     }
   }
 
+  const inset = () => 8 + (props.level ?? 0) * 16
+
   const item = (
     <SessionRow
       session={props.session}
@@ -209,10 +212,18 @@ export const SessionItem = (props: SessionItemProps): JSX.Element => {
     <>
       <div
         data-session-id={props.session.id}
-        class="group/session relative w-full min-w-0 rounded-md cursor-default pr-3 transition-colors hover:bg-surface-raised-base-hover [&:has(:focus-visible)]:bg-surface-raised-base-hover has-[[data-expanded]]:bg-surface-raised-base-hover has-[.active]:bg-surface-base-active"
-        style={{ "padding-left": `${8 + (props.level ?? 0) * 16}px` }}
+        class="group/session relative w-full min-w-0 cursor-default transition-colors hover:bg-surface-raised-base-hover [&:has(:focus-visible)]:bg-surface-raised-base-hover has-[[data-expanded]]:bg-surface-raised-base-hover has-[.active]:bg-surface-base-active"
+        classList={{
+          "rounded-none": props.bleed,
+          "rounded-md pr-3": !props.bleed,
+        }}
+        style={props.bleed ? undefined : { "padding-left": `${inset()}px` }}
       >
-        <div class="flex min-w-0 items-center gap-1">
+        <div
+          class="flex min-w-0 items-center gap-1"
+          classList={{ "px-3": props.bleed }}
+          style={props.bleed ? { "padding-left": `${12 + (props.level ?? 0) * 16}px` } : undefined}
+        >
           <div class="min-w-0 flex-1">
             <Show
               when={!tooltip()}
@@ -273,6 +284,7 @@ export const NewSessionItem = (props: {
   slug: string
   mobile?: boolean
   dense?: boolean
+  bleed?: boolean
   sidebarExpanded: Accessor<boolean>
   clearHoverProjectSoon: () => void
 }): JSX.Element => {
@@ -298,17 +310,25 @@ export const NewSessionItem = (props: {
   )
 
   return (
-    <div class="group/session relative w-full min-w-0 rounded-md cursor-default transition-colors pl-2 pr-3 hover:bg-surface-raised-base-hover [&:has(:focus-visible)]:bg-surface-raised-base-hover has-[.active]:bg-surface-base-active">
-      <Show
-        when={!tooltip()}
-        fallback={
-          <Tooltip placement={props.mobile ? "bottom" : "right"} value={label} gutter={10} class="min-w-0 w-full">
-            {item}
-          </Tooltip>
-        }
-      >
-        {item}
-      </Show>
+    <div
+      class="group/session relative w-full min-w-0 cursor-default transition-colors hover:bg-surface-raised-base-hover [&:has(:focus-visible)]:bg-surface-raised-base-hover has-[.active]:bg-surface-base-active"
+      classList={{
+        "rounded-none": props.bleed,
+        "rounded-md pl-2 pr-3": !props.bleed,
+      }}
+    >
+      <div classList={{ "px-3": props.bleed }}>
+        <Show
+          when={!tooltip()}
+          fallback={
+            <Tooltip placement={props.mobile ? "bottom" : "right"} value={label} gutter={10} class="min-w-0 w-full">
+              {item}
+            </Tooltip>
+          }
+        >
+          {item}
+        </Show>
+      </div>
     </div>
   )
 }

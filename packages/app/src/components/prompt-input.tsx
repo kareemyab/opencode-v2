@@ -79,6 +79,7 @@ import { pathKey } from "@/utils/path-key"
 import { base64Encode } from "@opencode-ai/core/util/encode"
 import { displayName } from "@/pages/layout/helpers"
 import { StreamBanner, type StreamBannerStatus } from "@/components/chat/stream-banner"
+import { messageAgentColor } from "@/utils/agent"
 import { PromptComposerAttachButton, PromptComposerSubmitButton } from "@/components/chat/prompt-composer-controls"
 
 interface PromptInputProps {
@@ -282,6 +283,11 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     const status = sessionStatus()
     if (status.type === "retry") return status.message
     return null
+  })
+  const streamBannerTint = createMemo(() => {
+    const id = params.id
+    if (!id) return undefined
+    return messageAgentColor(sync.data.message[id], sync.data.agent)
   })
   const imageAttachments = createMemo(() =>
     prompt.current().filter((part): part is ImageAttachmentPart => part.type === "image"),
@@ -1489,7 +1495,11 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                 [props.class ?? ""]: !!props.class,
               }}
             >
-              <StreamBanner status={streamBannerStatus()} errorMessage={streamBannerError()} />
+              <StreamBanner
+                status={streamBannerStatus()}
+                errorMessage={streamBannerError()}
+                loaderColor={streamBannerTint()}
+              />
               <PromptDragOverlay
                 type={store.draggingType}
                 label={language.t(
@@ -1653,7 +1663,11 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
               [props.class ?? ""]: !!props.class,
             }}
           >
-            <StreamBanner status={streamBannerStatus()} errorMessage={streamBannerError()} />
+            <StreamBanner
+              status={streamBannerStatus()}
+              errorMessage={streamBannerError()}
+              loaderColor={streamBannerTint()}
+            />
             <PromptDragOverlay
               type={store.draggingType}
               label={language.t(

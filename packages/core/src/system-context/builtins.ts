@@ -6,6 +6,14 @@ import { SystemContext } from "./index"
 import { InstructionContext } from "../instruction-context"
 import { SystemContextRegistry } from "./registry"
 
+const mermaid = [
+  "When using Mermaid diagrams to explain architecture, flows, or relationships:",
+  "- Diagrams render on a dark/black background in the UI",
+  "- Write diagram code for dark backgrounds: use light text, light borders, and light or medium node fills with dark text",
+  "- Do not add `%%{init:...}%%` blocks that switch to light themes or white backgrounds",
+  "- Use fenced code blocks with the `mermaid` language tag",
+].join("\n")
+
 const builtIns = Layer.effectDiscard(
   Effect.gen(function* () {
     const location = yield* Location.Service
@@ -33,6 +41,13 @@ const builtIns = Layer.effectDiscard(
         load: DateTime.nowAsDate.pipe(Effect.map((date) => date.toDateString())),
         baseline: (date) => `Today's date: ${date}`,
         update: (_previous, date) => `Today's date is now: ${date}`,
+      }),
+      SystemContext.make({
+        key: SystemContext.Key.make("core/mermaid"),
+        codec: Schema.toCodecJson(Schema.String),
+        load: Effect.succeed(mermaid),
+        baseline: (text) => text,
+        update: (_previous, text) => text,
       }),
     ])
 

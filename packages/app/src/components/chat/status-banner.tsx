@@ -1,13 +1,14 @@
 import { Show } from "solid-js"
 import { TextShimmer } from "@opencode-ai/ui/text-shimmer"
 import { Icon } from "@opencode-ai/ui/icon"
-import { TokenStream } from "./token-stream"
+import { Spinner } from "@opencode-ai/ui/spinner"
 import "./stream-banner.css"
 
 export type StatusBannerProps = {
   message: string
   tone?: "default" | "error"
   showLoader?: boolean
+  loaderColor?: string
   onDismiss?: () => void
   class?: string
 }
@@ -36,9 +37,13 @@ export function StatusBanner(props: StatusBannerProps) {
       <div class="relative z-10 flex flex-1 items-center justify-between">
         <div class="flex items-center gap-2 pl-4">
           <Show when={props.showLoader && !isError()}>
-            <span aria-hidden="true" class="shrink-0">
-              <TokenStream speed={2} dotSize={1.8} cellPadding={0.25} />
-            </span>
+            <div
+              aria-hidden="true"
+              class="shrink-0 size-6 flex items-center justify-center"
+              style={{ color: props.loaderColor ?? "var(--icon-interactive-base)" }}
+            >
+              <Spinner class="size-[15px]" />
+            </div>
           </Show>
 
           <Show

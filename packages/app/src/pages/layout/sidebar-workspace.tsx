@@ -249,6 +249,7 @@ const WorkspaceSessionList = (props: {
       <NewSessionItem
         slug={props.slug()}
         mobile={props.mobile}
+        bleed
         sidebarExpanded={props.ctx.sidebarExpanded}
         clearHoverProjectSoon={props.ctx.clearHoverProjectSoon}
       />
@@ -264,6 +265,7 @@ const WorkspaceSessionList = (props: {
           navList={props.ctx.navList}
           slug={props.slug()}
           mobile={props.mobile}
+          bleed
           showChild
           sidebarExpanded={props.ctx.sidebarExpanded}
           clearHoverProjectSoon={props.ctx.clearHoverProjectSoon}
@@ -276,7 +278,7 @@ const WorkspaceSessionList = (props: {
       <div class="relative w-full py-1">
         <Button
           variant="ghost"
-          class="flex w-full text-left justify-start text-14-regular text-text-weak pl-2 pr-10"
+          class="flex w-full text-left justify-start text-14-regular text-text-weak px-3 pr-10"
           size="large"
           onClick={(e: MouseEvent) => {
             void props.loadMore()
@@ -370,7 +372,7 @@ export const SortableWorkspace = (props: {
       }}
     >
       <Collapsible variant="ghost" open={open()} class="shrink-0" onOpenChange={openWrapper}>
-        <div class="py-1">
+        <div class="px-3 py-1">
           <div
             class="group/workspace relative"
             data-component="workspace-item"

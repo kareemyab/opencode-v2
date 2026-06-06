@@ -2096,7 +2096,7 @@ export default function Layout(props: ParentProps) {
     return (
       <div
         classList={{
-          "flex flex-col min-h-0 min-w-0 box-border px-3": true,
+          "flex flex-col min-h-0 min-w-0 box-border": true,
           "border border-b-0 border-border-weak-base": !merged(),
           "bg-background-base": merged() || hover(),
           "bg-background-stronger": !merged() && !hover(),
@@ -2130,8 +2130,8 @@ export default function Layout(props: ParentProps) {
         >
           {(project) => (
             <>
-              <div class="shrink-0 pl-1 py-1">
-                <div class="group/project flex items-center gap-2 py-2 pl-2 pr-0">
+              <div class="shrink-0 px-3 py-1">
+                <div class="group/project flex items-center gap-2 py-2">
                   <div class="flex min-w-0 flex-1 flex-col">
                     <InlineEditor
                       id={`project:${projectId()}`}
@@ -2242,7 +2242,7 @@ export default function Layout(props: ParentProps) {
                   when={workspacesEnabled()}
                   fallback={
                     <>
-                      <div class="shrink-0 py-4">
+                      <div class="shrink-0 px-3 py-4">
                         <Button
                           size="large"
                           icon="new-session"
@@ -2268,7 +2268,7 @@ export default function Layout(props: ParentProps) {
                   }
                 >
                   <>
-                    <div class="shrink-0 py-4">
+                    <div class="shrink-0 px-3 py-4">
                       <Button
                         size="large"
                         icon="plus-small"

@@ -242,7 +242,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
       props.onThemeApplied?.(theme, mode)
     }
 
-    const ids = () => [BUILTIN_THEME_ID]
+    const ids = (): string[] => [BUILTIN_THEME_ID]
 
     const loadThemes = () => Promise.all(themeIDs().map(load)).then(() => store.themes)
 

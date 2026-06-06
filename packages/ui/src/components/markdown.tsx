@@ -5,7 +5,8 @@ import morphdom from "morphdom"
 import { checksum } from "@opencode-ai/core/util/encode"
 import { ComponentProps, createEffect, createResource, createSignal, onCleanup, splitProps } from "solid-js"
 import { isServer } from "solid-js/web"
-import { stream } from "./markdown-stream"
+import { normalizeMermaidSource } from "./markdown-mermaid"
+import { hasOpenTrailingFence, stream } from "./markdown-stream"
 
 type Entry = {
   hash: string
@@ -14,6 +15,7 @@ type Entry = {
 
 const max = 200
 const cache = new Map<string, Entry>()
+const mermaidCache = new Map<string, string>()
 let mermaidID = 0
 let mermaidPromise: Promise<typeof import("mermaid").default> | undefined
 
@@ -124,12 +126,23 @@ async function renderMermaidDiagrams(html: string) {
     const source = diagram.querySelector("code")?.textContent?.trim()
     if (!source) continue
 
+    const sourceKey = checksum(source)
+    if (sourceKey) {
+      const cached = mermaidCache.get(sourceKey)
+      if (cached) {
+        diagram.innerHTML = cached
+        diagram.dataset.state = "rendered"
+        continue
+      }
+    }
+
     try {
-      const rendered = await mermaid.render(`markdown-mermaid-${++mermaidID}`, source)
+      const rendered = await mermaid.render(`markdown-mermaid-${++mermaidID}`, normalizeMermaidSource(source))
       const svg = sanitizeMermaidSVG(rendered.svg)
       if (!svg) continue
       diagram.replaceChildren(svg, mermaidSource(source))
       diagram.dataset.state = "rendered"
+      if (sourceKey) mermaidCache.set(sourceKey, diagram.innerHTML)
     } catch {
       diagram.dataset.state = "error"
     }
@@ -394,7 +407,8 @@ export function Markdown(
 
           const next = await Promise.resolve(marked.parse(block.src))
           const safe = sanitize(next)
-          const withMermaid = src.streaming ? safe : await renderMermaidDiagrams(safe)
+          const withMermaid =
+            src.streaming && hasOpenTrailingFence(block.raw) ? safe : await renderMermaidDiagrams(safe)
           if (key && hash) touch(key, { hash, html: withMermaid })
           return withMermaid
         }),
