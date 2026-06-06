@@ -1,120 +1,254 @@
 # Running opencode locally
 
-How to run the whole stack — server, web app, and desktop app — on your machine.
+Team guide to running the full stack — **server, web UI, and desktop app** — on your machine, and iterating on the UI with live reload.
+
+- [TL;DR](#tldr)
+- [Prerequisites](#prerequisites)
+- [How the stack fits together](#how-the-stack-fits-together)
+- [Pick your mode](#pick-your-mode)
+- [UI development (live reload)](#ui-development-live-reload) ← the day-to-day loop
+- [Full web stack (server + UI)](#full-web-stack-server--ui)
+- [Server only](#server-only)
+- [Desktop app](#desktop-app)
+- [Production parity (match opencode.ai)](#production-parity-match-opencodeai)
+- [Ports & environment variables](#ports--environment-variables)
+- [Troubleshooting](#troubleshooting)
+- [Working as a team](#working-as-a-team)
+- [Deploying (later)](#deploying-later)
+
+---
+
+## TL;DR
+
+```bash
+# one-time
+bun install
+
+# day-to-day: edit the UI with live reload
+bun dev:stack          # API on :4096 + web UI on :3000 (hot reload)
+#  → open http://localhost:3000  and edit packages/app/src/**
+```
+
+> **The single most important thing:** your UI changes render at **http://localhost:3000**, *not* `:4096`. See [why](#why-4096-looks-different) below.
+
+---
 
 ## Prerequisites
 
-- **Bun 1.3.14+** (the repo pins `bun@1.3.14`; older 1.3.x mostly works but match it if you hit odd errors).
-- Install dependencies once from the repo root:
+- **Bun `1.3.14`** — the repo pins `bun@1.3.14` in `package.json`.
+  - Normal dev (`bun install`, `bun dev:stack`) tolerates nearby 1.3.x versions.
+  - **The build scripts hard-require `^1.3.14`** and will throw otherwise (e.g. building the desktop server or the prod binary). If `bun --version` is older:
+
+    ```bash
+    bun upgrade            # to the latest 1.3.x
+    ```
+- **git**, and clone the repo. Default working branch for this team: ask your lead (we use a branch off `production`).
+- Install dependencies from the repo root:
 
   ```bash
   bun install
   ```
 
-## The pieces
+---
 
-| Package | What it is | Runs from source? |
+## How the stack fits together
+
+| Package | What it is | Runs from source with hot reload? |
 | --- | --- | --- |
-| `packages/opencode` | Core logic + the headless HTTP server (the "backend"). The `opencode` CLI lives here too. | yes (hot) |
-| `packages/app` | The SolidJS web UI. Talks to the server over HTTP. | yes (hot) |
-| `packages/desktop` | Electron app. Bundles `packages/app` as its UI and **spawns its own copy of the server** as a sidecar process. | UI hot; server is bundled (see caveat) |
+| `packages/opencode` | Core logic **+ the headless HTTP server** (the "backend") and the `opencode` CLI. | ✅ yes |
+| `packages/app` | The **SolidJS web UI**. Talks to the server over HTTP. | ✅ yes (vite HMR) |
+| `packages/ui` | Shared UI components + theme, used by `app` and `desktop`. | ✅ yes |
+| `packages/desktop` | **Electron app**. Bundles `packages/app` as its UI and spawns its own copy of the server as a sidecar. | UI hot-reloads; server is a built bundle |
 
-The web app finds the backend at **`http://localhost:4096`** by default (override with `VITE_OPENCODE_SERVER_HOST` / `VITE_OPENCODE_SERVER_PORT`). The standalone server's own default port is `0` (random), so **always start it with `--port 4096`** when a browser app should connect to it — the convenience scripts below do this for you.
+### Why `:4096` looks different
+
+The server decides what to serve at `/` based on **how it was built** (`packages/opencode/src/server/shared/ui.ts`):
+
+- **A release build** has the web UI **embedded** inside the binary → it serves that prebuilt UI.
+- **Running from source** (our dev server) has **no embedded UI** → it **proxies `https://app.opencode.ai`** (the live hosted site).
+
+So when you run the dev stack and open **`:4096`, you see the live website, not your code.** Your from-source UI is the vite server on **`:3000`**. This is expected and matches the repo's own note in `packages/app/AGENTS.md`.
 
 ---
 
-## Option 1 — Desktop app (self-contained)
+## Pick your mode
 
-The desktop app is the entire stack in one command. It builds the server, launches Electron, and Electron spawns the server internally as a sidecar (on a random loopback port, with a random password). You do **not** start a separate server.
+| You want to… | Use | URL to open |
+| --- | --- | --- |
+| **Edit the UI and see changes live** | `bun dev:stack` | **http://localhost:3000** |
+| Run the API for the TUI / SDK / scripts | `bun dev:server` | `http://localhost:4096` (API) |
+| Run the native desktop app | `bun dev:desktop` | (Electron window) |
+| Reproduce exactly what a released/prod build serves | [prod binary](#production-parity-match-opencodeai) | the port you pass |
+
+---
+
+## UI development (live reload)
+
+This is the normal loop for working on the web interface.
 
 ```bash
-bun dev:desktop          # = bun --cwd packages/desktop dev
+bun dev:stack
 ```
 
-- First launch is slower: `predev` builds the server into `packages/opencode/dist/node` and copies icons.
+This runs **both** processes from source, wired together and torn down together (Ctrl-C stops both):
+
+- **API server** on `http://localhost:4096`
+- **vite dev UI** on **`http://localhost:3000`** with hot-module reload (HMR)
+
+Then:
+
+1. **Open http://localhost:3000**
+2. Edit files under **`packages/app/src/**`** (pages, components, contexts) or **`packages/ui/src/**`** (shared components/theme).
+3. Save — the browser updates **instantly**, no rebuild, no restart.
+
+What renders where:
+
+| Port | What it is | Edit here for UI? |
+| --- | --- | --- |
+| **`:3000`** | vite dev UI — **your from-source code, with HMR** | ✅ **yes** |
+| `:4096` | the API server (data the UI calls) | server code only |
+
+### Don't want a second server? (avoids port conflicts)
+
+CORS allows **any `http://localhost:*` origin** (`packages/opencode/src/server/cors.ts`), so the UI on `:3000` can talk to *any* opencode server. If something already owns `:4096` (your own `opencode serve`, a prod binary, etc.), run **only the UI** and point it at that backend:
+
+```bash
+bun dev:web                                  # UI on :3000 → API on :4096 (default)
+VITE_OPENCODE_SERVER_PORT=4198 bun dev:web   # UI on :3000 → API on :4198
+```
+
+`bun dev:web` is just the vite dev server — one process, no port fight.
+
+---
+
+## Full web stack (server + UI)
+
+`bun dev:stack` is a small orchestrator (`script/dev-all.ts`). Flags:
+
+```bash
+bun dev:stack --port 8080        # API port (the UI is pointed at it automatically)
+bun dev:stack --app-port 4444    # vite UI port
+bun dev:stack --hostname 0.0.0.0 # bind the API to all interfaces (LAN access)
+bun dev:stack --dry-run          # print the commands without running them
+```
+
+Prefer two terminals? That's all the orchestrator does:
+
+```bash
+# terminal 1 — API server
+bun dev:server                   # opencode serve --port 4096
+
+# terminal 2 — web UI
+bun dev:web                      # vite dev server on :3000 (targets :4096)
+```
+
+---
+
+## Server only
+
+For the TUI, SDK, scripts, or external API clients — no browser UI:
+
+```bash
+bun dev:server                   # headless API on :4096
+# raw equivalent:
+bun dev serve --port 4096
+```
+
+Notes:
+
+- `bun dev serve` **without `--port` picks a random port** (printed on startup). The web UI defaults to `:4096`, so pin it.
+- Set `OPENCODE_SERVER_PASSWORD` to require Basic auth (`opencode:<password>`). Unset → unsecured locally (prints a warning).
+- Attach the TUI to a running server: `bun dev attach http://localhost:4096`.
+
+---
+
+## Desktop app
+
+The desktop app is the whole stack in one command — it builds the server and spawns it internally as a sidecar (random loopback port + password). **You do not start a separate server.**
+
+```bash
+bun dev:desktop
+```
+
+- First launch is slower: it builds the server into `packages/opencode/dist/node` (requires Bun `^1.3.14`).
 - The **renderer (UI) hot-reloads** via electron-vite.
-- **Caveat:** the sidecar server is the *built* bundle, not live source. If you change server/core code (`packages/opencode`, `packages/core`, …), rebuild it:
+- **Caveat:** the sidecar server is a *built bundle*, not live source. If you change server/core code, rebuild it and restart the app:
 
   ```bash
   cd packages/opencode && bun script/build-node.ts
   ```
 
-  …then restart the desktop app. (If you're iterating heavily on the server, use Option 2 instead — it runs the server from source with hot reload.)
+  For heavy server iteration, prefer `bun dev:stack` (server runs from source with hot reload).
 
 ---
 
-## Option 2 — Web stack (server + web app together) ⭐ best for development
+## Production parity (match opencode.ai)
 
-One command runs the server **and** the web UI, both from source with hot reload, wired together and torn down together:
-
-```bash
-bun dev:stack            # = bun script/dev-all.ts
-```
-
-Then open **http://localhost:3000**. The server is on **http://localhost:4096**.
-
-Flags:
+To run the prod delivery model locally — **one binary serving its own embedded UI + API on a single origin** (no proxy) — build the single binary. It embeds the *current branch's* UI.
 
 ```bash
-bun dev:stack --port 8080        # server port (app is pointed at it automatically)
-bun dev:stack --app-port 4444    # web app (vite) port
-bun dev:stack --hostname 0.0.0.0 # bind the server to all interfaces
-bun dev:stack --dry-run          # print the commands instead of running them
+# build for your platform (channel=prod → no DEV/BETA badge, prod layouts)
+OPENCODE_CHANNEL=prod bun ./packages/opencode/script/build.ts --single --skip-install
+
+# run it (UI + API served together; any free port works)
+packages/opencode/dist/opencode-<platform>/bin/opencode serve --port 4198
+#  → open http://localhost:4198
 ```
 
-Prefer two terminals? That's exactly what the script automates:
+Replace `<platform>` with yours (e.g. `darwin-arm64`, `darwin-x64`, `linux-x64`).
 
-```bash
-# terminal 1 — server
-bun dev:server                   # = opencode serve --port 4096
-
-# terminal 2 — web app (defaults to the :4096 server)
-bun dev:web                      # = vite dev server on :3000
-```
+- `--single` builds only your platform; the `gh release upload` step is skipped unless it's an actual release.
+- This serves the **same source line** opencode.ai deploys (the hosted site deploys from the `production` branch), but it is **not byte-identical** to the live deploy (different build commit/env, asset hashes, secrets).
+- Channel matters: without `OPENCODE_CHANNEL=prod` the build falls back to your git branch name and renders as the **dev** channel.
 
 ---
 
-## Option 3 — Server only
-
-For driving the API/SDK, the TUI, or external clients without any browser UI:
-
-```bash
-bun dev:server                   # headless server on :4096
-# or, raw:
-bun dev serve --port 4096
-```
-
-Useful extras:
-
-- `bun dev serve` with no `--port` picks a **random** port (printed on startup).
-- Set `OPENCODE_SERVER_PASSWORD` to require Basic auth (`opencode:<password>`); unset, the local server is unsecured and prints a warning.
-- Attach the TUI to a running server: `bun dev attach http://localhost:4096` (or `opencode attach …`).
-- `bun dev web` opens a browser against the server, but note it proxies the **hosted** UI — it will **not** reflect local `packages/app` changes. Use Option 2 for local UI work.
-
----
-
-## Ports & env vars
+## Ports & environment variables
 
 | Thing | Default | Override |
 | --- | --- | --- |
-| Server port | `4096` (via the scripts; raw `serve` default is random `0`) | `--port`, or `serve --port` |
-| Web app (vite) port | `3000` | `--app-port`, or `vite --port` |
-| Server host the app targets | `localhost:4096` | `VITE_OPENCODE_SERVER_HOST`, `VITE_OPENCODE_SERVER_PORT` |
-| Server bind hostname | `127.0.0.1` | `--hostname`, or `serve --hostname` |
-| Server auth | none (unsecured locally) | `OPENCODE_SERVER_PASSWORD` |
-| Release channel | `dev` | `OPENCODE_CHANNEL` (`dev` \| `beta` \| `prod`) |
+| API server port | `4096` (via scripts; raw `serve` default is random `0`) | `--port` / `serve --port` |
+| Web UI (vite) port | `3000` | `--app-port` / `vite --port` |
+| Which server the UI targets | `localhost:4096` | `VITE_OPENCODE_SERVER_HOST`, `VITE_OPENCODE_SERVER_PORT` |
+| API bind hostname | `127.0.0.1` | `--hostname` / `serve --hostname` |
+| API auth | none locally | `OPENCODE_SERVER_PASSWORD` |
+| Extra CORS origins | `localhost:*`, `127.0.0.1:*`, `*.opencode.ai` allowed | `serve --cors <origin>` |
+| Release channel (badge/layout) | falls back to branch name → `dev` | `OPENCODE_CHANNEL` = `dev` \| `beta` \| `prod` |
 
-## After changing the API or SDK
+---
 
-If you touch the server API or SDK (e.g. `packages/opencode/src/server/server.ts`), regenerate the SDK and related files:
+## Troubleshooting
+
+| Symptom | Cause & fix |
+| --- | --- |
+| `vite: command not found` | Deps not installed. Run `bun install`. |
+| `error: preload not found "@opentui/solid/preload"` | Same — `bun install`. |
+| `ServeError … Is port 4096 in use?` | Another opencode server owns `:4096`. Either free it (`lsof -nP -iTCP:4096 -sTCP:LISTEN` then `kill <pid>`), run on another port (`bun dev:stack --port 4097`), or skip the second server with `bun dev:web` pointed at the existing one. |
+| Build throws `requires bun@^1.3.14` | Your Bun is too old. `bun upgrade`. |
+| UI on `:3000` is blank / "can't connect" | No API server reachable. Start one (`bun dev:server`) or use `bun dev:stack`. |
+| Opened `:4096` and it doesn't show my UI changes | Expected — from-source `:4096` proxies the live site. Use **`:3000`**. See [Why `:4096` looks different](#why-4096-looks-different). |
+| Desktop UI updates but server changes don't | Desktop runs a built server. Rebuild: `cd packages/opencode && bun script/build-node.ts`, then restart. |
+| Changed the API/SDK | Regenerate: `./script/generate.ts`. |
+| Tests fail with `do-not-run-tests-from-root` | Run from a package dir: `cd packages/opencode && bun test`. |
+
+---
+
+## Working as a team
+
+- **Branching/commits:** conventional commits (`type(scope): summary`, types: `feat`/`fix`/`docs`/`chore`/`refactor`/`test`). See `AGENTS.md` / `CONTRIBUTING.md`.
+- **Typecheck:** `bun turbo typecheck` (root) or `cd packages/<pkg> && bun typecheck`.
+- **Lint:** `bun lint` (oxlint).
+- **After API/SDK changes:** run `./script/generate.ts` so the generated SDK stays in sync.
+- **Shared UI:** put reusable components/theme in `packages/ui`; app-specific screens in `packages/app`.
+
+---
+
+## Deploying (later)
+
+The web app is deployed via SST. `opencode.ai` is built from the `production` branch (`.github/workflows/deploy.yml` runs `bun sst deploy --stage=production`), and `infra/stage.ts` maps the stage to a domain. To stand up your own environment:
 
 ```bash
-./script/generate.ts
+bun sst deploy --stage=<your-stage>
 ```
 
-## Gotchas
-
-- **Web app shows nothing / "can't connect":** the server isn't on `4096`. Use `bun dev:stack`, or start the server with `--port 4096`.
-- **Desktop UI changes show but server changes don't:** the desktop runs the *built* server — rebuild with `bun script/build-node.ts` (see Option 1) or switch to Option 2.
-- **Tests can't run from the repo root** (guarded). Run them inside a package dir, e.g. `cd packages/opencode && bun test`.
-- **Typecheck** per package: `cd packages/<pkg> && bun typecheck` (or `bun turbo typecheck` from root).
+The `packages/app` you edit locally is exactly what gets built and served in prod, so local UI work is 1:1 with what your users will see. (Talk to your lead before deploying — prod stages are protected.)
