@@ -52,6 +52,7 @@ import { usePermission } from "@/context/permission"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useSettings } from "@/context/settings"
+import { SessionContextUsage } from "@/components/session-context-usage"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { createSessionTabs } from "@/pages/session/helpers"
 import { createTextFragment, getCursorPosition, setCursorPosition, setRangeEdge } from "./prompt-input/editor-dom"
@@ -1339,11 +1340,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     (p) => p,
   )
 
-  const designPlaceholder = () => {
-    if (store.mode === "shell") return placeholder()
-    return "Ask anything, / for commands, @ for context..."
-  }
-
   const modelControlState = createMemo<ComposerModelControlState>(() => ({
     loading: providersLoading(),
     paid: providers.paid().length > 0,
@@ -1490,7 +1486,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
               data-component={newSession() ? "session-new-composer" : "session-composer"}
               onSubmit={handleSubmit}
               classList={{
-                "group/prompt-input relative isolate flex min-h-[96px] w-full flex-col overflow-hidden shadow-none": true,
+                "group/prompt-input relative isolate flex min-h-[112px] w-full flex-col overflow-hidden shadow-none": true,
                 "border-icon-info-active border-dashed": store.draggingType !== null,
                 [props.class ?? ""]: !!props.class,
               }}
@@ -1528,7 +1524,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                 removeLabel={language.t("prompt.attachment.remove")}
               />
               <div
-                class="relative min-h-[52px]"
+                class="relative min-h-[72px]"
                 onMouseDown={(e) => {
                   const target = e.target
                   if (!(target instanceof HTMLElement)) return
@@ -1545,7 +1541,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                     }}
                     role="textbox"
                     aria-multiline="true"
-                    aria-label={designPlaceholder()}
+                    aria-label={placeholder()}
                     contenteditable="true"
                     autocapitalize={store.mode === "normal" ? "sentences" : "off"}
                     autocorrect={store.mode === "normal" ? "on" : "off"}
@@ -1561,7 +1557,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                     onKeyDown={handleKeyDown}
                     classList={{
                       "select-text": true,
-                      "min-h-[52px] w-full px-4 pt-4 pb-2 focus:outline-none whitespace-pre-wrap leading-5 text-[13px] font-[440] text-v2-text-text-base": true,
+                      "min-h-[72px] w-full px-4 pt-4 pb-2 focus:outline-none whitespace-pre-wrap leading-5 text-[13px] font-[440] text-v2-text-text-base": true,
                       "[&_[data-type=file]]:text-syntax-property": true,
                       "[&_[data-type=agent]]:text-syntax-type": true,
                       "font-mono!": store.mode === "shell",
@@ -1572,7 +1568,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                     class="absolute top-0 inset-x-0 px-4 pt-4 pointer-events-none whitespace-nowrap truncate leading-5 text-[13px] font-[440] text-v2-text-text-faint font-(family-name:--font-family-sans)"
                     classList={{ "font-mono!": store.mode === "shell", hidden: prompt.dirty() }}
                   >
-                    {designPlaceholder()}
+                    {placeholder()}
                   </div>
                 </div>
               </div>
@@ -1599,6 +1595,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                     <ComposerPickerTrigger state={newProjectTriggerState()} />
                   </Show>
                   <ComposerModelControl state={modelControlState()} />
+                  <SessionContextUsage placement="top" />
                   <Show when={store.mode !== "shell" && showVariantControl()}>
                     <div
                       data-component="prompt-variant-control"
@@ -1696,7 +1693,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
               removeLabel={language.t("prompt.attachment.remove")}
             />
             <div
-              class="relative min-h-[52px]"
+              class="relative min-h-[64px]"
               onMouseDown={(e) => {
                 const target = e.target
                 if (!(target instanceof HTMLElement)) return
@@ -1729,7 +1726,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                   onKeyDown={handleKeyDown}
                   classList={{
                     "select-text": true,
-                    "w-full px-3 py-2 text-14-regular text-foreground focus:outline-none whitespace-pre-wrap": true,
+                    "min-h-[64px] w-full px-3 py-2 text-14-regular text-foreground focus:outline-none whitespace-pre-wrap": true,
                     "[&_[data-type=file]]:text-syntax-property": true,
                     "[&_[data-type=agent]]:text-syntax-type": true,
                     "font-mono!": store.mode === "shell",
@@ -1888,6 +1885,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                             </TooltipKeybind>
                           </Show>
                         </div>
+                        <SessionContextUsage placement="top" />
                         <Show when={showVariantControl()}>
                           <div
                             data-component="prompt-variant-control"

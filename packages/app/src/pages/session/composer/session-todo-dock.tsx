@@ -103,7 +103,7 @@ export function SessionTodoDock(props: {
       <div ref={contentRef}>
         <div
           data-action="session-todo-toggle"
-          class="pl-3 pr-2 py-2 flex items-center gap-2 overflow-visible"
+          class="pl-3 pr-2 py-1.5 flex items-center gap-2 overflow-visible"
           role="button"
           tabIndex={0}
           onClick={props.onToggle}
@@ -114,7 +114,7 @@ export function SessionTodoDock(props: {
           }}
         >
           <span
-            class="text-14-regular text-text-strong cursor-default inline-flex items-baseline shrink-0 overflow-visible"
+            class="text-12-regular text-text-strong cursor-default inline-flex items-baseline shrink-0 overflow-visible"
             aria-label={label()}
             style={{
               "--tool-motion-odometer-ms": "600ms",
@@ -146,7 +146,7 @@ export function SessionTodoDock(props: {
             }}
           >
             <TextReveal
-              class="text-14-regular text-text-base cursor-default"
+              class="text-12-regular text-text-base cursor-default"
               text={props.collapsed ? preview() : undefined}
               duration={600}
               travel={25}
@@ -162,7 +162,7 @@ export function SessionTodoDock(props: {
               data-action="session-todo-toggle-button"
               data-collapsed={props.collapsed ? "true" : "false"}
               icon="chevron-down"
-              size="normal"
+              size="small"
               variant="ghost"
               style={{ transform: `rotate(${turn() * 180}deg)` }}
               onMouseDown={(event) => {
@@ -229,7 +229,7 @@ export function SessionTodoList(props: { todos: Todo[] }) {
               <TextStrikethrough
                 active={todo().status === "completed" || todo().status === "cancelled"}
                 text={todo().content}
-                class="text-14-regular min-w-0 break-words"
+                class="text-12-regular min-w-0 break-words"
                 style={{
                   "line-height": "var(--line-height-normal)",
                   transition:

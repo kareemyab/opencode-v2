@@ -1,21 +1,6 @@
 import { Show, splitProps, type ComponentProps } from "solid-js"
 import { Icon } from "@opencode-ai/ui/icon"
 
-/** Filled rounded square — matches orgn `message-input-stop-button`. */
-function StopSquareIcon(props: { class?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      stroke-width="2"
-      class={props.class ?? "h-5 w-5 fill-current stroke-current"}
-      aria-hidden="true"
-    >
-      <rect width="18" height="18" x="3" y="3" rx="2" />
-    </svg>
-  )
-}
-
 export function PromptComposerAttachButton(props: ComponentProps<"button"> & { label: string }) {
   const [local, rest] = splitProps(props, ["label", "class", "classList", "children"])
   return (
@@ -45,6 +30,8 @@ export function PromptComposerSubmitButton(props: {
   stopLabel: string
   class?: string
 }) {
+  const stopTitle = () => (props.stopping ? "Stopping..." : props.stopLabel)
+
   return (
     <Show
       when={props.working && !props.shellMode}
@@ -70,14 +57,16 @@ export function PromptComposerSubmitButton(props: {
       <button
         type={props.type ?? "submit"}
         data-action="prompt-submit"
+        data-testid="stop-button"
         disabled={props.stopping}
+        title={stopTitle()}
         classList={{
           "shrink-0 cursor-pointer rounded-md p-1 transition-colors duration-150 ease-in-out motion-reduce:duration-75 will-change-[opacity,background-color] disabled:cursor-default disabled:opacity-50": true,
           "bg-red-500/10 text-red-400": !!props.stopping,
           "bg-red-500/15 text-red-500 hover:bg-red-500/25": !props.stopping,
           [props.class ?? ""]: !!props.class,
         }}
-        aria-label={props.stopping ? "Stopping..." : props.stopLabel}
+        aria-label={stopTitle()}
       >
         <div
           classList={{
@@ -85,7 +74,11 @@ export function PromptComposerSubmitButton(props: {
             "animate-pulse": !!props.stopping,
           }}
         >
-          <StopSquareIcon />
+          <Icon
+            name="stop"
+            class="h-5 w-5 fill-current stroke-current transition-colors duration-100 ease-in-out"
+            aria-hidden="true"
+          />
         </div>
       </button>
     </Show>

@@ -1,0 +1,22 @@
+.bottom-activity-bar {
+  container-type: inline-size;
+  container-name: bottom-activity-bar;
+}
+
+.bottom-activity-bar .bottom-bar-label {
+  display: none;
+}
+
+.bottom-activity-bar .bottom-bar-tdx-badge [data-component="tooltip-trigger"] > span > span:last-child {
+  display: none;
+}
+
+@container bottom-activity-bar (min-width: 645px) {
+  .bottom-activity-bar .bottom-bar-label {
+    display: inline;
+  }
+
+  .bottom-activity-bar .bottom-bar-tdx-badge [data-component="tooltip-trigger"] > span > span:last-child {
+    display: inline;
+  }
+}

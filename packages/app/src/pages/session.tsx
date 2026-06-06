@@ -31,7 +31,7 @@ import { Button } from "@opencode-ai/ui/button"
 import { showToast } from "@/utils/toast"
 import { checksum } from "@opencode-ai/core/util/encode"
 import { useLocation, useSearchParams } from "@solidjs/router"
-import { NewSessionDesignView, NewSessionView, SessionHeader } from "@/components/session"
+import { BottomActivityBar, NewSessionDesignView, NewSessionView, SessionHeader } from "@/components/session"
 import { useComments } from "@/context/comments"
 import { getSessionPrefetch, SESSION_PREFETCH_TTL } from "@/context/global-sync/session-prefetch"
 import { useServerSync } from "@/context/server-sync"
@@ -1811,6 +1811,8 @@ export default function Page() {
           </div>
 
           <Show when={params.id || !newSessionDesign()}>{composerRegion("dock")}</Show>
+
+          <BottomActivityBar />
 
           <Show when={desktopReviewOpen()}>
             <div onPointerDown={() => size.start()}>
