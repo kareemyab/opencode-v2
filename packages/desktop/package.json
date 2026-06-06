@@ -4,13 +4,15 @@
   "version": "1.16.2",
   "type": "module",
   "license": "MIT",
-  "homepage": "https://opencode.ai",
+  "homepage": "https://orgn.com",
   "author": {
-    "name": "OpenCode",
-    "email": "hello@opencode.ai"
+    "name": "orgn",
+    "email": "hello@orgn.com"
   },
   "scripts": {
     "typecheck": "tsgo -b",
+    "test": "bun test src",
+    "test:ci": "mkdir -p .artifacts/unit && bun test src --reporter=junit --reporter-outfile=.artifacts/unit/junit.xml",
     "predev": "bun ./scripts/predev.ts",
     "dev": "electron-vite dev",
     "prebuild": "bun ./scripts/prebuild.ts",
@@ -20,7 +22,8 @@
     "package:mac": "electron-builder --mac --config electron-builder.config.ts",
     "package:win": "electron-builder --win --config electron-builder.config.ts",
     "package:linux": "electron-builder --linux --config electron-builder.config.ts",
-    "native:build": "bun install --cwd native"
+    "native:build": "bun install --cwd native",
+    "generate:orgn-icons": "bun ./scripts/generate-orgn-icons.ts all"
   },
   "main": "./out/main/index.js",
   "dependencies": {
@@ -38,6 +41,7 @@
     "@lydell/node-pty": "catalog:",
     "@opencode-ai/app": "workspace:*",
     "@opencode-ai/ui": "workspace:*",
+    "@resvg/resvg-js": "^2.6.2",
     "@sentry/solid": "catalog:",
     "@sentry/vite-plugin": "catalog:",
     "@solid-primitives/i18n": "2.2.1",
@@ -53,6 +57,7 @@
     "electron-vite": "^5",
     "solid-js": "catalog:",
     "sury": "11.0.0-alpha.4",
+    "to-ico": "^1.1.5",
     "typescript": "~5.6.2",
     "vite": "catalog:",
     "zod-openapi": "5.4.6"

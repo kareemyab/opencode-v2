@@ -1,6 +1,8 @@
+import { updatePublishUrl } from "@opencode-ai/ui/brand"
 import { app, dialog } from "electron"
 import pkg from "electron-updater"
-import { UPDATER_ENABLED } from "./constants"
+import { CHANNEL, UPDATER_ENABLED } from "./constants"
+import { tDesktop } from "./i18n"
 import { getLogger } from "./logging"
 
 const { autoUpdater } = pkg
@@ -17,11 +19,13 @@ export function setupAutoUpdater() {
   autoUpdater.allowDowngrade = true
   autoUpdater.autoDownload = false
   autoUpdater.autoInstallOnAppQuit = false
+  const feedUrl = updatePublishUrl(CHANNEL) ?? process.env.ORGN_UPDATE_URL?.trim()
   logger.log("auto updater configured", {
     channel: autoUpdater.channel,
     allowPrerelease: autoUpdater.allowPrerelease,
     allowDowngrade: autoUpdater.allowDowngrade,
     currentVersion: app.getVersion(),
+    feedUrl: feedUrl ?? null,
   })
 }
 
@@ -98,8 +102,8 @@ export async function checkForUpdates(alertOnFail: boolean, killSidecar: () => P
       if (!alertOnFail) return
       await dialog.showMessageBox({
         type: "error",
-        message: "Update check failed.",
-        title: "Update Error",
+        message: tDesktop("desktop.updater.checkFailed.message"),
+        title: tDesktop("desktop.updater.checkFailed.title"),
       })
       return
     }
@@ -108,17 +112,20 @@ export async function checkForUpdates(alertOnFail: boolean, killSidecar: () => P
     if (!alertOnFail) return
     await dialog.showMessageBox({
       type: "info",
-      message: "You're up to date.",
-      title: "No Updates",
+      message: tDesktop("desktop.updater.none.message"),
+      title: tDesktop("desktop.updater.none.title"),
     })
     return
   }
 
   const response = await dialog.showMessageBox({
     type: "info",
-    message: `Update ${result.version ?? ""} downloaded. Restart now?`,
-    title: "Update Ready",
-    buttons: ["Restart", "Later"],
+    message: tDesktop("desktop.updater.downloaded.prompt", { version: result.version ?? "" }),
+    title: tDesktop("desktop.updater.downloaded.title"),
+    buttons: [
+      tDesktop("desktop.updater.downloaded.restart"),
+      tDesktop("desktop.updater.downloaded.later"),
+    ],
     defaultId: 0,
     cancelId: 1,
   })

@@ -19,3 +19,9 @@ jobs:
 
       - name: Run typecheck
         run: bun typecheck
+
+      - name: Check orgn desktop branding
+        run: bash scripts/check-orgn-branding.sh
+
+      - name: Audit orgn desktop telemetry hooks
+        run: bash scripts/audit-orgn-telemetry.sh

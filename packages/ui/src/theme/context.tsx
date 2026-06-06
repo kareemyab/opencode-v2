@@ -3,22 +3,27 @@
 import { createEffect, onMount } from "solid-js"
 import { createStore } from "solid-js/store"
 import { makeEventListener } from "@solid-primitives/event-listener"
+import {
+  LEGACY_THEME_STORAGE,
+  ORGN_RADIUS_CSS,
+  ORGN_THEME_COLORS,
+  THEME_ID_DEFAULT,
+  THEME_STORAGE,
+  THEME_STYLE_ID,
+} from "../brand"
 import { createSimpleContext } from "../context/helper"
-import oc2ThemeJson from "./themes/oc-2.json"
+import orgnThemeJson from "./themes/orgn.json"
 import { resolveThemeVariant, themeToCss } from "./resolve"
 import { resolveThemeVariantV2, themeV2ToCss } from "./v2/resolve"
 import type { DesktopTheme } from "./types"
 
 export type ColorScheme = "light" | "dark" | "system"
 
-const STORAGE_KEYS = {
-  THEME_ID: "opencode-theme-id",
-  COLOR_SCHEME: "opencode-color-scheme",
-  THEME_CSS_LIGHT: "opencode-theme-css-light",
-  THEME_CSS_DARK: "opencode-theme-css-dark",
-} as const
+const STORAGE_KEYS = THEME_STORAGE
+const LEGACY_KEYS = LEGACY_THEME_STORAGE
+const BUILTIN_THEME_ID = THEME_ID_DEFAULT
+const HIDDEN_THEME_IDS = new Set(["opencode", "oc-2"])
 
-const THEME_STYLE_ID = "oc-theme"
 let files: Record<string, () => Promise<{ default: DesktopTheme }>> | undefined
 let ids: string[] | undefined
 let known: Set<string> | undefined
@@ -44,6 +49,7 @@ function knownThemes() {
 }
 
 const names: Record<string, string> = {
+  orgn: "orgn",
   "oc-2": "OC-2",
   amoled: "AMOLED",
   aura: "Aura",
@@ -69,7 +75,7 @@ const names: Record<string, string> = {
   nord: "Nord",
   "one-dark": "One Dark",
   onedarkpro: "One Dark Pro",
-  opencode: "OpenCode",
+  opencode: "orgn (legacy)",
   orng: "Orng",
   "osaka-jade": "Osaka Jade",
   palenight: "Palenight",
@@ -82,10 +88,15 @@ const names: Record<string, string> = {
   vesper: "Vesper",
   zenburn: "Zenburn",
 }
-const oc2Theme = oc2ThemeJson as DesktopTheme
+const orgnTheme = orgnThemeJson as DesktopTheme
 
 function normalize(id: string | null | undefined) {
-  return id === "oc-1" ? "oc-2" : id
+  if (id === "oc-1" || id === "oc-2") return BUILTIN_THEME_ID
+  return id
+}
+
+function isBuiltinTheme(id: string) {
+  return id === BUILTIN_THEME_ID
 }
 
 function read(key: string) {
@@ -95,6 +106,10 @@ function read(key: string) {
   } catch {
     return null
   }
+}
+
+function readWithLegacy(primary: string, legacy: string) {
+  return read(primary) ?? read(legacy)
 }
 
 function write(key: string, value: string) {
@@ -112,8 +127,10 @@ function drop(key: string) {
 }
 
 function clear() {
-  drop(STORAGE_KEYS.THEME_CSS_LIGHT)
-  drop(STORAGE_KEYS.THEME_CSS_DARK)
+  drop(STORAGE_KEYS.themeCssLight)
+  drop(STORAGE_KEYS.themeCssDark)
+  drop(LEGACY_KEYS.themeCssLight)
+  drop(LEGACY_KEYS.themeCssDark)
 }
 
 function ensureThemeStyleElement(): HTMLStyleElement {
@@ -137,13 +154,16 @@ function applyThemeCss(theme: DesktopTheme, themeId: string, mode: "light" | "da
   const css = themeToCss(tokens)
   const v2 = themeV2ToCss(resolveThemeVariantV2(variant, isDark))
 
-  if (themeId !== "oc-2") {
-    write(isDark ? STORAGE_KEYS.THEME_CSS_DARK : STORAGE_KEYS.THEME_CSS_LIGHT, `${css}\n  ${v2}`)
+  if (!isBuiltinTheme(themeId)) {
+    write(isDark ? STORAGE_KEYS.themeCssDark : STORAGE_KEYS.themeCssLight, `${css}\n  ${v2}`)
   }
+
+  const radiusCss = themeId === BUILTIN_THEME_ID ? ORGN_RADIUS_CSS : ""
 
   const fullCss = `:root {
   color-scheme: ${mode};
   --text-mix-blend-mode: ${isDark ? "plus-lighter" : "multiply"};
+  ${radiusCss}
   ${css}
   ${v2}
 }`
@@ -153,32 +173,38 @@ function applyThemeCss(theme: DesktopTheme, themeId: string, mode: "light" | "da
   document.documentElement.dataset.theme = themeId
   document.documentElement.dataset.colorScheme = mode
 
-  // Update theme-color meta tag to match light/dark mode
   const meta = document.querySelector('meta[name="theme-color"]')
-  if (meta) meta.setAttribute("content", isDark ? "#131010" : "#F8F7F7")
+  if (meta) {
+    meta.setAttribute(
+      "content",
+      isDark ? ORGN_THEME_COLORS.metaThemeColorDark : ORGN_THEME_COLORS.metaThemeColorLight,
+    )
+  }
 }
 
 function cacheThemeVariants(theme: DesktopTheme, themeId: string) {
-  if (themeId === "oc-2") return
+  if (isBuiltinTheme(themeId)) return
   for (const mode of ["light", "dark"] as const) {
     const isDark = mode === "dark"
     const variant = isDark ? theme.dark : theme.light
     const tokens = resolveThemeVariant(variant, isDark)
     const css = themeToCss(tokens)
     const v2 = themeV2ToCss(resolveThemeVariantV2(variant, isDark))
-    write(isDark ? STORAGE_KEYS.THEME_CSS_DARK : STORAGE_KEYS.THEME_CSS_LIGHT, `${css}\n  ${v2}`)
+    write(isDark ? STORAGE_KEYS.themeCssDark : STORAGE_KEYS.themeCssLight, `${css}\n  ${v2}`)
   }
 }
 
 export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
   name: "Theme",
   init: (props: { defaultTheme?: string; onThemeApplied?: (theme: DesktopTheme, mode: "light" | "dark") => void }) => {
-    const themeId = normalize(read(STORAGE_KEYS.THEME_ID) ?? props.defaultTheme) ?? "oc-2"
-    const colorScheme = (read(STORAGE_KEYS.COLOR_SCHEME) as ColorScheme | null) ?? "system"
+    const themeId =
+      normalize(readWithLegacy(STORAGE_KEYS.themeId, LEGACY_KEYS.themeId) ?? props.defaultTheme) ?? BUILTIN_THEME_ID
+    const colorScheme =
+      (readWithLegacy(STORAGE_KEYS.colorScheme, LEGACY_KEYS.colorScheme) as ColorScheme | null) ?? "system"
     const mode = colorScheme === "system" ? getSystemMode() : colorScheme
     const [store, setStore] = createStore({
       themes: {
-        "oc-2": oc2Theme,
+        [BUILTIN_THEME_ID]: orgnTheme,
       } as Record<string, DesktopTheme>,
       themeId,
       colorScheme,
@@ -220,20 +246,23 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
       const extra = Object.keys(store.themes)
         .filter((id) => !knownThemes().has(id))
         .sort()
-      const all = themeIDs()
-      if (extra.length === 0) return all
-      return [...all, ...extra]
+      const all = themeIDs().filter((id) => !HIDDEN_THEME_IDS.has(id))
+      const ordered = all.includes(BUILTIN_THEME_ID)
+        ? [BUILTIN_THEME_ID, ...all.filter((id) => id !== BUILTIN_THEME_ID)]
+        : all
+      if (extra.length === 0) return ordered
+      return [...ordered, ...extra.filter((id) => !HIDDEN_THEME_IDS.has(id))]
     }
 
     const loadThemes = () => Promise.all(themeIDs().map(load)).then(() => store.themes)
 
     const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEYS.THEME_ID && e.newValue) {
+      if ((e.key === STORAGE_KEYS.themeId || e.key === LEGACY_KEYS.themeId) && e.newValue) {
         const next = normalize(e.newValue)
         if (!next) return
-        if (next !== "oc-2" && !knownThemes().has(next) && !store.themes[next]) return
+        if (!isBuiltinTheme(next) && !knownThemes().has(next) && !store.themes[next]) return
         setStore("themeId", next)
-        if (next === "oc-2") {
+        if (isBuiltinTheme(next)) {
           clear()
           return
         }
@@ -242,7 +271,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
           cacheThemeVariants(theme, next)
         })
       }
-      if (e.key === STORAGE_KEYS.COLOR_SCHEME && e.newValue) {
+      if ((e.key === STORAGE_KEYS.colorScheme || e.key === LEGACY_KEYS.colorScheme) && e.newValue) {
         setStore("colorScheme", e.newValue as ColorScheme)
         setStore("mode", e.newValue === "system" ? getSystemMode() : (e.newValue as "light" | "dark"))
       }
@@ -258,11 +287,12 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
       }
       makeEventListener(mediaQuery, "change", onMedia)
 
-      const rawTheme = read(STORAGE_KEYS.THEME_ID)
-      const savedTheme = normalize(rawTheme ?? props.defaultTheme) ?? "oc-2"
-      const savedScheme = (read(STORAGE_KEYS.COLOR_SCHEME) as ColorScheme | null) ?? "system"
+      const rawTheme = readWithLegacy(STORAGE_KEYS.themeId, LEGACY_KEYS.themeId)
+      const savedTheme = normalize(rawTheme ?? props.defaultTheme) ?? BUILTIN_THEME_ID
+      const savedScheme =
+        (readWithLegacy(STORAGE_KEYS.colorScheme, LEGACY_KEYS.colorScheme) as ColorScheme | null) ?? "system"
       if (rawTheme && rawTheme !== savedTheme) {
-        write(STORAGE_KEYS.THEME_ID, savedTheme)
+        write(STORAGE_KEYS.themeId, savedTheme)
         clear()
       }
       if (savedTheme !== store.themeId) setStore("themeId", savedTheme)
@@ -286,26 +316,26 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
         console.warn(`Theme "${id}" not found`)
         return
       }
-      if (next !== "oc-2" && !knownThemes().has(next) && !store.themes[next]) {
+      if (!isBuiltinTheme(next) && !knownThemes().has(next) && !store.themes[next]) {
         console.warn(`Theme "${id}" not found`)
         return
       }
       setStore("themeId", next)
-      if (next === "oc-2") {
-        write(STORAGE_KEYS.THEME_ID, next)
+      if (isBuiltinTheme(next)) {
+        write(STORAGE_KEYS.themeId, next)
         clear()
         return
       }
       void load(next).then((theme) => {
         if (!theme || store.themeId !== next) return
         cacheThemeVariants(theme, next)
-        write(STORAGE_KEYS.THEME_ID, next)
+        write(STORAGE_KEYS.themeId, next)
       })
     }
 
     const setColorScheme = (scheme: ColorScheme) => {
       setStore("colorScheme", scheme)
-      write(STORAGE_KEYS.COLOR_SCHEME, scheme)
+      write(STORAGE_KEYS.colorScheme, scheme)
       setStore("mode", scheme === "system" ? getSystemMode() : scheme)
     }
 
@@ -323,7 +353,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
       previewTheme: (id: string) => {
         const next = normalize(id)
         if (!next) return
-        if (next !== "oc-2" && !knownThemes().has(next) && !store.themes[next]) return
+        if (!isBuiltinTheme(next) && !knownThemes().has(next) && !store.themes[next]) return
         setStore("previewThemeId", next)
         void load(next).then((theme) => {
           if (!theme || store.previewThemeId !== next) return
