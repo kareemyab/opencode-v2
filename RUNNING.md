@@ -6,11 +6,11 @@ Team guide to running the full stack — **server, web UI, and desktop app** —
 - [Prerequisites](#prerequisites)
 - [How the stack fits together](#how-the-stack-fits-together)
 - [Pick your mode](#pick-your-mode)
-- [UI development (live reload)](#ui-development-live-reload) ← the day-to-day loop
+- [Production replica (run prod locally, end-to-end)](#production-replica-run-prod-locally-end-to-end) ← a local copy of prod
+- [UI development (live reload)](#ui-development-live-reload) ← the day-to-day editing loop
 - [Full web stack (server + UI)](#full-web-stack-server--ui)
 - [Server only](#server-only)
 - [Desktop app](#desktop-app)
-- [Production parity (match opencode.ai)](#production-parity-match-opencodeai)
 - [Ports & environment variables](#ports--environment-variables)
 - [Troubleshooting](#troubleshooting)
 - [Working as a team](#working-as-a-team)
@@ -20,16 +20,31 @@ Team guide to running the full stack — **server, web UI, and desktop app** —
 
 ## TL;DR
 
-```bash
-# one-time
-bun install
+There are **two modes**. Don't mix them up — they answer different questions.
 
-# day-to-day: edit the UI with live reload
-bun dev:stack          # API on :4096 + web UI on :3000 (hot reload)
-#  → open http://localhost:3000  and edit packages/app/src/**
+```bash
+bun install            # one-time
+
+# 1) "Show me prod, running locally, end-to-end"  →  a single self-contained app
+bun prod:local         # builds + serves UI **and** API together on :4096 (channel=prod)
+#  → open http://localhost:4096        (this IS prod; no DEV badge; no hot reload)
+
+# 2) "Let me edit the UI and watch it change"     →  dev server with hot reload
+bun dev:stack          # API on :4096 + vite UI on :3000 (HMR)
+#  → open http://localhost:3000        (edit packages/app/src/** → renders live)
 ```
 
-> **The single most important thing:** your UI changes render at **http://localhost:3000**, *not* `:4096`. See [why](#why-4096-looks-different) below.
+| | `bun prod:local` | `bun dev:stack` |
+|---|---|---|
+| Open | **http://localhost:4096** | **http://localhost:3000** |
+| What it is | one binary: prod UI **embedded** + API, one origin | vite UI (`:3000`) + from-source API (`:4096`) |
+| Looks like prod? | ✅ yes (prod channel, built) | ⚠️ dev build (DEV badge, debug bar) |
+| Live reload? | ❌ no — re-run with `--rebuild` after changes | ✅ yes (instant) |
+| Use it to | demo / verify prod behavior locally | actually build the UI |
+
+> Two gotchas that cause 90% of confusion:
+> 1. In **dev** mode, your edits render at **`:3000`**, *not* `:4096` — see [why](#why-4096-looks-different).
+> 2. Run **one mode at a time** — both use port `:4096` for the server.
 
 ---
 
@@ -75,10 +90,42 @@ So when you run the dev stack and open **`:4096`, you see the live website, not 
 
 | You want to… | Use | URL to open |
 | --- | --- | --- |
+| **A local copy of prod, end-to-end** | `bun prod:local` | **http://localhost:4096** |
 | **Edit the UI and see changes live** | `bun dev:stack` | **http://localhost:3000** |
 | Run the API for the TUI / SDK / scripts | `bun dev:server` | `http://localhost:4096` (API) |
 | Run the native desktop app | `bun dev:desktop` | (Electron window) |
-| Reproduce exactly what a released/prod build serves | [prod binary](#production-parity-match-opencodeai) | the port you pass |
+
+---
+
+## Production replica (run prod locally, end-to-end)
+
+**This is how you see a local copy of prod.** One command builds the opencode binary with the web UI **embedded** (channel=prod) and serves the **UI and API together on a single origin** — exactly how the released app / opencode.ai delivers it.
+
+```bash
+bun prod:local                 # build (if needed) + serve on :4096
+#  → open http://localhost:4096     ← the whole app: prod UI + API, one origin
+```
+
+Flags:
+
+```bash
+bun prod:local --port 5000     # serve on a different port
+bun prod:local --rebuild       # rebuild first (do this after you change code)
+```
+
+What you get:
+
+- **One origin** serves everything: open `:4096` and the page *is* the app — the UI calls the API at the same origin (no proxy, no second server).
+- **Renders as real prod:** `prod` channel → no DEV/BETA badge, production layouts, minified build.
+- It runs the **same source line** opencode.ai deploys (the hosted site deploys from the `production` branch).
+
+Caveats:
+
+- **No hot reload** — it's a built artifact. After changing code, re-run with `--rebuild`. (To live-edit, use [UI development](#ui-development-live-reload).)
+- **Not byte-identical** to live opencode.ai (different build commit/env, asset hashes, secrets) — but functionally the same app.
+- First build takes a few minutes (`vite build` + binary compile); subsequent runs reuse the binary unless you pass `--rebuild`. Requires Bun `^1.3.14`.
+
+Under the hood this is just `OPENCODE_CHANNEL=prod bun ./packages/opencode/script/build.ts --single` then running `packages/opencode/dist/opencode-<platform>/bin/opencode serve`. The `bun build:local` script runs only the build step if you want it separately.
 
 ---
 
@@ -114,7 +161,7 @@ CORS allows **any `http://localhost:*` origin** (`packages/opencode/src/server/c
 
 ```bash
 bun dev:web                                  # UI on :3000 → API on :4096 (default)
-VITE_OPENCODE_SERVER_PORT=4198 bun dev:web   # UI on :3000 → API on :4198
+VITE_OPENCODE_SERVER_PORT=8080 bun dev:web   # UI on :3000 → API on :8080 (any running server)
 ```
 
 `bun dev:web` is just the vite dev server — one process, no port fight.
@@ -179,27 +226,6 @@ bun dev:desktop
   ```
 
   For heavy server iteration, prefer `bun dev:stack` (server runs from source with hot reload).
-
----
-
-## Production parity (match opencode.ai)
-
-To run the prod delivery model locally — **one binary serving its own embedded UI + API on a single origin** (no proxy) — build the single binary. It embeds the *current branch's* UI.
-
-```bash
-# build for your platform (channel=prod → no DEV/BETA badge, prod layouts)
-OPENCODE_CHANNEL=prod bun ./packages/opencode/script/build.ts --single --skip-install
-
-# run it (UI + API served together; any free port works)
-packages/opencode/dist/opencode-<platform>/bin/opencode serve --port 4198
-#  → open http://localhost:4198
-```
-
-Replace `<platform>` with yours (e.g. `darwin-arm64`, `darwin-x64`, `linux-x64`).
-
-- `--single` builds only your platform; the `gh release upload` step is skipped unless it's an actual release.
-- This serves the **same source line** opencode.ai deploys (the hosted site deploys from the `production` branch), but it is **not byte-identical** to the live deploy (different build commit/env, asset hashes, secrets).
-- Channel matters: without `OPENCODE_CHANNEL=prod` the build falls back to your git branch name and renders as the **dev** channel.
 
 ---
 
