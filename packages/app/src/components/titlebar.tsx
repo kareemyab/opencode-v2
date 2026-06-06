@@ -10,6 +10,7 @@ import {
   startTransition,
   Switch,
   untrack,
+  type JSX,
 } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useLocation, useMatch, useNavigate, useParams } from "@solidjs/router"
@@ -62,7 +63,7 @@ const tauriApi = () => (window as unknown as { __TAURI__?: TauriApi }).__TAURI__
 const currentDesktopWindow = () => tauriApi()?.window?.getCurrentWindow?.()
 const currentThemeWindow = () => tauriApi()?.webviewWindow?.getCurrentWebviewWindow?.()
 const legacyTitlebarHeight = 40
-const v2TitlebarHeight = 36
+const v2TitlebarHeight = 47
 const minTitlebarZoom = 0.25
 const windowsControlsBaseWidth = 138 // 3 native Windows caption buttons at 46px each.
 
@@ -72,7 +73,13 @@ export type TitlebarUpdate = {
   install: () => void
 }
 
-export function Titlebar(props: { update?: TitlebarUpdate }) {
+export function Titlebar(props: {
+  update?: TitlebarUpdate
+  /** Design-system shell-nav slots, rendered into the v2 top strip. */
+  leading?: JSX.Element
+  breadcrumb?: JSX.Element
+  trailing?: JSX.Element
+}) {
   const layout = useLayout()
   const platform = usePlatform()
   const command = useCommand()
@@ -230,7 +237,7 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
     <header
       classList={{
         "shrink-0 relative flex flex-row": true,
-        "h-9 bg-v2-background-bg-deep overflow-visible": useV2Titlebar(),
+        "h-[47px] bg-v2-background-bg-deep overflow-visible border-b border-border-weak-base": useV2Titlebar(),
         "h-10 bg-background-base overflow-hidden": !useV2Titlebar(),
       }}
       style={{
@@ -414,16 +421,19 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
 
             return (
               <div
-                class="h-full flex-1 overflow-hidden flex flex-row items-center gap-1.5 pr-3 pt-2"
+                class="h-full flex-1 overflow-hidden flex flex-row items-center gap-1.5"
                 classList={{
-                  "pl-2": mac(),
-                  "pl-4": !mac(),
+                  "pl-2": mac() && !props.leading,
+                  "pl-4": !mac() && !props.leading,
+                  "pr-3": !props.trailing,
                 }}
               >
+                {props.leading}
                 <ChannelIndicator />
                 <Show when={windows() || linux()}>
                   <WindowsAppMenu command={command} platform={platform} variant="v2" />
                 </Show>
+                {props.breadcrumb}
                 <IconButtonV2
                   variant="ghost-muted"
                   size="large"
@@ -513,6 +523,7 @@ export function Titlebar(props: { update?: TitlebarUpdate }) {
                 </Show>
                 <div class="flex-1" />
                 <TitlebarV2Right state={v2RightState()} />
+                {props.trailing}
                 <Show when={windows() && !electronWindows()}>
                   <div data-tauri-decorum-tb class="flex flex-row" />
                 </Show>

@@ -10,6 +10,7 @@ const app = path.resolve(here, "../../app/src")
 const mocks = path.resolve(here, "./mocks")
 
 export default defineMain({
+  staticDirs: [path.resolve(here, "../../app/public")],
   framework: {
     name: "storybook-solidjs-vite",
     options: {},

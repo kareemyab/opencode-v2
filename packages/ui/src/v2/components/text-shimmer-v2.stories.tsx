@@ -36,7 +36,7 @@ export default {
 
 export const Active = {
   render: () => (
-    <span style={{ "font-size": "13px", "font-weight": "440", "font-family": "Inter, system-ui, sans-serif" }}>
+    <span style={{ "font-size": "13px", "font-weight": "440", "font-family": 'var(--v2-font-family-sans)' }}>
       <TextShimmerV2 text="Loading..." active={true} />
     </span>
   ),
@@ -44,7 +44,7 @@ export const Active = {
 
 export const Inactive = {
   render: () => (
-    <span style={{ "font-size": "13px", "font-weight": "440", "font-family": "Inter, system-ui, sans-serif" }}>
+    <span style={{ "font-size": "13px", "font-weight": "440", "font-family": 'var(--v2-font-family-sans)' }}>
       <TextShimmerV2 text="Static text" active={false} />
     </span>
   ),
@@ -59,7 +59,7 @@ export const WithOffset = {
         gap: "8px",
         "font-size": "13px",
         "font-weight": "440",
-        "font-family": "Inter, system-ui, sans-serif",
+        "font-family": 'var(--v2-font-family-sans)',
       }}
     >
       <TextShimmerV2 text="First line" active={true} offset={0} />

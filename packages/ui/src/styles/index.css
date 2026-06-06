@@ -1,5 +1,7 @@
 @layer theme, base, components, utilities;
 
+@import "./fonts.css";
+
 @import "./colors.css" layer(theme);
 @import "./theme.css" layer(theme);
 

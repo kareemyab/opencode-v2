@@ -14,6 +14,8 @@ import { type LocalProject } from "@/context/layout"
 
 export const SidebarContent = (props: {
   mobile?: boolean
+  /** Render only the icon rail (no expandable session panel) — used by the tab-design shell frame. */
+  railOnly?: boolean
   opened: Accessor<boolean>
   aimMove: (event: MouseEvent) => void
   projects: Accessor<LocalProject[]>
@@ -46,13 +48,12 @@ export const SidebarContent = (props: {
     el.setAttribute("inert", "")
   })
 
-  return (
-    <div class="flex h-full w-full min-w-0 overflow-hidden">
-      <div
-        data-component="sidebar-rail"
-        class="w-16 shrink-0 bg-background-base flex flex-col items-center overflow-hidden"
-        onMouseMove={props.aimMove}
-      >
+  const rail = (
+    <div
+      data-component="sidebar-rail"
+      class="w-16 h-full shrink-0 bg-background-base flex flex-col items-center overflow-hidden"
+      onMouseMove={props.aimMove}
+    >
         <div class="flex-1 min-h-0 w-full">
           <DragDropProvider
             onDragStart={props.handleDragStart}
@@ -110,7 +111,13 @@ export const SidebarContent = (props: {
           </Tooltip>
         </div>
       </div>
+  )
 
+  if (props.railOnly) return rail
+
+  return (
+    <div class="flex h-full w-full min-w-0 overflow-hidden">
+      {rail}
       <div
         ref={(el) => {
           panel = el

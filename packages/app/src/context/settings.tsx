@@ -52,16 +52,18 @@ export interface Settings {
   sounds: SoundSettings
 }
 
-export const monoDefault = "System Mono"
-export const sansDefault = "System Sans"
-export const terminalDefault = "JetBrainsMono Nerd Font Mono"
+export const berkeleyMonoDefault = "Berkeley Mono"
+export const monoDefault = berkeleyMonoDefault
+export const sansDefault = berkeleyMonoDefault
+export const terminalDefault = berkeleyMonoDefault
 export const newLayoutDesignsDefault = import.meta.env.VITE_OPENCODE_CHANNEL !== "prod"
 
-const monoFallback =
-  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'
-const sansFallback = 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
-const terminalFallback =
-  '"JetBrainsMono Nerd Font Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'
+const berkeleyMonoStack = '"Berkeley Mono", ui-monospace, "Courier New", monospace'
+const monoFallback = berkeleyMonoStack
+// Monospace-everything UI identity (design system): Berkeley Mono is the single UI font.
+// font-sans and font-mono both resolve to it; weight carries emphasis.
+const sansFallback = berkeleyMonoStack
+const terminalFallback = berkeleyMonoStack
 
 const monoBase = monoFallback
 const sansBase = sansFallback
@@ -163,8 +165,12 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
     createEffect(() => {
       if (typeof document === "undefined") return
       const root = document.documentElement
-      root.style.setProperty("--font-family-mono", monoFontFamily(store.appearance?.mono))
-      root.style.setProperty("--font-family-sans", sansFontFamily(store.appearance?.sans))
+      const mono = monoFontFamily(store.appearance?.mono)
+      const sans = sansFontFamily(store.appearance?.sans)
+      root.style.setProperty("--font-family-mono", mono)
+      root.style.setProperty("--font-family-sans", sans)
+      root.style.setProperty("--font-family-text", sans)
+      root.style.setProperty("--v2-font-family-sans", sans)
     })
 
     createEffect(() => {
