@@ -115,8 +115,11 @@
     --v2-illustration-illustration-layer-02: var(--v2-grey-400);
     --v2-illustration-illustration-layer-03: var(--v2-grey-500);
 
-    --font-family-text: "Inter", sans-serif;
-    --v2-font-family-sans: "Inter", sans-serif;
+    /* Monospace-everything UI identity (design system). Berkeley Mono is the
+       single UI font; font-sans and font-mono both resolve to it. */
+    --font-berkeley-mono: "Berkeley Mono";
+    --font-family-text: var(--font-berkeley-mono), ui-monospace, "Courier New", monospace;
+    --v2-font-family-sans: var(--font-berkeley-mono), ui-monospace, "Courier New", monospace;
   }
 
   /* OS preference fallback (no JS needed) */

@@ -1,0 +1,47 @@
+@font-face {
+  font-family: "Berkeley Mono";
+  src: url("/TX-02-5ZKWV28X/BerkeleyMono-Regular.woff2") format("woff2");
+  font-weight: 100 449;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Berkeley Mono";
+  src: url("/TX-02-5ZKWV28X/BerkeleyMono-Oblique.woff2") format("woff2");
+  font-weight: 100 449;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Berkeley Mono";
+  src: url("/TX-02-5ZKWV28X/BerkeleyMono-Medium.woff2") format("woff2");
+  font-weight: 450 599;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Berkeley Mono";
+  src: url("/TX-02-5ZKWV28X/BerkeleyMono-Medium-Oblique.woff2") format("woff2");
+  font-weight: 450 599;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Berkeley Mono";
+  src: url("/TX-02-5ZKWV28X/BerkeleyMono-Bold.woff2") format("woff2");
+  font-weight: 600 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Berkeley Mono";
+  src: url("/TX-02-5ZKWV28X/BerkeleyMono-Bold-Oblique.woff2") format("woff2");
+  font-weight: 600 900;
+  font-style: italic;
+  font-display: swap;
+}

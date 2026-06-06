@@ -233,7 +233,7 @@ const createPlatform = (): Platform => {
 
       const notification = new Notification(title, {
         body: description ?? "",
-        icon: "/orgn-favicon-96x96.png",
+        icon: "/favicon-32x32.png",
       })
       notification.onclick = () => {
         void window.api.showWindow()

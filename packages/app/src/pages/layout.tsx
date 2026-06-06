@@ -90,6 +90,7 @@ import {
 } from "./layout/sidebar-workspace"
 import { ProjectDragOverlay, SortableProject, type ProjectSidebarContext } from "./layout/sidebar-project"
 import { SidebarContent } from "./layout/sidebar-shell"
+import { ShellBreadcrumb, ShellSidebarToggle, ShellUserMenu } from "./layout/shell-nav"
 import { runUpdateAndRestart } from "./layout/update"
 
 export default function Layout(props: ParentProps) {
@@ -166,6 +167,7 @@ export default function Layout(props: ParentProps) {
     sizing: false,
     peek: undefined as string | undefined,
     peeked: false,
+    railCollapsed: false,
   })
 
   const [update, setUpdate] = createStore({
@@ -2347,9 +2349,10 @@ export default function Layout(props: ParentProps) {
 
   const projects = () => layout.projects.list()
   const projectOverlay = () => <ProjectDragOverlay projects={projects} activeProject={() => store.activeProject} />
-  const sidebarContent = (mobile?: boolean) => (
+  const sidebarContent = (mobile?: boolean, railOnly?: boolean) => (
     <SidebarContent
       mobile={mobile}
+      railOnly={railOnly}
       opened={() => layout.sidebar.opened()}
       aimMove={aim.move}
       projects={projects}
@@ -2374,18 +2377,87 @@ export default function Layout(props: ParentProps) {
     />
   )
 
+  const breadcrumbWorkspace = createMemo(() => {
+    const dir = currentDir()
+    if (!dir) return undefined
+    const project = currentProject()
+    const [childStore] = serverSync.child(dir, { bootstrap: false })
+    const branch = childStore?.vcs?.branch
+    const label = workspaceLabel(dir, branch, project?.id)
+    if (project && pathKey(dir) === pathKey(project.worktree) && (!branch || label === displayName(project))) {
+      return undefined
+    }
+    return label
+  })
+
+  const handleShellSidebarToggle = () => {
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 1279px)").matches) {
+      layout.mobileSidebar.toggle()
+      return
+    }
+    layout.sidebar.toggle()
+  }
+
   return (
     <Show
       when={!newDesign()}
       fallback={
         <div class="relative bg-v2-background-bg-deep flex-1 min-h-0 min-w-0 flex flex-col select-none [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text">
           {autoselecting() ?? ""}
-          <Titlebar update={titlebarUpdate} />
-          <main class="flex-1 min-h-0 min-w-0 overflow-x-hidden flex flex-col items-start contain-strict">
-            <Show when={!autoselecting.loading} fallback={<div class="size-full" />}>
-              {props.children}
-            </Show>
-          </main>
+          <Titlebar
+            update={titlebarUpdate}
+            leading={
+              <ShellSidebarToggle
+                onToggle={() => setState("railCollapsed", (c) => !c)}
+                label={language.t("command.sidebar.toggle")}
+                keybind={command.keybind("sidebar.toggle") ?? ""}
+              />
+            }
+            breadcrumb={
+              <ShellBreadcrumb
+                project={currentProject}
+                workspace={breadcrumbWorkspace}
+                projects={() => layout.projects.list()}
+                activeWorktree={() => currentProject()?.worktree}
+                onSelectProject={(project) => void openProject(project.worktree)}
+                onOpenProject={chooseProject}
+                openProjectLabel={language.t("command.project.open")}
+                emptyLabel={language.t("command.project.open")}
+                label={language.t("sidebar.nav.projectsAndSessions")}
+              />
+            }
+            trailing={
+              <ShellUserMenu
+                onSettings={openSettings}
+                onConnectProvider={connectProvider}
+                onSwitchServer={openServer}
+                onHelp={() => platform.openLink("https://orgn.com/support")}
+                menuLabel={language.t("sidebar.settings")}
+                settingsLabel={language.t("sidebar.settings")}
+                connectLabel={language.t("command.provider.connect")}
+                serverLabel={language.t("command.server.switch")}
+                helpLabel={language.t("sidebar.help")}
+              />
+            }
+          />
+          <Show when={updateVersion() !== undefined}>
+            <UpdateAvailableToast version={updateVersion() ?? ""} install={installUpdate} language={language} />
+          </Show>
+          <div class="flex-1 min-h-0 min-w-0 flex flex-row">
+            <nav
+              aria-label={language.t("sidebar.nav.projectsAndSessions")}
+              data-component="sidebar-nav-desktop"
+              class="shrink-0 border-r border-border-weak-base"
+              classList={{ "hidden md:flex": !state.railCollapsed, hidden: state.railCollapsed }}
+            >
+              <div class="@container h-full contain-strict">{sidebarContent(false, true)}</div>
+            </nav>
+            <main class="flex-1 min-h-0 min-w-0 overflow-x-hidden flex flex-col items-start contain-strict">
+              <Show when={!autoselecting.loading} fallback={<div class="size-full" />}>
+                {props.children}
+              </Show>
+            </main>
+          </div>
           {import.meta.env.DEV && <DebugBar />}
           <ToastRegion v2={newDesign()} />
         </div>
@@ -2393,7 +2465,42 @@ export default function Layout(props: ParentProps) {
     >
       <div class="relative bg-background-base flex-1 min-h-0 min-w-0 flex flex-col select-none [&_input]:select-text [&_textarea]:select-text [&_[contenteditable]]:select-text">
         {autoselecting() ?? ""}
-        <Titlebar update={titlebarUpdate} />
+        <Titlebar
+          update={titlebarUpdate}
+          leading={
+            <ShellSidebarToggle
+              onToggle={handleShellSidebarToggle}
+              label={language.t("command.sidebar.toggle")}
+              keybind={command.keybind("sidebar.toggle") ?? ""}
+            />
+          }
+          breadcrumb={
+            <ShellBreadcrumb
+              project={currentProject}
+              workspace={breadcrumbWorkspace}
+              projects={() => layout.projects.list()}
+              activeWorktree={() => currentProject()?.worktree}
+              onSelectProject={(project) => void openProject(project.worktree)}
+              onOpenProject={chooseProject}
+              openProjectLabel={language.t("command.project.open")}
+              emptyLabel={language.t("command.project.open")}
+              label={language.t("sidebar.nav.projectsAndSessions")}
+            />
+          }
+          trailing={
+            <ShellUserMenu
+              onSettings={openSettings}
+              onConnectProvider={connectProvider}
+              onSwitchServer={openServer}
+              onHelp={() => platform.openLink("https://orgn.com/support")}
+              menuLabel={language.t("sidebar.settings")}
+              settingsLabel={language.t("sidebar.settings")}
+              connectLabel={language.t("command.provider.connect")}
+              serverLabel={language.t("command.server.switch")}
+              helpLabel={language.t("sidebar.help")}
+            />
+          }
+        />
         <Show when={updateVersion() !== undefined}>
           <UpdateAvailableToast version={updateVersion() ?? ""} install={installUpdate} language={language} />
         </Show>
@@ -2454,7 +2561,7 @@ export default function Layout(props: ParentProps) {
               <div class="xl:hidden">
                 <div
                   classList={{
-                    "fixed inset-x-0 top-10 bottom-0 z-40 transition-opacity duration-200": true,
+                    "fixed inset-x-0 top-[47px] bottom-0 z-40 transition-opacity duration-200": true,
                     "opacity-100 pointer-events-auto": layout.mobileSidebar.opened(),
                     "opacity-0 pointer-events-none": !layout.mobileSidebar.opened(),
                   }}
@@ -2466,7 +2573,7 @@ export default function Layout(props: ParentProps) {
                   aria-label={language.t("sidebar.nav.projectsAndSessions")}
                   data-component="sidebar-nav-mobile"
                   classList={{
-                    "@container fixed top-10 bottom-0 left-0 z-50 w-full max-w-[400px] overflow-hidden border-r border-border-weaker-base bg-background-base transition-transform duration-200 ease-out": true,
+                    "@container fixed top-[47px] bottom-0 left-0 z-50 w-full max-w-[400px] overflow-hidden border-r border-border-weaker-base bg-background-base transition-transform duration-200 ease-out": true,
                     "translate-x-0": layout.mobileSidebar.opened(),
                     "-translate-x-full": !layout.mobileSidebar.opened(),
                   }}
@@ -2490,7 +2597,7 @@ export default function Layout(props: ParentProps) {
               >
                 <main
                   classList={{
-                    "size-full overflow-x-hidden flex flex-col items-start contain-strict border-t border-border-weak-base bg-background-base xl:border-l xl:rounded-tl-[12px]": true,
+                    "size-full overflow-x-hidden flex flex-col items-start contain-strict bg-background-base border-border-weak-base xl:border-l": true,
                   }}
                 >
                   <Show when={!autoselecting.loading} fallback={<div class="size-full" />}>
