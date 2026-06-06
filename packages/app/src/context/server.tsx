@@ -151,6 +151,13 @@ export namespace ServerConnection {
     url: string
     username?: string
     password?: string
+    /**
+     * Optional upstream the same-origin gateway should proxy to, sent as the
+     * `X-OpenCode-Target-URL` header (SSRF-allowlisted to *.proxy.daytona.orgn.com
+     * by the app-gate Worker). Used by the `/launch` deep link to pin a connection
+     * to a specific Daytona sandbox without changing the same-origin `url`.
+     */
+    target?: string
   }
 
   // Regular web connections
@@ -190,7 +197,10 @@ export namespace ServerConnection {
   export const key = (conn: Any): Key => {
     switch (conn.type) {
       case "http":
-        return Key.make(conn.http.url)
+        // A targeted connection (a pinned Daytona sandbox) shares the same-origin
+        // gateway url with every other targeted connection, so the target must be
+        // part of the key to keep each sandbox a distinct, separately-scoped server.
+        return Key.make(conn.http.target ? `${conn.http.url}#${conn.http.target}` : conn.http.url)
       case "sidecar": {
         if (conn.variant === "wsl") return Key.make(`wsl:${conn.distro}`)
         return Key.make("sidecar")
@@ -240,12 +250,22 @@ export const { use: useServer, provider: ServerProvider } = createSimpleContext(
       if (state.active !== input) setState("active", input)
     }
 
+    // Dedupe stored servers by full connection key (url + optional target) rather
+    // than url alone, so multiple sandbox-pinned connections sharing the same
+    // same-origin gateway url can coexist instead of clobbering each other.
+    const storedKey = (x: StoredServer): ServerConnection.Key => {
+      if (typeof x === "string") return ServerConnection.key({ type: "http", http: { url: x } })
+      if ("type" in x) return ServerConnection.key(x)
+      return ServerConnection.key({ type: "http", http: x })
+    }
+
     function add(input: ServerConnection.Http) {
       const url_ = normalizeServerUrl(input.http.url)
       if (!url_) return
       const conn: ServerConnection.Http = { ...input, authToken: undefined, http: { ...input.http, url: url_ } }
+      const connKey = ServerConnection.key(conn)
       return batch(() => {
-        const existing = store.list.findIndex((x) => url(x) === url_)
+        const existing = store.list.findIndex((x) => storedKey(x) === connKey)
         if (existing !== -1) {
           setStore("list", existing, conn)
         } else {
