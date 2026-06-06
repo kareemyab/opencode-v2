@@ -230,21 +230,23 @@ Notes:
 
 ## Desktop app
 
-The desktop app is the whole stack in one command — it builds the server and spawns it internally as a sidecar (random loopback port + password). **You do not start a separate server.**
+The desktop app renders the **same `packages/app` UI** inside an Electron shell. It's the whole stack in one command — it builds the server and spawns it internally as a sidecar (random loopback port + password). **You do not start a separate server**, and it does **not** use `:4096`/`:4097`, so it can run alongside `bun local`.
 
 ```bash
-bun dev:desktop
+bun dev:desktop                       # prod channel by default (matches bun local)
+OPENCODE_CHANNEL=dev bun dev:desktop  # dev channel instead
 ```
 
+- **Prod channel by default** — same as `bun local`, so the desktop UI matches production (no DEV badge, prod layout). (In unpackaged dev the OS-level app name stays "OpenCode Dev"; that label is separate from the rendered channel.)
 - First launch is slower: it builds the server into `packages/opencode/dist/node` (requires Bun `^1.3.14`).
-- The **renderer (UI) hot-reloads** via electron-vite.
+- The **renderer (UI) hot-reloads** via electron-vite — edit `packages/app/src/**` and the desktop window updates live, same as the browser.
 - **Caveat:** the sidecar server is a *built bundle*, not live source. If you change server/core code, rebuild it and restart the app:
 
   ```bash
   cd packages/opencode && bun script/build-node.ts
   ```
 
-  For heavy server iteration, prefer `bun dev:stack` (server runs from source with hot reload).
+  For heavy server iteration, prefer `bun local` (server runs from source).
 
 ---
 
