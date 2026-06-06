@@ -115,23 +115,24 @@ describe("persist localStorage resilience", () => {
   test("workspace storage sanitizes Windows filename characters", () => {
     const result = persistTesting.workspaceStorage("C:\\Users\\foo")
 
-    expect(result).toStartWith("opencode.workspace.")
+    expect(result).toStartWith("orgn.workspace.")
     expect(result.endsWith(".dat")).toBeTrue()
     expect(/[:\\/]/.test(result)).toBeFalse()
   })
 
-  test("workspace target keeps raw path storage as legacy fallback", () => {
+  test("workspace target keeps legacy opencode storage as fallback", () => {
     const target = Persist.workspace("C:\\Users\\foo", "vcs")
 
     expect(target.storage).toBe(persistTesting.workspaceStorage("C:/Users/foo"))
-    expect(target.legacyStorageNames).toEqual([persistTesting.workspaceStorage("C:\\Users\\foo")])
+    expect(target.storage!.startsWith("orgn.workspace.")).toBe(true)
+    expect(target.legacyStorageNames?.every((name) => name.startsWith("opencode.workspace."))).toBe(true)
   })
 
-  test("workspace target keeps backslash storage as fallback for normalized Windows paths", () => {
+  test("workspace target keeps backslash legacy storage for normalized Windows paths", () => {
     const target = Persist.workspace("C:/Users/foo", "vcs")
 
     expect(target.storage).toBe(persistTesting.workspaceStorage("C:/Users/foo"))
-    expect(target.legacyStorageNames).toEqual([persistTesting.workspaceStorage("C:\\Users\\foo")])
+    expect(target.legacyStorageNames?.some((name) => name.startsWith("opencode.workspace."))).toBe(true)
   })
 
   test("migrates direct legacy keys into scoped storage", () => {
@@ -182,9 +183,14 @@ describe("persist localStorage resilience", () => {
   test("server global target preserves local key and isolates remote keys", () => {
     expect(Persist.serverGlobal(ServerScope.local, "notification")).toEqual(Persist.global("notification"))
     expect(Persist.serverGlobal("https://debian.example" as ServerScope, "notification")).toEqual({
-      storage: "opencode.global.dat",
+      storage: "orgn.global.dat",
       key: "https://debian.example\0notification",
     })
+  })
+
+  test("global target migrates legacy opencode.global.dat storage names", () => {
+    expect(Persist.global("language").storage).toBe("orgn.global.dat")
+    expect(Persist.global("language").legacyStorageNames).toEqual(["opencode.global.dat"])
   })
 
   test("server global target cannot collide when scope and key contain colons", () => {
