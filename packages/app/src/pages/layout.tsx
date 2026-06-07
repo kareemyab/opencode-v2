@@ -354,7 +354,7 @@ export default function Layout(props: ParentProps) {
   }
 
   function cycleTheme(direction = 1) {
-    const ids = availableThemeEntries().map(([id]) => id)
+    const ids: string[] = availableThemeEntries().map(([id]) => id)
     if (ids.length === 0) return
     const currentIndex = ids.indexOf(theme.themeId())
     const nextIndex = currentIndex === -1 ? 0 : (currentIndex + direction + ids.length) % ids.length

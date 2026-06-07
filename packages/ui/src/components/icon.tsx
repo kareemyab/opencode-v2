@@ -109,6 +109,12 @@ const icons = {
   "folder-tree": `<path d="M20 10a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2.5a1 1 0 0 1-.8-.4l-.9-1.2A1 1 0 0 0 15 3h-2a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1Z" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 21a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1h-2.9a1 1 0 0 1-.88-.55l-.42-.85a1 1 0 0 0-.92-.6H13a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1Z" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 5a2 2 0 0 0 2 2h3M3 3v13a2 2 0 0 0 2 2h3" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
   "color-switch": `<path d="M26,4H6A2.0025,2.0025,0,0,0,4,6V26a2.0025,2.0025,0,0,0,2,2H26a2.0025,2.0025,0,0,0,2-2V6A2.0025,2.0025,0,0,0,26,4ZM6,26,26,6V26Z" fill="currentColor"/>`,
   plug: `<path d="M12 22v-5" stroke="currentColor" stroke-linecap="square"/><path d="M9 8V2" stroke="currentColor" stroke-linecap="square"/><path d="M15 8V2" stroke="currentColor" stroke-linecap="square"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z" stroke="currentColor" stroke-linecap="square"/>`,
+  "lucide-plus": `<path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 5v14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
+  "lucide-columns-2": `<rect width="18" height="18" x="3" y="3" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 3v18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
+  "lucide-trash-2": `<path d="M3 6h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="10" x2="10" y1="11" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="14" x2="14" y1="11" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`,
+  "lucide-chevron-up": `<path d="m18 15-6-6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
+  "lucide-chevron-down": `<path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
+  "lucide-x": `<path d="M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="m6 6 12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
 }
 
 const spriteID = "opencode-icon-sprite"
@@ -122,6 +128,12 @@ const lucideIcons = new Set<keyof typeof icons>([
   "folder-tree",
   "plug",
   "stop",
+  "lucide-plus",
+  "lucide-columns-2",
+  "lucide-trash-2",
+  "lucide-chevron-up",
+  "lucide-chevron-down",
+  "lucide-x",
 ])
 
 function viewBox(name: keyof typeof icons) {

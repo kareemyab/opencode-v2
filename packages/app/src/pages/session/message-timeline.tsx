@@ -1388,7 +1388,7 @@ export function MessageTimeline(props: {
                         />
                       </Show>
                     </Show>
-                    <Show when={sessionID() && !parentID()} keyed>
+                    <Show when={!parentID() ? sessionID() : undefined} keyed>
                       {(id) => (
                         <div
                           class="relative z-[60] flex shrink-0 items-center gap-1 opacity-0 pointer-events-none transition-opacity duration-150 group-hover/session-title:opacity-100 group-hover/session-title:pointer-events-auto group-focus-within/session-title:opacity-100 group-focus-within/session-title:pointer-events-auto"

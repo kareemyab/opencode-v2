@@ -1,24 +1,20 @@
-import { For, Show, createEffect, createMemo, on, onCleanup, onMount } from "solid-js"
+import { Show, createEffect, createMemo, createSignal, on, onCleanup, onMount } from "solid-js"
 import { createStore } from "solid-js/store"
 import { makeEventListener } from "@solid-primitives/event-listener"
-import { Tabs } from "@opencode-ai/ui/tabs"
 import { ResizeHandle } from "@opencode-ai/ui/resize-handle"
 import { IconButton } from "@opencode-ai/ui/icon-button"
-import { TooltipKeybind } from "@opencode-ai/ui/tooltip"
-import { DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, closestCenter } from "@thisbeyond/solid-dnd"
-import type { DragEvent } from "@thisbeyond/solid-dnd"
-import { ConstrainDragYAxis, getDraggableId } from "@/utils/solid-dnd"
-
-import { SortableTerminalTab } from "@/components/session"
+import { Tooltip, TooltipKeybind } from "@opencode-ai/ui/tooltip"
 import { Terminal } from "@/components/terminal"
 import { useCommand } from "@/context/command"
 import { useLanguage } from "@/context/language"
 import { useLayout } from "@/context/layout"
 import { useTerminal } from "@/context/terminal"
-import { terminalTabLabel } from "@/pages/session/terminal-label"
 import { createSizing, focusTerminalById } from "@/pages/session/helpers"
-import { getTerminalHandoff, setTerminalHandoff } from "@/pages/session/handoff"
+import { setTerminalHandoff } from "@/pages/session/handoff"
 import { useSessionLayout } from "@/pages/session/session-layout"
+import { terminalTabLabel } from "@/pages/session/terminal-label"
+import { TerminalSessionList } from "@/pages/session/terminal-session-list"
+import "./terminal-panel.css"
 
 export function TerminalPanel() {
   const delays = [120, 240]
@@ -34,9 +30,11 @@ export function TerminalPanel() {
   const close = () => view().terminal.close()
   let root: HTMLDivElement | undefined
 
+  const [maximized, setMaximized] = createSignal(false)
+  const [savedHeight, setSavedHeight] = createSignal<number | null>(null)
+
   const [store, setStore] = createStore({
     autoCreated: false,
-    activeDraggable: undefined as string | undefined,
     recovered: {} as Record<string, boolean>,
     view: typeof window === "undefined" ? 1000 : (window.visualViewport?.height ?? window.innerHeight),
   })
@@ -58,6 +56,8 @@ export function TerminalPanel() {
   createEffect(() => {
     if (!opened()) {
       setStore("autoCreated", false)
+      setMaximized(false)
+      setSavedHeight(null)
       return
     }
 
@@ -137,14 +137,7 @@ export function TerminalPanel() {
     )
   })
 
-  const handoff = createMemo(() => {
-    const dir = params.dir
-    if (!dir) return []
-    return getTerminalHandoff(workspaceKey()) ?? []
-  })
-
   const all = terminal.all
-  const ids = createMemo(() => all().map((pty) => pty.id))
 
   const recoverTerminal = (key: string, id: string, clone: (id: string) => Promise<void>) => {
     if (store.recovered[key]) return
@@ -161,33 +154,17 @@ export function TerminalPanel() {
     trim(id)
   }
 
-  const handleTerminalDragStart = (event: unknown) => {
-    const id = getDraggableId(event)
-    if (!id) return
-    setStore("activeDraggable", id)
-  }
-
-  const handleTerminalDragOver = (event: DragEvent) => {
-    const { draggable, droppable } = event
-    if (!draggable || !droppable) return
-
-    const terminals = terminal.all()
-    const fromIndex = terminals.findIndex((t) => t.id === draggable.id.toString())
-    const toIndex = terminals.findIndex((t) => t.id === droppable.id.toString())
-    if (fromIndex !== -1 && toIndex !== -1 && fromIndex !== toIndex) {
-      terminal.move(draggable.id.toString(), toIndex)
+  const toggleMaximize = () => {
+    if (maximized()) {
+      layout.terminal.resize(savedHeight() ?? 280)
+      setMaximized(false)
+      setSavedHeight(null)
+      return
     }
-  }
 
-  const handleTerminalDragEnd = () => {
-    setStore("activeDraggable", undefined)
-
-    const activeId = terminal.active()
-    if (!activeId) return
-    requestAnimationFrame(() => {
-      if (terminal.active() !== activeId) return
-      focusTerminalById(activeId)
-    })
+    setSavedHeight(height())
+    layout.terminal.resize(max())
+    setMaximized(true)
   }
 
   return (
@@ -200,9 +177,9 @@ export function TerminalPanel() {
       aria-label={language.t("terminal.title")}
       aria-hidden={!opened()}
       inert={!opened()}
-      class="relative w-full shrink-0 overflow-hidden s-terminal"
+      class="relative w-full shrink-0 overflow-hidden"
       classList={{
-        "border-t border-border-weak-base": opened(),
+        "border-t border-[var(--terminal-border)]": opened(),
         "transition-[height] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[height] motion-reduce:transition-none":
           !size.active(),
       }}
@@ -225,6 +202,10 @@ export function TerminalPanel() {
             onResize={(next) => {
               size.touch()
               layout.terminal.resize(next)
+              if (maximized()) {
+                setMaximized(false)
+                setSavedHeight(null)
+              }
             }}
             onCollapse={close}
           />
@@ -232,62 +213,13 @@ export function TerminalPanel() {
         <Show
           when={terminal.ready()}
           fallback={
-            <div class="flex flex-col h-full pointer-events-none">
-              <div class="h-10 flex items-center gap-2 px-2 border-b border-border-weaker-base bg-background-stronger overflow-hidden">
-                <For each={handoff()}>
-                  {(title) => (
-                    <div class="px-2 py-1 bg-surface-base text-14-regular text-text-weak truncate max-w-40">
-                      {title}
-                    </div>
-                  )}
-                </For>
-                <div class="flex-1" />
-                <div class="text-text-weak pr-2">
-                  {language.t("common.loading")}
-                  {language.t("common.loading.ellipsis")}
-                </div>
-              </div>
-              <div class="flex-1 flex items-center justify-center text-text-weak">{language.t("terminal.loading")}</div>
+            <div class="terminal-panel-loading flex h-full items-center justify-center pointer-events-none">
+              {language.t("terminal.loading")}
             </div>
           }
         >
-          <DragDropProvider
-            onDragStart={handleTerminalDragStart}
-            onDragEnd={handleTerminalDragEnd}
-            onDragOver={handleTerminalDragOver}
-            collisionDetector={closestCenter}
-          >
-            <DragDropSensors />
-            <ConstrainDragYAxis />
-            <div class="flex flex-col h-full">
-              <Tabs
-                variant="alt"
-                value={terminal.active()}
-                onChange={(id) => terminal.open(id)}
-                class="!h-auto !flex-none"
-              >
-                <Tabs.List class="h-10 border-b border-border-weaker-base">
-                  <SortableProvider ids={ids()}>
-                    <For each={all()}>{(pty) => <SortableTerminalTab terminal={pty} onClose={close} />}</For>
-                  </SortableProvider>
-                  <div class="h-full flex items-center justify-center">
-                    <TooltipKeybind
-                      title={language.t("command.terminal.new")}
-                      keybind={command.keybind("terminal.new")}
-                      class="flex items-center"
-                    >
-                      <IconButton
-                        icon="plus-small"
-                        variant="ghost"
-                        iconSize="large"
-                        onClick={terminal.new}
-                        aria-label={language.t("command.terminal.new")}
-                      />
-                    </TooltipKeybind>
-                  </div>
-                </Tabs.List>
-              </Tabs>
-              <div class="flex-1 min-h-0 relative">
+          <div class="terminal-panel-body flex h-full min-h-0 flex-1">
+              <div class="terminal-panel-main relative min-h-0 flex-1">
                 <Show when={terminal.active()} keyed>
                   {(id) => {
                     const ops = terminal.bind()
@@ -298,6 +230,7 @@ export function TerminalPanel() {
                             <Terminal
                               pty={pty()}
                               autoFocus={opened()}
+                              class="!px-3 !py-2"
                               onConnect={() => markTerminalConnected(terminalRecoveryKey(pty()), id, ops.trim)}
                               onCleanup={ops.update}
                               onConnectError={() => recoverTerminal(terminalRecoveryKey(pty()), id, ops.clone)}
@@ -309,25 +242,53 @@ export function TerminalPanel() {
                   }}
                 </Show>
               </div>
-            </div>
-            <DragOverlay>
-              <Show when={store.activeDraggable} keyed>
-                {(id) => (
-                  <Show when={all().find((pty) => pty.id === id)}>
-                    {(t) => (
-                      <div class="relative p-1 h-10 flex items-center bg-background-stronger text-14-regular">
-                        {terminalTabLabel({
-                          title: t().title,
-                          titleNumber: t().titleNumber,
-                          t: language.t as (key: string, vars?: Record<string, string | number | boolean>) => string,
-                        })}
-                      </div>
-                    )}
-                  </Show>
-                )}
-              </Show>
-            </DragOverlay>
-          </DragDropProvider>
+
+              <div class="terminal-panel-sidebar flex min-h-0 flex-col">
+                <div class="terminal-panel-toolbar flex shrink-0 items-center justify-end gap-0.5">
+                  <TooltipKeybind
+                    title={language.t("command.terminal.new")}
+                    keybind={command.keybind("terminal.new")}
+                  >
+                    <IconButton
+                      icon="lucide-plus"
+                      variant="ghost"
+                      class="terminal-panel-action"
+                      onClick={terminal.new}
+                      aria-label={language.t("command.terminal.new")}
+                    />
+                  </TooltipKeybind>
+                  <Tooltip
+                    value={maximized() ? language.t("terminal.panel.restore") : language.t("terminal.panel.maximize")}
+                  >
+                    <IconButton
+                      icon={maximized() ? "lucide-chevron-down" : "lucide-chevron-up"}
+                      variant="ghost"
+                      class="terminal-panel-action"
+                      onClick={toggleMaximize}
+                      aria-label={
+                        maximized() ? language.t("terminal.panel.restore") : language.t("terminal.panel.maximize")
+                      }
+                    />
+                  </Tooltip>
+                  <Tooltip value={language.t("command.terminal.toggle")}>
+                    <IconButton
+                      icon="lucide-x"
+                      variant="ghost"
+                      class="terminal-panel-action"
+                      onClick={close}
+                      aria-label={language.t("command.terminal.toggle")}
+                    />
+                  </Tooltip>
+                </div>
+                <TerminalSessionList
+                  sessions={all()}
+                  activeId={terminal.active()}
+                  warningKeys={store.recovered}
+                  onSelect={(id) => terminal.open(id)}
+                  onPanelClose={close}
+                />
+              </div>
+          </div>
         </Show>
       </div>
     </div>

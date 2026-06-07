@@ -3,6 +3,18 @@
  * Smoke ramp, stream text, inline code, links, and shadcn semantic bridge (dark-first).
  */
 :root {
+  --terminal-background: hsl(240 4.8% 95.9%);
+  --terminal-foreground: hsl(240 10% 3.9%);
+  --terminal-header-bg: hsl(240 5.9% 90%);
+  --terminal-border: hsl(240 5.9% 85%);
+  --terminal-gutter-bg: hsl(240 4.8% 93%);
+  --terminal-gutter-text: hsl(240 5% 45%);
+  --terminal-text-muted: hsl(240 5% 45%);
+  --terminal-text-warning: hsl(38 92% 40%);
+  --terminal-tab-active-bg: hsl(240 4.8% 88%);
+  --terminal-tab-hover-bg: hsl(240 4.8% 92%);
+  --terminal-action-hover: hsl(240 5.9% 10% / 6%);
+
   --smoke-dark-1: #0d0d0d;
   --smoke-dark-2: #111111;
   --smoke-dark-3: #141414;
@@ -26,6 +38,18 @@
 }
 
 [data-color-scheme="dark"] {
+  --terminal-background: hsl(0 0% 4%);
+  --terminal-foreground: hsl(0 0% 83%);
+  --terminal-header-bg: hsl(0 0% 8%);
+  --terminal-border: hsl(0 0% 23%);
+  --terminal-gutter-bg: hsl(0 0% 12%);
+  --terminal-gutter-text: hsl(0 0% 38%);
+  --terminal-text-muted: hsl(0 0% 50%);
+  --terminal-text-warning: hsl(45 93% 58%);
+  --terminal-tab-active-bg: hsl(240 3.7% 15.9%);
+  --terminal-tab-hover-bg: hsl(240 3.7% 15.9% / 55%);
+  --terminal-action-hover: hsl(0 0% 100% / 6%);
+
   --background: #000000;
   --foreground: hsl(220 13% 91%);
   --card: #000000;

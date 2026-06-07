@@ -1,0 +1,149 @@
+[data-component="terminal-panel"] {
+  --terminal-panel-sidebar-width: 196px;
+  font-family: var(--font-terminal);
+  background-color: var(--terminal-background);
+  color: var(--terminal-foreground);
+}
+
+[data-component="terminal-panel"] .terminal-panel-toolbar {
+  border-bottom: 1px solid var(--terminal-border);
+  background-color: var(--terminal-gutter-bg);
+}
+
+[data-component="terminal-panel"] .terminal-panel-action {
+  width: 26px;
+  height: 26px;
+  color: var(--terminal-gutter-text);
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
+}
+
+[data-component="terminal-panel"] .terminal-panel-action:hover:not(:disabled) {
+  color: var(--terminal-foreground);
+  background-color: var(--terminal-action-hover);
+}
+
+[data-component="terminal-panel"] .terminal-panel-action [data-slot="icon-svg"] {
+  width: 14px;
+  height: 14px;
+}
+
+[data-component="terminal-panel"] .terminal-panel-body {
+  min-height: 0;
+}
+
+[data-component="terminal-panel"] .terminal-panel-main {
+  min-width: 0;
+  background-color: var(--terminal-background);
+}
+
+[data-component="terminal-panel"] .terminal-panel-sidebar {
+  width: var(--terminal-panel-sidebar-width);
+  min-width: var(--terminal-panel-sidebar-width);
+  border-left: 1px solid var(--terminal-border);
+  background-color: var(--terminal-gutter-bg);
+}
+
+[data-component="terminal-panel"] .terminal-session-row {
+  display: flex;
+  align-items: center;
+  min-height: 26px;
+}
+
+[data-component="terminal-panel"] .terminal-session-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
+  min-height: 26px;
+  padding: 3px 6px 3px 10px;
+  text-align: left;
+  font-family: var(--font-terminal);
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--terminal-gutter-text);
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+[data-component="terminal-panel"] .terminal-session-actions {
+  display: flex;
+  shrink: 0;
+  align-items: center;
+  gap: 1px;
+  padding-right: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+
+[data-component="terminal-panel"] .terminal-session-row:hover .terminal-session-actions,
+[data-component="terminal-panel"] .terminal-session-row:focus-within .terminal-session-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+[data-component="terminal-panel"] .terminal-session-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--terminal-gutter-text);
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
+}
+
+[data-component="terminal-panel"] .terminal-session-action:hover {
+  color: var(--terminal-foreground);
+  background-color: var(--terminal-action-hover);
+}
+
+[data-component="terminal-panel"] .terminal-session-action [data-slot="icon-svg"] {
+  width: 12px;
+  height: 12px;
+}
+
+[data-component="terminal-panel"] .terminal-session-item [data-slot="terminal-session-icon"] {
+  color: var(--terminal-gutter-text);
+  opacity: 0.9;
+}
+
+[data-component="terminal-panel"] .terminal-session-row:hover .terminal-session-item,
+[data-component="terminal-panel"] .terminal-session-row:focus-within .terminal-session-item {
+  color: var(--terminal-foreground);
+  background-color: var(--terminal-action-hover);
+}
+
+[data-component="terminal-panel"] .terminal-session-row:hover .terminal-session-item [data-slot="terminal-session-icon"],
+[data-component="terminal-panel"] .terminal-session-row:focus-within .terminal-session-item [data-slot="terminal-session-icon"] {
+  color: var(--terminal-foreground);
+}
+
+[data-component="terminal-panel"] .terminal-session-item[data-active="true"] {
+  color: var(--terminal-foreground);
+  background-color: var(--terminal-tab-active-bg);
+}
+
+[data-component="terminal-panel"] .terminal-session-item[data-active="true"] [data-slot="terminal-session-icon"] {
+  color: var(--terminal-foreground);
+}
+
+[data-component="terminal-panel"] .terminal-session-item[data-warning="true"] {
+  color: var(--terminal-text-warning);
+}
+
+[data-component="terminal-panel"] .terminal-session-item[data-warning="true"] [data-slot="terminal-session-icon"],
+[data-component="terminal-panel"] .terminal-session-item[data-warning="true"] [data-slot="terminal-session-warning"] {
+  color: var(--terminal-text-warning);
+}
+
+[data-component="terminal-panel"] .terminal-panel-loading {
+  font-family: var(--font-terminal);
+  font-size: 11px;
+  color: var(--terminal-text-muted);
+}
