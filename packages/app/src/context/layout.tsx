@@ -255,7 +255,12 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
           opened: false,
           width: DEFAULT_SIDEBAR_WIDTH,
           workspaces: {} as Record<string, boolean>,
-          workspacesDefault: false,
+          // Default the workspaces sidebar ON for the web CDE so a git project's
+          // worktrees (e.g. the trial-<id> worktree a CDE Web deep link opens)
+          // render as workspace entries in the sidebar on first load. Desktop
+          // keeps the opt-in default. Per-project toggles + migrated stores still
+          // win via `workspaces[directory] ?? workspacesDefault`.
+          workspacesDefault: platform.platform === "web",
         },
         terminal: {
           height: DEFAULT_TERMINAL_HEIGHT,
