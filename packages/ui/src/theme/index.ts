@@ -35,6 +35,23 @@ export { resolveThemeVariant, resolveTheme, themeToCss } from "./resolve"
 export { resolveThemeVariantV2, resolveThemeV2, themeV2ToCss, generateV2Primitives } from "./v2/resolve"
 export { applyTheme, loadThemeFromUrl, getActiveTheme, removeTheme, setColorScheme } from "./loader"
 export { ThemeProvider, useTheme, type ColorScheme } from "./context"
+export {
+  CURATED_THEME_ENTRIES,
+  CURATED_THEME_DEFAULT_KEY,
+  CURATED_THEME_DEFAULT,
+  CURATED_THEME_IDS,
+  CURATED_THEME_NAMES,
+  CURATED_THEME_KEYS,
+  curatedThemeIds,
+  curatedKeys,
+  curatedEntryForKey,
+  curatedEntryForThemeId,
+  isCuratedThemeId,
+  isCuratedThemeKey,
+  resolveCuratedKey,
+  type CuratedThemeEntry,
+  type CuratedThemeKey,
+} from "./curated-themes"
 
 export {
   DEFAULT_THEMES,

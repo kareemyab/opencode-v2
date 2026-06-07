@@ -147,7 +147,7 @@ export default function Layout(props: ParentProps) {
       dir: store[0].path.directory || dir,
     }
   })
-  const availableThemeEntries = createMemo(() => theme.ids().map((id) => [id, theme.themes()[id]] as const))
+  const availableThemeEntries = createMemo(() => theme.curatedEntries().map((entry) => [entry.key, entry.label] as const))
   const colorSchemeOrder: ColorScheme[] = ["system", "light", "dark"]
   const colorSchemeKey: Record<ColorScheme, "theme.scheme.system" | "theme.scheme.light" | "theme.scheme.dark"> = {
     system: "theme.scheme.system",
@@ -354,15 +354,15 @@ export default function Layout(props: ParentProps) {
   }
 
   function cycleTheme(direction = 1) {
-    const ids: string[] = availableThemeEntries().map(([id]) => id)
-    if (ids.length === 0) return
-    const currentIndex = ids.indexOf(theme.themeId())
-    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + direction + ids.length) % ids.length
-    const nextThemeId = ids[nextIndex]
-    theme.setTheme(nextThemeId)
+    const keys: string[] = availableThemeEntries().map(([key]) => key)
+    if (keys.length === 0) return
+    const currentIndex = keys.indexOf(theme.curatedKey())
+    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + direction + keys.length) % keys.length
+    const nextKey = keys[nextIndex]
+    theme.setCuratedTheme(nextKey)
     showToast({
       title: language.t("toast.theme.title"),
-      description: theme.name(nextThemeId),
+      description: theme.curatedLabel(),
     })
   }
 
@@ -1182,14 +1182,14 @@ export default function Layout(props: ParentProps) {
         })
       })
 
-    for (const [id] of availableThemeEntries()) {
+    for (const [key, label] of availableThemeEntries()) {
       commands.push({
-        id: `theme.set.${id}`,
-        title: language.t("command.theme.set", { theme: theme.name(id) }),
+        id: `theme.set.${key}`,
+        title: language.t("command.theme.set", { theme: label }),
         category: language.t("command.category.theme"),
-        onSelect: () => theme.commitPreview(),
+        onSelect: () => theme.setCuratedTheme(key),
         onHighlight: () => {
-          theme.previewTheme(id)
+          theme.previewCuratedTheme(key)
           return () => theme.cancelPreview()
         },
       })

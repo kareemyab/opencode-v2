@@ -21,9 +21,16 @@ export default [
     config() {
       return {
         resolve: {
-          alias: {
-            "@": fileURLToPath(new URL("./src", import.meta.url)),
-          },
+          alias: [
+            {
+              find: "@/components/terminal",
+              replacement: fileURLToPath(new URL("./src/components/terminal.impl.tsx", import.meta.url)),
+            },
+            {
+              find: "@",
+              replacement: fileURLToPath(new URL("./src", import.meta.url)),
+            },
+          ],
         },
         define: {
           "import.meta.env.VITE_OPENCODE_CHANNEL": JSON.stringify(channel),

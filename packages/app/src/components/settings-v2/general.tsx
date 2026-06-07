@@ -177,7 +177,9 @@ export const SettingsGeneralV2: Component = () => {
       .finally(() => setStore("checking", false))
   }
 
-  const themeOptions = createMemo<ThemeOption[]>(() => theme.ids().map((id) => ({ id, name: theme.name(id) })))
+  const themeOptions = createMemo<ThemeOption[]>(() =>
+    theme.curatedEntries().map((entry) => ({ id: entry.key, name: entry.label })),
+  )
 
   const serverSync = useServerSync()
   const serverSdk = useServerSDK()
@@ -543,18 +545,18 @@ export const SettingsGeneralV2: Component = () => {
             appearance="inline"
             data-action="settings-theme"
             options={themeOptions()}
-            current={themeOptions().find((o) => o.id === theme.themeId())}
+            current={themeOptions().find((o) => o.id === theme.curatedKey())}
             placement="bottom-end"
             gutter={6}
             value={(o) => o.id}
             label={(o) => o.name}
             onSelect={(option) => {
               if (!option) return
-              theme.setTheme(option.id)
+              theme.setCuratedTheme(option.id)
             }}
             onHighlight={(option) => {
               if (!option) return
-              theme.previewTheme(option.id)
+              theme.previewCuratedTheme(option.id)
               return () => theme.cancelPreview()
             }}
           />
