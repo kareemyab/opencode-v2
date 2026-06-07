@@ -85,9 +85,9 @@ export function terminalInput(font: string | undefined) {
   return input(font)
 }
 
-/** Terminal canvas uses a proportional system UI font — never Berkeley Mono. */
+/** Terminal canvas uses a system monospace font so glyphs align in the cell grid. */
 export const terminalUIFontStack =
-  '"Helvetica Neue", Helvetica, "Segoe UI", Roboto, Arial, sans-serif'
+  'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'
 
 export function terminalFontFamily(_font: string | undefined) {
   return terminalUIFontStack
