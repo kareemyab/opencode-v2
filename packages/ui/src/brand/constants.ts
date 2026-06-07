@@ -72,7 +72,7 @@ export const APP_IDS: Record<OrgnChannel, string> = {
 }
 
 export const APP_NAMES: Record<OrgnChannel, string> = {
-  dev: "orgn Dev",
+  dev: "CDE Agent",
   beta: "orgn Beta",
   prod: "orgn",
 }

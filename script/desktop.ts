@@ -6,8 +6,9 @@
 //   bun script/desktop.ts                 # prod channel
 //   OPENCODE_CHANNEL=dev bun script/desktop.ts
 //
-// Note: in unpackaged dev the OS-level app name stays "OpenCode Dev" (set in
-// the main process); the channel here controls the rendered UI, not that label.
+// Note: the unpackaged Electron.app is rebranded (name + icon) by
+// packages/desktop/scripts/patch-dev-electron.ts on predev, so the OS-level app
+// name shows "CDE Agent"; the channel here controls the rendered UI, not that label.
 
 process.env.OPENCODE_CHANNEL ??= "prod"
 

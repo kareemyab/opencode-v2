@@ -3,7 +3,7 @@ import { showToast } from "@/utils/toast"
 import { base64Encode } from "@opencode-ai/core/util/encode"
 import { Binary } from "@opencode-ai/core/util/binary"
 import { useNavigate, useParams } from "@solidjs/router"
-import { batch, type Accessor } from "solid-js"
+import { batch, createSignal, type Accessor } from "solid-js"
 import type { FileSelection } from "@/context/file"
 import { useServerSync } from "@/context/server-sync"
 import { useLanguage } from "@/context/language"
@@ -214,6 +214,7 @@ export function createPromptSubmit(input: PromptSubmitInput) {
   const language = useLanguage()
   const params = useParams()
   const pendingKey = (sessionID: string) => ScopedKey.from(sdk.scope, sessionID)
+  const [isAborting, setIsAborting] = createSignal(false)
 
   const errorMessage = (err: unknown) => {
     if (err && typeof err === "object" && "data" in err) {
@@ -225,28 +226,35 @@ export function createPromptSubmit(input: PromptSubmitInput) {
   }
 
   const abort = async () => {
+    if (isAborting()) return Promise.resolve()
+
     const sessionID = params.id
     if (!sessionID) return Promise.resolve()
 
-    serverSync.todo.set(sessionID, [])
-    const [, setStore] = serverSync.child(sdk.directory)
-    setStore("todo", sessionID, [])
+    setIsAborting(true)
+    try {
+      serverSync.todo.set(sessionID, [])
+      const [, setStore] = serverSync.child(sdk.directory)
+      setStore("todo", sessionID, [])
 
-    input.onAbort?.()
+      input.onAbort?.()
 
-    const key = pendingKey(sessionID)
-    const queued = pending.get(key)
-    if (queued) {
-      queued.abort.abort()
-      queued.cleanup()
-      pending.delete(key)
-      return Promise.resolve()
+      const key = pendingKey(sessionID)
+      const queued = pending.get(key)
+      if (queued) {
+        queued.abort.abort()
+        queued.cleanup()
+        pending.delete(key)
+        return
+      }
+      await sdk.client.session
+        .abort({
+          sessionID,
+        })
+        .catch(() => {})
+    } finally {
+      setIsAborting(false)
     }
-    return sdk.client.session
-      .abort({
-        sessionID,
-      })
-      .catch(() => {})
   }
 
   const restoreCommentItems = (items: CommentItem[]) => {
@@ -585,5 +593,6 @@ export function createPromptSubmit(input: PromptSubmitInput) {
   return {
     abort,
     handleSubmit,
+    isAborting,
   }
 }
