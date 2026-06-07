@@ -7,12 +7,25 @@ import {
   LEGACY_THEME_STORAGE,
   ORGN_RADIUS_CSS,
   ORGN_THEME_COLORS,
+  THEME_CACHE_VERSION,
   THEME_ID_DEFAULT,
   THEME_STORAGE,
   THEME_STYLE_ID,
 } from "../brand"
 import { createSimpleContext } from "../context/helper"
 import orgnThemeJson from "./themes/orgn.json"
+import {
+  CURATED_THEME_ENTRIES,
+  curatedEntryForKey,
+  curatedEntryForThemeId,
+  curatedKeys,
+  curatedThemeIds,
+  isCuratedThemeId,
+  isCuratedThemeKey,
+  resolveCuratedKey,
+  type CuratedThemeEntry,
+  type CuratedThemeKey,
+} from "./curated-themes"
 import { resolveThemeVariant, themeToCss } from "./resolve"
 import { resolveThemeVariantV2, themeV2ToCss } from "./v2/resolve"
 import type { DesktopTheme } from "./types"
@@ -21,7 +34,8 @@ export type ColorScheme = "light" | "dark" | "system"
 
 const STORAGE_KEYS = THEME_STORAGE
 const LEGACY_KEYS = LEGACY_THEME_STORAGE
-const BUILTIN_THEME_ID = THEME_ID_DEFAULT
+const INLINE_THEME_ID = "orgn"
+const DEFAULT_THEME_ID = THEME_ID_DEFAULT
 const HIDDEN_THEME_IDS = new Set(["opencode", "oc-2"])
 
 let files: Record<string, () => Promise<{ default: DesktopTheme }>> | undefined
@@ -48,55 +62,27 @@ function knownThemes() {
   return known
 }
 
-const names: Record<string, string> = {
-  orgn: "orgn",
-  "oc-2": "OC-2",
-  amoled: "AMOLED",
-  aura: "Aura",
-  ayu: "Ayu",
-  carbonfox: "Carbonfox",
-  catppuccin: "Catppuccin",
-  "catppuccin-frappe": "Catppuccin Frappe",
-  "catppuccin-macchiato": "Catppuccin Macchiato",
-  cobalt2: "Cobalt2",
-  cursor: "Cursor",
-  dracula: "Dracula",
-  everforest: "Everforest",
-  flexoki: "Flexoki",
-  github: "GitHub",
-  gruvbox: "Gruvbox",
-  kanagawa: "Kanagawa",
-  "lucent-orng": "Lucent Orng",
-  material: "Material",
-  matrix: "Matrix",
-  mercury: "Mercury",
-  monokai: "Monokai",
-  nightowl: "Night Owl",
-  nord: "Nord",
-  "one-dark": "One Dark",
-  onedarkpro: "One Dark Pro",
-  opencode: "orgn (legacy)",
-  orng: "Orng",
-  "osaka-jade": "Osaka Jade",
-  palenight: "Palenight",
-  rosepine: "Rose Pine",
-  shadesofpurple: "Shades of Purple",
-  solarized: "Solarized",
-  synthwave84: "Synthwave '84",
-  tokyonight: "Tokyonight",
-  vercel: "Vercel",
-  vesper: "Vesper",
-  zenburn: "Zenburn",
-}
 const orgnTheme = orgnThemeJson as DesktopTheme
 
-function normalize(id: string | null | undefined) {
-  if (id === "oc-1" || id === "oc-2") return BUILTIN_THEME_ID
-  return id
+function isInlineTheme(id: string) {
+  return id === INLINE_THEME_ID
 }
 
-function isBuiltinTheme(id: string) {
-  return id === BUILTIN_THEME_ID
+function resolveThemeSlug(id: string | null | undefined): string {
+  if (id === "oc-1" || id === "oc-2") return DEFAULT_THEME_ID
+  if (id && knownThemes().has(id) && isCuratedThemeId(id)) return id
+  if (id && knownThemes().has(id)) return DEFAULT_THEME_ID
+  return DEFAULT_THEME_ID
+}
+
+function schemeFromStorage(raw: string | null): ColorScheme {
+  if (raw === "light" || raw === "dark" || raw === "system") return raw
+  return "dark"
+}
+
+function modeFromScheme(scheme: ColorScheme): "light" | "dark" {
+  if (scheme === "system") return getSystemMode()
+  return scheme
 }
 
 function read(key: string) {
@@ -126,11 +112,18 @@ function drop(key: string) {
   } catch {}
 }
 
-function clear() {
+function clearThemeCache() {
   drop(STORAGE_KEYS.themeCssLight)
   drop(STORAGE_KEYS.themeCssDark)
   drop(LEGACY_KEYS.themeCssLight)
   drop(LEGACY_KEYS.themeCssDark)
+}
+
+function ensureCacheVersion() {
+  const current = read(STORAGE_KEYS.cacheVersion)
+  if (current === THEME_CACHE_VERSION) return
+  write(STORAGE_KEYS.cacheVersion, THEME_CACHE_VERSION)
+  clearThemeCache()
 }
 
 function ensureThemeStyleElement(): HTMLStyleElement {
@@ -154,16 +147,14 @@ function applyThemeCss(theme: DesktopTheme, themeId: string, mode: "light" | "da
   const css = themeToCss(tokens)
   const v2 = themeV2ToCss(resolveThemeVariantV2(variant, isDark))
 
-  if (!isBuiltinTheme(themeId)) {
+  if (!isInlineTheme(themeId)) {
     write(isDark ? STORAGE_KEYS.themeCssDark : STORAGE_KEYS.themeCssLight, `${css}\n  ${v2}`)
   }
-
-  const radiusCss = ORGN_RADIUS_CSS
 
   const fullCss = `:root {
   color-scheme: ${mode};
   --text-mix-blend-mode: ${isDark ? "plus-lighter" : "multiply"};
-  ${radiusCss}
+  ${ORGN_RADIUS_CSS}
   ${css}
   ${v2}
 }`
@@ -183,7 +174,7 @@ function applyThemeCss(theme: DesktopTheme, themeId: string, mode: "light" | "da
 }
 
 function cacheThemeVariants(theme: DesktopTheme, themeId: string) {
-  if (isBuiltinTheme(themeId)) return
+  if (isInlineTheme(themeId)) return
   for (const mode of ["light", "dark"] as const) {
     const isDark = mode === "dark"
     const variant = isDark ? theme.dark : theme.light
@@ -194,30 +185,46 @@ function cacheThemeVariants(theme: DesktopTheme, themeId: string) {
   }
 }
 
+function entryMode(entry: CuratedThemeEntry): "light" | "dark" {
+  if (entry.forcedScheme) return entry.forcedScheme
+  return "dark"
+}
+
+function entryColorScheme(entry: CuratedThemeEntry): ColorScheme {
+  return entry.forcedScheme ?? "dark"
+}
+
 export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
   name: "Theme",
   init: (props: { defaultTheme?: string; onThemeApplied?: (theme: DesktopTheme, mode: "light" | "dark") => void }) => {
-    const themeId =
-      normalize(readWithLegacy(STORAGE_KEYS.themeId, LEGACY_KEYS.themeId) ?? props.defaultTheme) ?? BUILTIN_THEME_ID
-    const colorScheme =
-      (readWithLegacy(STORAGE_KEYS.colorScheme, LEGACY_KEYS.colorScheme) as ColorScheme | null) ?? "system"
-    const mode = colorScheme === "system" ? getSystemMode() : colorScheme
+    ensureCacheVersion()
+
+    const rawThemeId = readWithLegacy(STORAGE_KEYS.themeId, LEGACY_KEYS.themeId) ?? props.defaultTheme
+    const rawCuratedKey = read(STORAGE_KEYS.curatedKey)
+    const rawScheme = readWithLegacy(STORAGE_KEYS.colorScheme, LEGACY_KEYS.colorScheme)
+    const savedScheme = schemeFromStorage(rawScheme)
+    const savedThemeId = resolveThemeSlug(rawThemeId)
+    const savedCuratedKey = resolveCuratedKey(rawCuratedKey, savedThemeId, savedScheme)
+    const savedEntry = curatedEntryForKey(savedCuratedKey)!
+    const savedColorScheme = savedEntry.forcedScheme ?? savedScheme
+    const savedMode = modeFromScheme(savedColorScheme)
+
     const [store, setStore] = createStore({
       themes: {
-        [BUILTIN_THEME_ID]: orgnTheme,
+        [INLINE_THEME_ID]: orgnTheme,
       } as Record<string, DesktopTheme>,
-      themeId,
-      colorScheme,
-      mode,
-      previewThemeId: null as string | null,
+      themeId: savedEntry.themeId,
+      curatedKey: savedCuratedKey as CuratedThemeKey,
+      colorScheme: savedColorScheme as ColorScheme,
+      mode: savedMode,
+      previewCuratedKey: null as CuratedThemeKey | null,
       previewScheme: null as ColorScheme | null,
     })
 
     const loads = new Map<string, Promise<DesktopTheme | undefined>>()
 
     const load = (id: string) => {
-      const next = normalize(id)
-      if (!next) return Promise.resolve(undefined)
+      const next = resolveThemeSlug(id)
       const hit = store.themes[next]
       if (hit) return Promise.resolve(hit)
       const pending = loads.get(next)
@@ -242,28 +249,96 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
       props.onThemeApplied?.(theme, mode)
     }
 
-    const ids = (): string[] => [BUILTIN_THEME_ID]
+    const persistCurated = (entry: CuratedThemeEntry) => {
+      write(STORAGE_KEYS.curatedKey, entry.key)
+      write(STORAGE_KEYS.themeId, entry.themeId)
+      const scheme = entryColorScheme(entry)
+      write(STORAGE_KEYS.colorScheme, scheme)
+    }
 
-    const loadThemes = () => Promise.all(themeIDs().map(load)).then(() => store.themes)
+    const applyCuratedEntry = (entry: CuratedThemeEntry) => {
+      const scheme = entryColorScheme(entry)
+      const mode = entryMode(entry)
+      setStore("themeId", entry.themeId)
+      setStore("curatedKey", entry.key as CuratedThemeKey)
+      setStore("colorScheme", scheme)
+      setStore("mode", mode)
+      persistCurated(entry)
+      if (!isInlineTheme(entry.themeId)) clearThemeCache()
+      void load(entry.themeId).then((theme) => {
+        if (!theme || store.themeId !== entry.themeId) return
+        if (!isInlineTheme(entry.themeId)) cacheThemeVariants(theme, entry.themeId)
+      })
+    }
+
+    const setCuratedTheme = (key: string) => {
+      const entry = curatedEntryForKey(key)
+      if (!entry) return
+      applyCuratedEntry(entry)
+    }
+
+    const setTheme = (id: string) => {
+      const slug = resolveThemeSlug(id)
+      const entry = curatedEntryForThemeId(slug, store.mode) ?? CURATED_THEME_ENTRIES.find((item) => item.themeId === slug)
+      if (entry) {
+        applyCuratedEntry(entry)
+        return
+      }
+      setStore("themeId", slug)
+      write(STORAGE_KEYS.themeId, slug)
+      if (!isInlineTheme(slug)) clearThemeCache()
+      void load(slug).then((theme) => {
+        if (!theme || store.themeId !== slug) return
+        if (!isInlineTheme(slug)) cacheThemeVariants(theme, slug)
+      })
+    }
+
+    const setColorScheme = (scheme: ColorScheme) => {
+      const entry = curatedEntryForKey(store.curatedKey)
+      if (entry?.forcedScheme) {
+        setStore("colorScheme", entry.forcedScheme)
+        write(STORAGE_KEYS.colorScheme, entry.forcedScheme)
+        setStore("mode", entry.forcedScheme)
+        return
+      }
+      setStore("colorScheme", scheme)
+      write(STORAGE_KEYS.colorScheme, scheme)
+      setStore("mode", scheme === "system" ? getSystemMode() : scheme)
+    }
+
+    const loadThemes = () => Promise.all(curatedThemeIds(themeIDs()).map(load)).then(() => store.themes)
 
     const onStorage = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEYS.curatedKey && e.newValue && isCuratedThemeKey(e.newValue)) {
+        const entry = curatedEntryForKey(e.newValue)
+        if (!entry) return
+        setStore("themeId", entry.themeId)
+        setStore("curatedKey", e.newValue)
+        const scheme = entryColorScheme(entry)
+        setStore("colorScheme", scheme)
+        setStore("mode", entryMode(entry))
+        void load(entry.themeId).then((theme) => {
+          if (!theme || store.themeId !== entry.themeId) return
+          if (!isInlineTheme(entry.themeId)) cacheThemeVariants(theme, entry.themeId)
+        })
+        return
+      }
       if ((e.key === STORAGE_KEYS.themeId || e.key === LEGACY_KEYS.themeId) && e.newValue) {
-        const next = normalize(e.newValue)
-        if (!next) return
-        if (!isBuiltinTheme(next) && !knownThemes().has(next) && !store.themes[next]) return
-        setStore("themeId", next)
-        if (isBuiltinTheme(next)) {
-          clear()
-          return
-        }
-        void load(next).then((theme) => {
-          if (!theme || store.themeId !== next) return
-          cacheThemeVariants(theme, next)
+        const slug = resolveThemeSlug(e.newValue)
+        const key = resolveCuratedKey(read(STORAGE_KEYS.curatedKey), slug, store.colorScheme)
+        const entry = curatedEntryForKey(key)
+        if (!entry) return
+        setStore("themeId", entry.themeId)
+        setStore("curatedKey", key)
+        void load(entry.themeId).then((theme) => {
+          if (!theme || store.themeId !== entry.themeId) return
+          if (!isInlineTheme(entry.themeId)) cacheThemeVariants(theme, entry.themeId)
         })
       }
       if ((e.key === STORAGE_KEYS.colorScheme || e.key === LEGACY_KEYS.colorScheme) && e.newValue) {
-        setStore("colorScheme", e.newValue as ColorScheme)
-        setStore("mode", e.newValue === "system" ? getSystemMode() : (e.newValue as "light" | "dark"))
+        const scheme = schemeFromStorage(e.newValue)
+        setStore("colorScheme", scheme)
+        setStore("mode", scheme === "system" ? getSystemMode() : scheme)
       }
     }
 
@@ -277,20 +352,13 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
       }
       makeEventListener(mediaQuery, "change", onMedia)
 
-      const rawTheme = readWithLegacy(STORAGE_KEYS.themeId, LEGACY_KEYS.themeId)
-      const savedTheme = BUILTIN_THEME_ID
-      const savedScheme =
-        (readWithLegacy(STORAGE_KEYS.colorScheme, LEGACY_KEYS.colorScheme) as ColorScheme | null) ?? "system"
-      if (rawTheme !== savedTheme) {
-        write(STORAGE_KEYS.themeId, savedTheme)
-        clear()
+      if (rawCuratedKey !== savedCuratedKey || rawThemeId !== savedEntry.themeId) {
+        persistCurated(savedEntry)
       }
-      if (store.themeId !== savedTheme) setStore("themeId", savedTheme)
-      if (savedScheme !== store.colorScheme) setStore("colorScheme", savedScheme)
-      setStore("mode", savedScheme === "system" ? getSystemMode() : savedScheme)
-      void load(savedTheme).then((theme) => {
-        if (!theme || store.themeId !== savedTheme) return
-        cacheThemeVariants(theme, savedTheme)
+
+      void load(savedEntry.themeId).then((theme) => {
+        if (!theme || store.themeId !== savedEntry.themeId) return
+        if (!isInlineTheme(savedEntry.themeId)) cacheThemeVariants(theme, savedEntry.themeId)
       })
     })
 
@@ -300,75 +368,76 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
       applyTheme(theme, store.themeId, store.mode)
     })
 
-    const setTheme = (_id: string) => {
-      const next = BUILTIN_THEME_ID
-      setStore("themeId", next)
-      write(STORAGE_KEYS.themeId, next)
-      clear()
-      void load(next).then((theme) => {
-        if (!theme || store.themeId !== next) return
-        cacheThemeVariants(theme, next)
-        write(STORAGE_KEYS.themeId, next)
-      })
-    }
-
-    const setColorScheme = (scheme: ColorScheme) => {
-      setStore("colorScheme", scheme)
-      write(STORAGE_KEYS.colorScheme, scheme)
-      setStore("mode", scheme === "system" ? getSystemMode() : scheme)
-    }
-
     return {
       themeId: () => store.themeId,
+      curatedKey: () => store.curatedKey,
       colorScheme: () => store.colorScheme,
       mode: () => store.mode,
-      ids,
-      name: (id: string) => store.themes[id]?.name ?? names[id] ?? id,
+      ids: () => curatedThemeIds(themeIDs().filter((id) => !HIDDEN_THEME_IDS.has(id))),
+      curatedEntries: () => CURATED_THEME_ENTRIES,
+      curatedKeys,
+      curatedLabel: () => curatedEntryForKey(store.curatedKey)?.label ?? store.curatedKey,
+      name: (id: string) => store.themes[id]?.name ?? id,
       loadThemes,
       themes: () => store.themes,
       setTheme,
+      setCuratedTheme,
       setColorScheme,
       registerTheme: (theme: DesktopTheme) => setStore("themes", theme.id, theme),
-      previewTheme: (_id: string) => {
-        const next = BUILTIN_THEME_ID
-        setStore("previewThemeId", next)
-        void load(next).then((theme) => {
-          if (!theme || store.previewThemeId !== next) return
+      previewCuratedTheme: (key: string) => {
+        const entry = curatedEntryForKey(key)
+        if (!entry) return
+        setStore("previewCuratedKey", entry.key as CuratedThemeKey)
+        void load(entry.themeId).then((theme) => {
+          if (!theme || store.previewCuratedKey !== entry.key) return
           const mode = store.previewScheme
             ? store.previewScheme === "system"
               ? getSystemMode()
               : store.previewScheme
-            : store.mode
-          applyTheme(theme, next, mode)
+            : entryMode(entry)
+          applyTheme(theme, entry.themeId, mode)
         })
+      },
+      previewTheme: (id: string) => {
+        const slug = resolveThemeSlug(id)
+        const entry = curatedEntryForThemeId(slug, store.mode) ?? CURATED_THEME_ENTRIES.find((item) => item.themeId === slug)
+        if (entry) {
+          setStore("previewCuratedKey", entry.key as CuratedThemeKey)
+          void load(entry.themeId).then((theme) => {
+            if (!theme || store.previewCuratedKey !== entry.key) return
+            applyTheme(theme, entry.themeId, entryMode(entry))
+          })
+        }
       },
       previewColorScheme: (scheme: ColorScheme) => {
         setStore("previewScheme", scheme)
+        const entry = curatedEntryForKey(store.previewCuratedKey ?? store.curatedKey)
+        if (!entry) return
         const mode = scheme === "system" ? getSystemMode() : scheme
-        const id = store.previewThemeId ?? store.themeId
-        void load(id).then((theme) => {
+        void load(entry.themeId).then((theme) => {
           if (!theme) return
-          if ((store.previewThemeId ?? store.themeId) !== id) return
           if (store.previewScheme !== scheme) return
-          applyTheme(theme, id, mode)
+          applyTheme(theme, entry.themeId, entry.forcedScheme ?? mode)
         })
       },
       commitPreview: () => {
-        if (store.previewThemeId) {
-          setTheme(store.previewThemeId)
+        if (store.previewCuratedKey) {
+          setCuratedTheme(store.previewCuratedKey)
         }
         if (store.previewScheme) {
           setColorScheme(store.previewScheme)
         }
-        setStore("previewThemeId", null)
+        setStore("previewCuratedKey", null)
         setStore("previewScheme", null)
       },
       cancelPreview: () => {
-        setStore("previewThemeId", null)
+        setStore("previewCuratedKey", null)
         setStore("previewScheme", null)
-        void load(store.themeId).then((theme) => {
+        const entry = curatedEntryForKey(store.curatedKey)
+        if (!entry) return
+        void load(entry.themeId).then((theme) => {
           if (!theme) return
-          applyTheme(theme, store.themeId, store.mode)
+          applyTheme(theme, entry.themeId, store.mode)
         })
       },
     }

@@ -1,0 +1,77 @@
+{
+  "$schema": "https://orgn.com/desktop-theme.json",
+  "name": "cyberdream",
+  "id": "cyberdream",
+  "dark": {
+    "palette": {
+      "neutral": "#16181a",
+      "ink": "#ffffff",
+      "primary": "#0078d4",
+      "accent": "#bd5eff",
+      "success": "#ffbd5e",
+      "warning": "#ffaa00",
+      "error": "#ff3333",
+      "info": "#0078d4",
+      "interactive": "#0078d4",
+      "diffAdd": "#ffbd5e",
+      "diffDelete": "#ff3333"
+    },
+    "overrides": {
+      "syntax-comment": "#7b8496",
+      "syntax-string": "#5eff6c",
+      "syntax-keyword": "#ffbd5e",
+      "syntax-primitive": "#ffffff",
+      "syntax-variable": "#ffbd5e",
+      "syntax-type": "#bd5eff",
+      "syntax-constant": "#ffffff",
+      "syntax-operator": "#bd5eff",
+      "syntax-object": "#5ef1ff",
+      "markdown-heading": "#ffbd5e",
+      "markdown-strong": "#ffbd5e",
+      "markdown-emph": "#ffbd5e",
+      "markdown-block-quote": "#ffffff",
+      "background-base": "#16181a",
+      "text-strong": "#ffffff",
+      "surface-interactive-weak": "#3c4048",
+      "surface-inset-base": "#3c4048",
+      "markdown-text": "#ffffff",
+      "markdown-code-block": "#ffffff"
+    }
+  },
+  "light": {
+    "palette": {
+      "neutral": "#16181a",
+      "ink": "#ffffff",
+      "primary": "#0078d4",
+      "accent": "#bd5eff",
+      "success": "#ffbd5e",
+      "warning": "#ffaa00",
+      "error": "#ff3333",
+      "info": "#0078d4",
+      "interactive": "#0078d4",
+      "diffAdd": "#ffbd5e",
+      "diffDelete": "#ff3333"
+    },
+    "overrides": {
+      "syntax-comment": "#7b8496",
+      "syntax-string": "#5eff6c",
+      "syntax-keyword": "#ffbd5e",
+      "syntax-primitive": "#ffffff",
+      "syntax-variable": "#ffbd5e",
+      "syntax-type": "#bd5eff",
+      "syntax-constant": "#ffffff",
+      "syntax-operator": "#bd5eff",
+      "syntax-object": "#5ef1ff",
+      "markdown-heading": "#ffbd5e",
+      "markdown-strong": "#ffbd5e",
+      "markdown-emph": "#ffbd5e",
+      "markdown-block-quote": "#ffffff",
+      "background-base": "#16181a",
+      "text-strong": "#ffffff",
+      "surface-interactive-weak": "#3c4048",
+      "surface-inset-base": "#3c4048",
+      "markdown-text": "#ffffff",
+      "markdown-code-block": "#ffffff"
+    }
+  }
+}

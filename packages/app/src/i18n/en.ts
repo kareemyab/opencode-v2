@@ -625,7 +625,9 @@ export const dict = {
   "session.header.open.app.powershell": "PowerShell",
   "session.header.open.app.sublimeText": "Sublime Text",
 
-  "bottomActivityBar.theme.trigger": "Select theme",
+  "bottomActivityBar.theme.trigger": "Theme and appearance",
+  "bottomActivityBar.theme.section.scheme": "Color scheme",
+  "bottomActivityBar.theme.section.palette": "Color theme",
   "bottomActivityBar.indexed.ready": "Indexed",
   "bottomActivityBar.indexed.checking": "Checking...",
   "bottomActivityBar.indexed.tooltip": "Code index status",

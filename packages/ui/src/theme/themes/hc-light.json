@@ -1,0 +1,67 @@
+{
+  "$schema": "https://orgn.com/desktop-theme.json",
+  "name": "Light High Contrast",
+  "id": "hc-light",
+  "dark": {
+    "palette": {
+      "neutral": "#000000",
+      "ink": "#ffffff",
+      "primary": "#0078d4",
+      "accent": "#d4d4d4",
+      "success": "#569cd6",
+      "warning": "#ffaa00",
+      "error": "#ff3333",
+      "info": "#0078d4",
+      "interactive": "#0078d4",
+      "diffAdd": "#569cd6",
+      "diffDelete": "#ff3333"
+    },
+    "overrides": {
+      "syntax-comment": "#7ca668",
+      "syntax-string": "#ffffff",
+      "syntax-keyword": "#569cd6",
+      "syntax-primitive": "#569cd6",
+      "syntax-variable": "#ffffff",
+      "syntax-type": "#d4d4d4",
+      "syntax-constant": "#569cd6",
+      "syntax-operator": "#808080",
+      "syntax-object": "#569cd6",
+      "markdown-heading": "#6796e6",
+      "background-base": "#000000",
+      "text-strong": "#ffffff",
+      "surface-interactive-weak": "#ffffff",
+      "markdown-text": "#ffffff",
+      "markdown-code-block": "#ffffff"
+    }
+  },
+  "light": {
+    "palette": {
+      "neutral": "#1e1e1e",
+      "ink": "#cccccc",
+      "primary": "#0078d4",
+      "accent": "#264f78",
+      "success": "#096d48",
+      "warning": "#ffaa00",
+      "error": "#ff3333",
+      "info": "#0078d4",
+      "interactive": "#0078d4",
+      "diffAdd": "#096d48",
+      "diffDelete": "#ff3333"
+    },
+    "overrides": {
+      "syntax-comment": "#515151",
+      "syntax-string": "#b5200d",
+      "syntax-keyword": "#096d48",
+      "syntax-primitive": "#0f4a85",
+      "syntax-variable": "#292929",
+      "syntax-type": "#264f78",
+      "syntax-constant": "#0f4a85",
+      "syntax-operator": "#096d48",
+      "syntax-object": "#0f4a85",
+      "markdown-heading": "#0f4a85",
+      "markdown-code": "#0f4a85",
+      "markdown-strong": "#000080",
+      "markdown-emph": "#800080"
+    }
+  }
+}

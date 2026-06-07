@@ -1,0 +1,74 @@
+{
+  "$schema": "https://orgn.com/desktop-theme.json",
+  "name": "Light+",
+  "id": "light-plus",
+  "dark": {
+    "palette": {
+      "neutral": "#1e1e1e",
+      "ink": "#d4d4d4",
+      "primary": "#007acc",
+      "accent": "#9cdcfe",
+      "success": "#b5cea8",
+      "warning": "#ffaa00",
+      "error": "#ff3333",
+      "info": "#007acc",
+      "interactive": "#007acc",
+      "diffAdd": "#b5cea8",
+      "diffDelete": "#ff3333"
+    },
+    "overrides": {
+      "syntax-comment": "#6a9955",
+      "syntax-string": "#d4d4d4",
+      "syntax-keyword": "#b5cea8",
+      "syntax-primitive": "#569cd6",
+      "syntax-variable": "#d4d4d4",
+      "syntax-type": "#9cdcfe",
+      "syntax-constant": "#569cd6",
+      "syntax-operator": "#b5cea8",
+      "syntax-object": "#569cd6",
+      "markdown-heading": "#569cd6",
+      "markdown-code": "#ce9178",
+      "markdown-strong": "#569cd6",
+      "markdown-emph": "#c586c0",
+      "background-base": "#1e1e1e",
+      "text-strong": "#d4d4d4",
+      "markdown-text": "#d4d4d4",
+      "markdown-code-block": "#d4d4d4"
+    }
+  },
+  "light": {
+    "palette": {
+      "neutral": "#ffffff",
+      "ink": "#000000",
+      "primary": "#007acc",
+      "accent": "#e50000",
+      "success": "#098658",
+      "warning": "#ffaa00",
+      "error": "#ff3333",
+      "info": "#007acc",
+      "interactive": "#007acc",
+      "diffAdd": "#098658",
+      "diffDelete": "#ff3333"
+    },
+    "overrides": {
+      "syntax-comment": "#008000",
+      "syntax-string": "#000000",
+      "syntax-keyword": "#098658",
+      "syntax-primitive": "#0000ff",
+      "syntax-variable": "#000000",
+      "syntax-type": "#e50000",
+      "syntax-constant": "#0000ff",
+      "syntax-operator": "#098658",
+      "syntax-object": "#800000",
+      "markdown-heading": "#800000",
+      "markdown-code": "#800000",
+      "markdown-strong": "#000080",
+      "markdown-emph": "#800080",
+      "background-base": "#ffffff",
+      "text-strong": "#000000",
+      "surface-raised-base-hover": "#e8e8e8",
+      "markdown-text": "#000000",
+      "markdown-code-block": "#000000"
+    }
+  }
+}

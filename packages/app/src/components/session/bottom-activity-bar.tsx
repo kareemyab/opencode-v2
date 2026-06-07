@@ -3,7 +3,7 @@ import { Icon } from "@opencode-ai/ui/icon"
 import { Popover } from "@opencode-ai/ui/popover"
 import { TooltipKeybind } from "@opencode-ai/ui/tooltip"
 import { useTheme, type ColorScheme } from "@opencode-ai/ui/theme/context"
-import { createMemo, createSignal, For, Show, Suspense, type JSX } from "solid-js"
+import { createMemo, createSignal, For, onMount, Show, Suspense, type JSX } from "solid-js"
 import { useCommand } from "@/context/command"
 import { useLanguage } from "@/context/language"
 import { useSettings } from "@/context/settings"
@@ -30,30 +30,58 @@ function ThemeToggleBar() {
   const theme = useTheme()
   const language = useLanguage()
 
+  onMount(() => {
+    void theme.loadThemes()
+  })
+
+  const paletteOptions = createMemo(() =>
+    theme.curatedEntries().map((entry) => ({ key: entry.key, name: entry.label })),
+  )
+
   return (
     <DropdownMenu placement="top-start" gutter={4}>
       <DropdownMenu.Trigger
-        class="size-7 border-0 bg-transparent shrink-0 text-text-weak hover:bg-surface-raised-base-hover hover:text-text-base flex items-center justify-center transition-colors"
+        class="h-7 max-w-[180px] border-0 bg-transparent shrink-0 text-text-weak hover:bg-surface-raised-base-hover hover:text-text-base flex items-center gap-1.5 px-2 transition-colors"
         aria-label={language.t("bottomActivityBar.theme.trigger")}
       >
-        <Icon name="color-switch" size="small" />
-        <span class="sr-only">{language.t("bottomActivityBar.theme.trigger")}</span>
+        <Icon name="color-palette" size="small" class="shrink-0" />
+        <span class="bottom-bar-label truncate">{theme.curatedLabel()}</span>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
-        <DropdownMenu.Content class="min-w-[160px]">
-          <For each={colorSchemeOrder}>
-            {(scheme) => (
-              <DropdownMenu.Item
-                class="flex items-center gap-2"
-                onSelect={() => theme.setColorScheme(scheme)}
-              >
-                <span class="flex-1">{language.t(colorSchemeKey[scheme])}</span>
-                <Show when={theme.colorScheme() === scheme}>
-                  <Icon name="check" size="small" class="text-icon-weak shrink-0" />
-                </Show>
-              </DropdownMenu.Item>
-            )}
-          </For>
+        <DropdownMenu.Content class="min-w-[220px] max-h-[min(420px,70vh)] overflow-y-auto">
+          <DropdownMenu.Group>
+            <DropdownMenu.GroupLabel>{language.t("bottomActivityBar.theme.section.scheme")}</DropdownMenu.GroupLabel>
+            <For each={colorSchemeOrder}>
+              {(scheme) => (
+                <DropdownMenu.Item
+                  class="flex items-center gap-2"
+                  onSelect={() => theme.setColorScheme(scheme)}
+                >
+                  <span class="flex-1">{language.t(colorSchemeKey[scheme])}</span>
+                  <Show when={theme.colorScheme() === scheme}>
+                    <Icon name="check" size="small" class="text-icon-weak shrink-0" />
+                  </Show>
+                </DropdownMenu.Item>
+              )}
+            </For>
+          </DropdownMenu.Group>
+          <DropdownMenu.Separator />
+          <DropdownMenu.Group>
+            <DropdownMenu.GroupLabel>{language.t("bottomActivityBar.theme.section.palette")}</DropdownMenu.GroupLabel>
+            <For each={paletteOptions()}>
+              {(option) => (
+                <DropdownMenu.Item
+                  class="flex items-center gap-2"
+                  onSelect={() => theme.setCuratedTheme(option.key)}
+                >
+                  <span class="flex-1 truncate">{option.name}</span>
+                  <Show when={theme.curatedKey() === option.key}>
+                    <Icon name="check" size="small" class="text-icon-weak shrink-0" />
+                  </Show>
+                </DropdownMenu.Item>
+              )}
+            </For>
+          </DropdownMenu.Group>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu>

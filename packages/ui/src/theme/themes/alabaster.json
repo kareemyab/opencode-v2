@@ -1,0 +1,75 @@
+{
+  "$schema": "https://orgn.com/desktop-theme.json",
+  "name": "Alabaster",
+  "id": "alabaster",
+  "dark": {
+    "palette": {
+      "neutral": "#f7f7f7",
+      "ink": "#000000",
+      "primary": "#cccccc",
+      "accent": "#777777",
+      "success": "#448c27",
+      "warning": "#cb9000",
+      "error": "#aa3731",
+      "info": "#325cc0",
+      "interactive": "#cccccc",
+      "diffAdd": "#448c27",
+      "diffDelete": "#aa3731"
+    },
+    "overrides": {
+      "syntax-comment": "#aa3731",
+      "syntax-string": "#448c27",
+      "syntax-keyword": "#7a3e9d",
+      "syntax-primitive": "#777777",
+      "syntax-constant": "#448c27",
+      "syntax-operator": "#aa3731",
+      "background-base": "#dddddd",
+      "text-strong": "#007acc",
+      "surface-base": "#f0f0f0",
+      "background-strong": "#f0f0f0",
+      "surface-interactive-base": "#dddddd",
+      "text-weaker": "#9da39a",
+      "surface-interactive-weak": "#bfdbfe",
+      "surface-inset-base": "#f0f0f0",
+      "border-focus": "#cccccc",
+      "text-weak": "#9da39a",
+      "markdown-text": "#000000",
+      "markdown-code-block": "#000000"
+    }
+  },
+  "light": {
+    "palette": {
+      "neutral": "#f7f7f7",
+      "ink": "#000000",
+      "primary": "#cccccc",
+      "accent": "#777777",
+      "success": "#448c27",
+      "warning": "#cb9000",
+      "error": "#aa3731",
+      "info": "#325cc0",
+      "interactive": "#cccccc",
+      "diffAdd": "#448c27",
+      "diffDelete": "#aa3731"
+    },
+    "overrides": {
+      "syntax-comment": "#aa3731",
+      "syntax-string": "#448c27",
+      "syntax-keyword": "#7a3e9d",
+      "syntax-primitive": "#777777",
+      "syntax-constant": "#448c27",
+      "syntax-operator": "#aa3731",
+      "background-base": "#dddddd",
+      "text-strong": "#007acc",
+      "surface-base": "#f0f0f0",
+      "background-strong": "#f0f0f0",
+      "surface-interactive-base": "#dddddd",
+      "text-weaker": "#9da39a",
+      "surface-interactive-weak": "#bfdbfe",
+      "surface-inset-base": "#f0f0f0",
+      "border-focus": "#cccccc",
+      "text-weak": "#9da39a",
+      "markdown-text": "#000000",
+      "markdown-code-block": "#000000"
+    }
+  }
+}
