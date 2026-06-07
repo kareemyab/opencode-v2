@@ -77,7 +77,7 @@ export function DiffChanges(props: {
     return { added, deleted, neutral }
   })
 
-  const ADD_COLOR = "var(--icon-diff-add-base)"
+  const ADD_COLOR = "var(--color-brand-green)"
   const DELETE_COLOR = "var(--icon-diff-delete-base)"
   const NEUTRAL_COLOR = "var(--icon-weak-base)"
 
