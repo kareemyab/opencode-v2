@@ -21,7 +21,7 @@ import { terminalWebSocketURL } from "@/utils/terminal-websocket-url"
 const TOGGLE_TERMINAL_ID = "terminal.toggle"
 const DEFAULT_TOGGLE_TERMINAL_KEYBIND = "ctrl+`"
 const TERMINAL_CANVAS_FONT = terminalUIFontStack
-const TERMINAL_FONT_PROBE = "Helvetica Neue"
+const TERMINAL_FONT_PROBE = "Menlo"
 
 const applyTerminalFont = (value: Term | undefined) => {
   if (!value) return

@@ -9,7 +9,7 @@
   --app-font-mono: var(--font-berkeley-mono), ui-monospace, "Courier New", monospace;
   --font-display: var(--app-font-family);
   --font-body: var(--app-font-family);
-  --font-terminal: "Helvetica Neue", Helvetica, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-terminal: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --font-code: var(--app-font-mono);
 
   --font-family-sans: var(--app-font-family);
