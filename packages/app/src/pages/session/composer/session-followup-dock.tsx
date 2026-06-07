@@ -1,5 +1,6 @@
-import { Index, createMemo } from "solid-js"
+import { Index, createEffect, createMemo } from "solid-js"
 import { createStore } from "solid-js/store"
+import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { AnimatedNumber } from "@opencode-ai/ui/animated-number"
 import { Checkbox } from "@opencode-ai/ui/checkbox"
 import { DockTray } from "@opencode-ai/ui/dock-surface"
@@ -20,6 +21,8 @@ export function SessionFollowupDock(props: {
   const language = useLanguage()
   const [store, setStore] = createStore({
     collapsed: false,
+    height: 320,
+    header: 32,
   })
 
   const toggle = () => setStore("collapsed", (value) => !value)
@@ -35,104 +38,141 @@ export function SessionFollowupDock(props: {
   const collapse = useSpring(() => (store.collapsed ? 1 : 0), { visualDuration: 0.3, bounce: 0 })
   const value = createMemo(() => Math.max(0, Math.min(1, collapse())))
   const turn = createMemo(() => Math.max(0, Math.min(1, value())))
+  const min = createMemo(() => Math.max(1, store.header))
+  const full = createMemo(() => Math.max(min(), store.height))
+  let headerRef: HTMLDivElement | undefined
+  let contentRef: HTMLDivElement | undefined
+
+  createEffect(() => {
+    const el = headerRef
+    if (!el) return
+    const update = () => {
+      setStore("header", el.getBoundingClientRect().height)
+    }
+    update()
+    createResizeObserver(el, update)
+  })
+
+  createEffect(() => {
+    const el = contentRef
+    if (!el) return
+    const update = () => {
+      setStore("height", el.getBoundingClientRect().height)
+    }
+    update()
+    createResizeObserver(el, update)
+  })
 
   return (
-    <DockTray data-component="session-followup-dock" attach="top">
-      <div
-        data-action="session-followup-toggle"
-        class="pl-3 pr-2 py-1.5 flex items-center gap-2 overflow-visible"
-        role="button"
-        tabIndex={0}
-        onClick={toggle}
-        onKeyDown={(event) => {
-          if (event.key !== "Enter" && event.key !== " ") return
-          event.preventDefault()
-          toggle()
-        }}
-      >
-        <span
-          class="text-12-regular text-text-strong cursor-default inline-flex items-baseline shrink-0 overflow-visible"
-          aria-label={label()}
-          style={{
-            "--tool-motion-odometer-ms": "600ms",
-            "--tool-motion-mask": "18%",
-            "--tool-motion-mask-height": "0px",
-            "--tool-motion-spring-ms": "560ms",
-            "white-space": "pre",
-          }}
-        >
-          <Index each={progress()}>
-            {(item) =>
-              item() === queuedToken ? (
-                <AnimatedNumber value={queued()} />
-              ) : item() === totalToken ? (
-                <AnimatedNumber value={total()} />
-              ) : (
-                <span>{item()}</span>
-              )
-            }
-          </Index>
-        </span>
+    <DockTray
+      data-component="session-followup-dock"
+      attach="top"
+      style={{
+        "overflow-x": "visible",
+        "overflow-y": "hidden",
+        "max-height": `${Math.max(min(), full() - value() * (full() - min()))}px`,
+      }}
+    >
+      <div ref={contentRef}>
         <div
-          data-slot="session-followup-preview"
-          class="ml-1 min-w-0 overflow-hidden"
-          style={{
-            flex: "1 1 auto",
-            "max-width": "100%",
+          ref={headerRef}
+          data-action="session-followup-toggle"
+          class="pl-3 pr-2 py-1.5 flex items-center gap-2 overflow-visible border-t border-border-weak-base"
+          role="button"
+          tabIndex={0}
+          onClick={toggle}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" && event.key !== " ") return
+            event.preventDefault()
+            toggle()
           }}
         >
-          <TextReveal
-            class="text-12-regular text-text-base cursor-default"
-            text={store.collapsed ? preview() : undefined}
-            duration={600}
-            travel={25}
-            edge={17}
-            spring="cubic-bezier(0.34, 1, 0.64, 1)"
-            springSoft="cubic-bezier(0.34, 1, 0.64, 1)"
-            growOnly
-            truncate
-          />
-        </div>
-        <div class="ml-auto">
-          <IconButton
-            data-action="session-followup-toggle-button"
-            data-collapsed={store.collapsed ? "true" : "false"}
-            icon="chevron-down"
-            size="small"
-            variant="ghost"
-            style={{ transform: `rotate(${turn() * 180}deg)` }}
-            onMouseDown={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
+          <span
+            class="text-12-regular text-text-strong cursor-default inline-flex items-baseline shrink-0 overflow-visible"
+            aria-label={label()}
+            style={{
+              "--tool-motion-odometer-ms": "600ms",
+              "--tool-motion-mask": "18%",
+              "--tool-motion-mask-height": "0px",
+              "--tool-motion-spring-ms": "560ms",
+              "white-space": "pre",
             }}
-            onClick={(event) => {
-              event.stopPropagation()
-              toggle()
+          >
+            <Index each={progress()}>
+              {(item) =>
+                item() === queuedToken ? (
+                  <AnimatedNumber value={queued()} />
+                ) : item() === totalToken ? (
+                  <AnimatedNumber value={total()} />
+                ) : (
+                  <span>{item()}</span>
+                )
+              }
+            </Index>
+          </span>
+          <div
+            data-slot="session-followup-preview"
+            class="ml-1 min-w-0 overflow-hidden"
+            style={{
+              flex: "1 1 auto",
+              "max-width": "100%",
             }}
-            aria-label={
-              store.collapsed ? language.t("session.followupDock.expand") : language.t("session.followupDock.collapse")
-            }
-          />
+          >
+            <TextReveal
+              class="text-12-regular text-text-base cursor-default"
+              text={store.collapsed ? preview() : undefined}
+              duration={600}
+              travel={25}
+              edge={17}
+              spring="cubic-bezier(0.34, 1, 0.64, 1)"
+              springSoft="cubic-bezier(0.34, 1, 0.64, 1)"
+              growOnly
+              truncate
+            />
+          </div>
+          <div class="ml-auto">
+            <IconButton
+              data-action="session-followup-toggle-button"
+              data-collapsed={store.collapsed ? "true" : "false"}
+              icon="chevron-down"
+              size="small"
+              variant="ghost"
+              style={{ transform: `rotate(${turn() * 180}deg)` }}
+              onMouseDown={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+              }}
+              onClick={(event) => {
+                event.stopPropagation()
+                toggle()
+              }}
+              aria-label={
+                store.collapsed ? language.t("session.followupDock.expand") : language.t("session.followupDock.collapse")
+              }
+            />
+          </div>
         </div>
-      </div>
 
-      <div
-        data-slot="session-followup-list"
-        aria-hidden={store.collapsed}
-        classList={{
-          "pointer-events-none": value() > 0.1,
-        }}
-        style={{
-          visibility: store.collapsed ? "hidden" : "visible",
-          opacity: `${Math.max(0, Math.min(1, 1 - value()))}`,
-        }}
-      >
-        <SessionFollowupList
-          items={props.items}
-          sending={props.sending}
-          onSend={props.onSend}
-          onEdit={props.onEdit}
-        />
+        <div
+          data-slot="session-followup-list"
+          aria-hidden={store.collapsed}
+          classList={{
+            "pointer-events-none": value() > 0.1,
+          }}
+          style={{
+            visibility: store.collapsed ? "hidden" : "visible",
+            opacity: `${Math.max(0, Math.min(1, 1 - value()))}`,
+            height: value() > 0.99 ? "0px" : "auto",
+            overflow: "hidden",
+          }}
+        >
+          <SessionFollowupList
+            items={props.items}
+            sending={props.sending}
+            onSend={props.onSend}
+            onEdit={props.onEdit}
+          />
+        </div>
       </div>
     </DockTray>
   )
