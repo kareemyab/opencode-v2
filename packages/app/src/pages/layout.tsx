@@ -579,6 +579,25 @@ export default function Layout(props: ParentProps) {
     }
   })
 
+  // Cold-load on a directory route (e.g. a CDE Web deep link straight to
+  // `/<base64(dir)>/session`): the directory is not in the persisted
+  // opened-projects list, so `currentProject()` stays undefined,
+  // `visibleSessionDirs()` is empty, and `loadSessions` never runs — the sidebar
+  // shows the project header but no sessions until you re-pick it from home.
+  // `autoselect` is disabled whenever we boot on a directory (see `initialDirectory`
+  // above) and the desktop deep-link handler is local-only, so nothing opens it.
+  // Open the active directory once it resolves so it registers + loads sessions,
+  // matching the home "select project" path. Idempotent (`layout.projects.open`
+  // early-returns when already open) and no navigation — we're already on the route.
+  createEffect(() => {
+    if (!initialDirectory) return
+    if (!pageReady() || !layoutReady()) return
+    const directory = currentDir()
+    if (!directory) return
+    if (currentProject()) return
+    void openProject(directory, false)
+  })
+
   const workspaceName = (directory: string, projectId?: string, branch?: string) => {
     const key = pathKey(directory)
     const direct = store.workspaceName[key] ?? store.workspaceName[directory]
