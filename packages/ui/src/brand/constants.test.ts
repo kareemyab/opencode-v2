@@ -17,7 +17,7 @@ import {
 describe("orgn brand constants", () => {
   test("product identity", () => {
     expect(PRODUCT_NAME).toBe("orgn")
-    expect(THEME_ID_DEFAULT).toBe("flexoki")
+    expect(THEME_ID_DEFAULT).toBe("orgn")
   })
 
   test("electron ids by channel", () => {

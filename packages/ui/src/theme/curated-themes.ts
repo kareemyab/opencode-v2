@@ -50,12 +50,14 @@ export const CURATED_THEME_ENTRIES: readonly CuratedThemeEntry[] = [
   { key: "zenbones-light", themeId: "zenbones", vscodeId: "Zenbones Light", label: "Zenbones Light", forcedScheme: "light" },
   { key: "cyberdream", themeId: "cyberdream", vscodeId: "cyberdream", label: "cyberdream", forcedScheme: "dark" },
   { key: "synthwave-84", themeId: "synthwave84", vscodeId: "SynthWave '84", label: "SynthWave '84", forcedScheme: "dark" },
+  { key: "orgn-dark", themeId: "orgn", vscodeId: "ORGN Dark", label: "ORGN Dark", forcedScheme: "dark" },
+  { key: "orgn-light", themeId: "orgn", vscodeId: "ORGN Light", label: "ORGN Light", forcedScheme: "light" },
 ] as const
 
-export const CURATED_THEME_DEFAULT_KEY = "flexoki-dark" as const
+export const CURATED_THEME_DEFAULT_KEY = "orgn-dark" as const
 
 /** @deprecated Use CURATED_THEME_DEFAULT_KEY */
-export const CURATED_THEME_DEFAULT = "flexoki" as const
+export const CURATED_THEME_DEFAULT = "orgn" as const
 
 export type CuratedThemeKey = (typeof CURATED_THEME_ENTRIES)[number]["key"]
 
@@ -104,7 +106,7 @@ export function resolveCuratedKey(
 ): CuratedThemeKey {
   if (key && isCuratedThemeKey(key)) return key
 
-  if (themeId === "oc-1" || themeId === "oc-2" || themeId === "orgn") return CURATED_THEME_DEFAULT_KEY
+  if (themeId === "oc-1" || themeId === "oc-2") return CURATED_THEME_DEFAULT_KEY
 
   if (themeId && isCuratedThemeId(themeId)) {
     const mode = scheme === "light" || scheme === "dark" ? scheme : "dark"

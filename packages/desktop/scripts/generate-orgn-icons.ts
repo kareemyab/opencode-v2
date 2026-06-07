@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 /**
- * Generate orgn Electron + favicon raster assets from vscode-cde/resources/darwin/app-icon.svg
- * macOS .icns is copied from vscode-cde/resources/darwin/code.icns for dock parity.
+ * macOS app icon: copy vscode-cde/resources/darwin/code.icns verbatim to icon.icns.
+ * Windows/Linux rasters are generated from vscode-cde/resources/darwin/app-icon.svg.
  *
  * Usage: bun ./scripts/generate-orgn-icons.ts [dev|beta|prod|all|favicon]
  */

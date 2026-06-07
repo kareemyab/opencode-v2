@@ -474,6 +474,7 @@ export const dict = {
   "session.todo.title": "Tarefas",
   "session.todo.collapse": "Recolher",
   "session.todo.expand": "Expandir",
+  "session.followup.progress": "{{queued}}/{{total}}",
   "session.followupDock.summary.one": "{{count}} mensagem na fila",
   "session.followupDock.summary.other": "{{count}} mensagens na fila",
   "session.followupDock.sendNow": "Enviar agora",

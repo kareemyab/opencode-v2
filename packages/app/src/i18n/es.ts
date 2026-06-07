@@ -530,6 +530,7 @@ export const dict = {
   "session.todo.title": "Tareas",
   "session.todo.collapse": "Contraer",
   "session.todo.expand": "Expandir",
+  "session.followup.progress": "{{queued}}/{{total}}",
   "session.followupDock.summary.one": "{{count}} mensaje en cola",
   "session.followupDock.summary.other": "{{count}} mensajes en cola",
   "session.followupDock.sendNow": "Enviar ahora",

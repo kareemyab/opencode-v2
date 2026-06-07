@@ -520,6 +520,7 @@ export const dict = {
   "session.todo.title": "待辦事項",
   "session.todo.collapse": "折疊",
   "session.todo.expand": "展開",
+  "session.followup.progress": "{{queued}}/{{total}}",
   "session.followupDock.summary.one": "{{count}} 則佇列訊息",
   "session.followupDock.summary.other": "{{count}} 則佇列訊息",
   "session.followupDock.sendNow": "立即傳送",

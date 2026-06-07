@@ -527,6 +527,7 @@ export const dict = {
   "session.todo.title": "Задачи",
   "session.todo.collapse": "Свернуть",
   "session.todo.expand": "Развернуть",
+  "session.followup.progress": "{{queued}}/{{total}}",
   "session.followupDock.summary.one": "{{count}} сообщение в очереди",
   "session.followupDock.summary.other": "{{count}} сообщений в очереди",
   "session.followupDock.sendNow": "Отправить сейчас",

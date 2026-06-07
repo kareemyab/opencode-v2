@@ -97,16 +97,19 @@ function loadIconFromDir(dir: string, names: string[]): NativeImage {
   return nativeImage.createEmpty()
 }
 
-/** macOS dock icons need the squircle raster from code.icns (dock.png), not the square icon.png canvas. */
-function loadDockIcon(): NativeImage {
+function loadMacIcon(): NativeImage {
   const dir = iconsDir()
-  const names =
-    process.platform === "darwin"
-      ? ["dock.png", "128x128@2x.png", "icon.icns"]
-      : process.platform === "win32"
-        ? ["icon.ico", "icon.png"]
-        : ["icon.png"]
+  const image = loadIconFromDir(dir, ["icon.icns", "icon.png"])
+  if (!image.isEmpty()) return image
 
+  writeLog("main", "failed to load macOS app icon", { dir, channel: resolveChannel() }, "warn")
+  return nativeImage.createEmpty()
+}
+
+function loadDockIcon(): NativeImage {
+  if (process.platform === "darwin") return loadMacIcon()
+  const dir = iconsDir()
+  const names = process.platform === "win32" ? ["icon.ico", "icon.png"] : ["icon.png"]
   const image = loadIconFromDir(dir, names)
   if (!image.isEmpty()) return image
 
@@ -115,14 +118,9 @@ function loadDockIcon(): NativeImage {
 }
 
 function loadWindowIcon(): NativeImage {
+  if (process.platform === "darwin") return loadMacIcon()
   const dir = iconsDir()
-  const names =
-    process.platform === "darwin"
-      ? ["dock.png", "icon.icns", "icon.png"]
-      : process.platform === "win32"
-        ? ["icon.ico", "icon.png"]
-        : ["icon.png"]
-
+  const names = process.platform === "win32" ? ["icon.ico", "icon.png"] : ["icon.png"]
   const image = loadIconFromDir(dir, names)
   if (!image.isEmpty()) return image
 

@@ -524,6 +524,7 @@ export const dict = {
   "session.todo.title": "Opgaver",
   "session.todo.collapse": "Skjul",
   "session.todo.expand": "Udvid",
+  "session.followup.progress": "{{queued}}/{{total}}",
   "session.followupDock.summary.one": "{{count}} besked i kø",
   "session.followupDock.summary.other": "{{count}} beskeder i kø",
   "session.followupDock.sendNow": "Send nu",

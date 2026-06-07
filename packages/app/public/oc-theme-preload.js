@@ -3,9 +3,9 @@
   var curatedKeyStorage = "orgn-curated-theme-key"
   var legacyThemeKey = "opencode-theme-id"
   var cacheVersionKey = "orgn-theme-cache-version"
-  var expectedCacheVersion = "2"
-  var defaultThemeId = "flexoki"
-  var defaultCuratedKey = "flexoki-dark"
+  var expectedCacheVersion = "3"
+  var defaultThemeId = "orgn"
+  var defaultCuratedKey = "orgn-dark"
   var defaultScheme = "dark"
 
   if (localStorage.getItem(cacheVersionKey) !== expectedCacheVersion) {
@@ -19,7 +19,7 @@
   var themeId = localStorage.getItem(themeKey) || localStorage.getItem(legacyThemeKey) || defaultThemeId
   var curatedKey = localStorage.getItem(curatedKeyStorage) || defaultCuratedKey
 
-  if (themeId === "oc-1" || themeId === "oc-2" || themeId === "orgn") {
+  if (themeId === "oc-1" || themeId === "oc-2") {
     themeId = defaultThemeId
     curatedKey = defaultCuratedKey
     localStorage.setItem(themeKey, themeId)
@@ -40,7 +40,7 @@
   document.documentElement.dataset.colorScheme = mode
 
   var metas = document.querySelectorAll("meta[name='theme-color']")
-  if (metas.length > 0) metas[0].setAttribute("content", isDark ? "#100f0f" : "#fffcf0")
+  if (metas.length > 0) metas[0].setAttribute("content", isDark ? "#000000" : "#fafafa")
 
   if (themeId === defaultThemeId && !localStorage.getItem("orgn-theme-css-" + mode)) return
 
