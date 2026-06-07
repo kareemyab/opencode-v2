@@ -27,6 +27,30 @@ const wordmarkPaths = (
   </>
 )
 
+/** Large orgn “O” isotype — same paths as `orgn-logo-o-white.svg`. */
+export const Isotype = (props: Pick<ComponentProps<"svg">, "class" | "aria-hidden">) => {
+  return (
+    <svg
+      data-component="logo-isotype"
+      viewBox="0 0 1160 811"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden={props["aria-hidden"] ?? true}
+      classList={{ [props.class ?? ""]: !!props.class }}
+      preserveAspectRatio="xMidYMid meet"
+    >
+      <path
+        d="M0 557.652C89.5932 557.652 162.136 485.158 162.136 395.623V208.19C162.136 189.292 168.956 172.872 182.907 159.241C196.857 145.61 212.978 138.484 231.889 138.484H1139.6C1128.44 112.77 1112.01 88.9146 1090.62 67.5381C1045.36 22.3061 990.795 0 926.622 0H235.919C175.776 0 117.184 21.3767 73.4726 62.5811C24.8011 108.742 0.310077 164.818 0.310077 231.425V557.344L0 557.652Z"
+        fill="currentColor"
+      />
+      <path
+        d="M1158.21 252.49C1068.61 252.49 996.069 324.985 996.069 414.52V601.953C996.069 619.922 989.868 635.722 977.778 649.044C964.138 663.916 943.678 671.66 923.525 671.66H463.47H231.892H18.9141C30.6945 698.303 47.4352 722.469 70.0658 744.465C114.707 787.838 176.09 810.145 238.402 810.145H926.625C990.798 810.145 1045.67 787.529 1090.62 742.606C1135.88 697.374 1158.21 642.849 1158.21 578.717V252.801V252.49Z"
+        fill="currentColor"
+      />
+    </svg>
+  )
+}
+
 /** Compact orgn letterform (wordmark without .com badge). */
 export const Mark = (props: { class?: string }) => {
   return (

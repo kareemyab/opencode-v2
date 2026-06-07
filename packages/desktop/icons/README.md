@@ -4,7 +4,7 @@ Channel folders (`dev/`, `beta/`, `prod/`) supply assets copied to `resources/ic
 
 ## Regenerate orgn icons
 
-Source SVG: `packages/ui/src/assets/orgn-app-icon.svg`
+Source assets: `vscode-cde/resources/darwin/app-icon.svg` and `vscode-cde/resources/darwin/code.icns` (vector copy: `packages/ui/src/assets/orgn-app-icon.svg`)
 
 ```bash
 cd packages/desktop
@@ -22,4 +22,4 @@ This renders PNG/ICO/ICNS for all channels and writes orgn favicon rasters to `p
 - Save source as `app-icon.png`
 - `bun tauri icon -o src-tauri/icons/{environment}`
 - Image2Icon Big Sur preset for `icon.icns` shadow/padding
-- Keep `dock.png` synced with `icon_128x128@2x.png` from `icon.icns`
+- `dock.png` is the macOS squircle raster (`icon_128x128@2x.png` from `code.icns`). Use it for the dev dock icon — `icon.png` is a square canvas and looks wrong in the dock.

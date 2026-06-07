@@ -1314,7 +1314,7 @@ export function MessageTimeline(props: {
           <div
             data-session-title
             classList={{
-              "sticky top-0 z-40 isolate bg-[linear-gradient(to_bottom,var(--background-stronger)_48px,transparent)]": true,
+              "sticky top-0 z-40 isolate bg-background-strong": true,
               "w-full": true,
               "pb-4": true,
             }}
