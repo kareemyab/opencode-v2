@@ -34,7 +34,6 @@ import {
   registerRendererProtocol,
   setRelaunchHandler,
   setBackgroundColor,
-  setDockIcon,
 } from "./windows"
 import { migrate } from "./migrate"
 import { checkUpdate, checkForUpdates, installUpdate, setupAutoUpdater } from "./updater"
@@ -238,7 +237,6 @@ const main = Effect.gen(function* () {
   if (!TEST_ONBOARDING) migrate()
   registerDeepLinkProtocolHandlers((scheme) => app.setAsDefaultProtocolClient(scheme))
   registerRendererProtocol()
-  setDockIcon()
   setupAutoUpdater()
   yield* Effect.promise(() => startNetLog()).pipe(
     Effect.catch((error) =>

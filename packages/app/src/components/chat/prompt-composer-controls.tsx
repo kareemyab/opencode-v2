@@ -29,6 +29,7 @@ export function PromptComposerSubmitButton(props: {
   sendLabel: string
   stopLabel: string
   class?: string
+  onStop?: () => void
 }) {
   const stopTitle = () => (props.stopping ? "Stopping..." : props.stopLabel)
 
@@ -55,11 +56,15 @@ export function PromptComposerSubmitButton(props: {
       }
     >
       <button
-        type={props.type ?? "submit"}
-        data-action="prompt-submit"
+        type="button"
+        data-action="prompt-stop"
         data-testid="stop-button"
         disabled={props.stopping}
         title={stopTitle()}
+        onClick={(event) => {
+          event.preventDefault()
+          props.onStop?.()
+        }}
         classList={{
           "shrink-0 cursor-pointer rounded-md p-1 transition-colors duration-150 ease-in-out motion-reduce:duration-75 will-change-[opacity,background-color] disabled:cursor-default disabled:opacity-50": true,
           "bg-red-500/10 text-red-400": !!props.stopping,

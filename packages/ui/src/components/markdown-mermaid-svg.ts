@@ -86,7 +86,7 @@ export function sanitizeMermaidSVG(svg: string) {
   })
 
   try {
-    styleMermaidLabels(element)
+    styleMermaidLabels(element as ParentNode)
   } catch {
     // Styling is best-effort; keep the sanitized SVG either way.
   }

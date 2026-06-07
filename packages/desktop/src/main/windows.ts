@@ -106,17 +106,6 @@ function loadMacIcon(): NativeImage {
   return nativeImage.createEmpty()
 }
 
-function loadDockIcon(): NativeImage {
-  if (process.platform === "darwin") return loadMacIcon()
-  const dir = iconsDir()
-  const names = process.platform === "win32" ? ["icon.ico", "icon.png"] : ["icon.png"]
-  const image = loadIconFromDir(dir, names)
-  if (!image.isEmpty()) return image
-
-  writeLog("main", "failed to load dock icon", { dir, channel: resolveChannel() }, "warn")
-  return nativeImage.createEmpty()
-}
-
 function loadWindowIcon(): NativeImage {
   if (process.platform === "darwin") return loadMacIcon()
   const dir = iconsDir()
@@ -167,12 +156,6 @@ export function setPinchZoomEnabled(enabled: boolean) {
 
 export function getPinchZoomEnabled() {
   return getStore().get(PINCH_ZOOM_ENABLED_KEY) === true
-}
-
-export function setDockIcon() {
-  if (process.platform !== "darwin" || app.isPackaged) return
-  const icon = loadDockIcon()
-  if (!icon.isEmpty()) app.dock?.setIcon(icon)
 }
 
 export function createMainWindow() {

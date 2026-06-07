@@ -340,9 +340,12 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       .join("")
     return text.trim().length === 0 && imageAttachments().length === 0 && commentCount() === 0
   })
-  const stopping = createMemo(() => working() && blank())
   const tip = () => {
-    if (stopping()) {
+    if (isAborting()) {
+      return <span>Stopping...</span>
+    }
+
+    if (working() && blank()) {
       return (
         <div class="flex items-center gap-2">
           <span>{language.t("prompt.action.stop")}</span>
@@ -1136,7 +1139,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     return permission.isAutoAccepting(id, sdk.directory)
   })
 
-  const { abort, handleSubmit } = createPromptSubmit({
+  const { abort, handleSubmit, isAborting } = createPromptSubmit({
     info,
     imageAttachments,
     commentCount,
@@ -1636,7 +1639,8 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                     working={working()}
                     shellMode={store.mode === "shell"}
                     disabled={!working() && blank()}
-                    stopping={stopping()}
+                    stopping={isAborting()}
+                    onStop={() => void abort()}
                     sendLabel={language.t("prompt.action.send")}
                     stopLabel={language.t("prompt.action.stop")}
                   />
@@ -1925,7 +1929,8 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                   working={working()}
                   shellMode={store.mode === "shell"}
                   disabled={!working() && blank()}
-                  stopping={stopping()}
+                  stopping={isAborting()}
+                  onStop={() => void abort()}
                   sendLabel={language.t("prompt.action.send")}
                   stopLabel={language.t("prompt.action.stop")}
                 />
