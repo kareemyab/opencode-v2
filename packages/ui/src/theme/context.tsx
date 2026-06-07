@@ -28,7 +28,8 @@ import {
 } from "./curated-themes"
 import { resolveThemeVariant, themeToCss } from "./resolve"
 import { resolveThemeVariantV2, themeV2ToCss } from "./v2/resolve"
-import type { DesktopTheme } from "./types"
+import { resolveTerminalTheme, terminalThemeCss } from "./terminal-theme"
+import type { DesktopTheme, ThemeVariant } from "./types"
 
 export type ColorScheme = "light" | "dark" | "system"
 
@@ -37,6 +38,21 @@ const LEGACY_KEYS = LEGACY_THEME_STORAGE
 const INLINE_THEME_ID = "orgn"
 const DEFAULT_THEME_ID = THEME_ID_DEFAULT
 const HIDDEN_THEME_IDS = new Set(["opencode", "oc-2"])
+
+const COMPOSER_SURFACE_CSS = `
+[data-dock-surface="shell"],
+[data-dock-surface="tray"],
+[data-component="session-prompt-dock"] {
+  background-color: var(--background-base);
+}
+
+[data-color-scheme="dark"] [data-dock-surface="shell"],
+[data-color-scheme="dark"] [data-dock-surface="tray"],
+[data-color-scheme="dark"] [data-component="session-prompt-dock"] {
+  background-color: var(--background-base);
+  border-color: var(--border-weak-base, var(--border));
+}
+`
 
 let files: Record<string, () => Promise<{ default: DesktopTheme }>> | undefined
 let ids: string[] | undefined
@@ -147,8 +163,13 @@ function applyThemeCss(theme: DesktopTheme, themeId: string, mode: "light" | "da
   const css = themeToCss(tokens)
   const v2 = themeV2ToCss(resolveThemeVariantV2(variant, isDark))
 
+  const terminalCss = terminalThemeCss(variant, tokens)
+
   if (!isInlineTheme(themeId)) {
-    write(isDark ? STORAGE_KEYS.themeCssDark : STORAGE_KEYS.themeCssLight, `${css}\n  ${v2}`)
+    write(
+      isDark ? STORAGE_KEYS.themeCssDark : STORAGE_KEYS.themeCssLight,
+      `${css}\n  ${v2}\n  ${terminalCss}\n${COMPOSER_SURFACE_CSS}`,
+    )
   }
 
   const fullCss = `:root {
@@ -157,7 +178,9 @@ function applyThemeCss(theme: DesktopTheme, themeId: string, mode: "light" | "da
   ${ORGN_RADIUS_CSS}
   ${css}
   ${v2}
-}`
+  ${terminalCss}
+}
+${COMPOSER_SURFACE_CSS}`
 
   document.getElementById("oc-theme-preload")?.remove()
   ensureThemeStyleElement().textContent = fullCss
@@ -181,7 +204,11 @@ function cacheThemeVariants(theme: DesktopTheme, themeId: string) {
     const tokens = resolveThemeVariant(variant, isDark)
     const css = themeToCss(tokens)
     const v2 = themeV2ToCss(resolveThemeVariantV2(variant, isDark))
-    write(isDark ? STORAGE_KEYS.themeCssDark : STORAGE_KEYS.themeCssLight, `${css}\n  ${v2}`)
+    const terminalCss = terminalThemeCss(variant, tokens)
+    write(
+      isDark ? STORAGE_KEYS.themeCssDark : STORAGE_KEYS.themeCssLight,
+      `${css}\n  ${v2}\n  ${terminalCss}\n${COMPOSER_SURFACE_CSS}`,
+    )
   }
 }
 
@@ -190,7 +217,11 @@ function entryMode(entry: CuratedThemeEntry): "light" | "dark" {
   return "dark"
 }
 
-function entryColorScheme(entry: CuratedThemeEntry): ColorScheme {
+function curatedEntryForResolvedMode(themeId: string, scheme: ColorScheme): CuratedThemeEntry | undefined {
+  return curatedEntryForThemeId(themeId, modeFromScheme(scheme))
+}
+
+function paletteColorScheme(entry: CuratedThemeEntry): ColorScheme {
   return entry.forcedScheme ?? "dark"
 }
 
@@ -206,7 +237,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
     const savedThemeId = resolveThemeSlug(rawThemeId)
     const savedCuratedKey = resolveCuratedKey(rawCuratedKey, savedThemeId, savedScheme)
     const savedEntry = curatedEntryForKey(savedCuratedKey)!
-    const savedColorScheme = savedEntry.forcedScheme ?? savedScheme
+    const savedColorScheme = savedScheme
     const savedMode = modeFromScheme(savedColorScheme)
 
     const [store, setStore] = createStore({
@@ -249,21 +280,20 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
       props.onThemeApplied?.(theme, mode)
     }
 
-    const persistCurated = (entry: CuratedThemeEntry) => {
+    const persistCurated = (entry: CuratedThemeEntry, colorScheme: ColorScheme) => {
       write(STORAGE_KEYS.curatedKey, entry.key)
       write(STORAGE_KEYS.themeId, entry.themeId)
-      const scheme = entryColorScheme(entry)
-      write(STORAGE_KEYS.colorScheme, scheme)
+      write(STORAGE_KEYS.colorScheme, colorScheme)
     }
 
-    const applyCuratedEntry = (entry: CuratedThemeEntry) => {
-      const scheme = entryColorScheme(entry)
-      const mode = entryMode(entry)
+    const applyCuratedEntry = (entry: CuratedThemeEntry, colorScheme?: ColorScheme) => {
+      const scheme = colorScheme ?? paletteColorScheme(entry)
+      const mode = modeFromScheme(scheme)
       setStore("themeId", entry.themeId)
       setStore("curatedKey", entry.key as CuratedThemeKey)
       setStore("colorScheme", scheme)
       setStore("mode", mode)
-      persistCurated(entry)
+      persistCurated(entry, scheme)
       if (!isInlineTheme(entry.themeId)) clearThemeCache()
       void load(entry.themeId).then((theme) => {
         if (!theme || store.themeId !== entry.themeId) return
@@ -294,16 +324,17 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
     }
 
     const setColorScheme = (scheme: ColorScheme) => {
-      const entry = curatedEntryForKey(store.curatedKey)
-      if (entry?.forcedScheme) {
-        setStore("colorScheme", entry.forcedScheme)
-        write(STORAGE_KEYS.colorScheme, entry.forcedScheme)
-        setStore("mode", entry.forcedScheme)
-        return
-      }
+      const mode = modeFromScheme(scheme)
+      const entry = curatedEntryForResolvedMode(store.themeId, scheme)
+
       setStore("colorScheme", scheme)
       write(STORAGE_KEYS.colorScheme, scheme)
-      setStore("mode", scheme === "system" ? getSystemMode() : scheme)
+      setStore("mode", mode)
+
+      if (entry) {
+        setStore("curatedKey", entry.key as CuratedThemeKey)
+        write(STORAGE_KEYS.curatedKey, entry.key)
+      }
     }
 
     const loadThemes = () => Promise.all(curatedThemeIds(themeIDs()).map(load)).then(() => store.themes)
@@ -314,9 +345,9 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
         if (!entry) return
         setStore("themeId", entry.themeId)
         setStore("curatedKey", e.newValue)
-        const scheme = entryColorScheme(entry)
+        const scheme = paletteColorScheme(entry)
         setStore("colorScheme", scheme)
-        setStore("mode", entryMode(entry))
+        setStore("mode", modeFromScheme(scheme))
         void load(entry.themeId).then((theme) => {
           if (!theme || store.themeId !== entry.themeId) return
           if (!isInlineTheme(entry.themeId)) cacheThemeVariants(theme, entry.themeId)
@@ -337,8 +368,13 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
       }
       if ((e.key === STORAGE_KEYS.colorScheme || e.key === LEGACY_KEYS.colorScheme) && e.newValue) {
         const scheme = schemeFromStorage(e.newValue)
+        const mode = modeFromScheme(scheme)
         setStore("colorScheme", scheme)
-        setStore("mode", scheme === "system" ? getSystemMode() : scheme)
+        setStore("mode", mode)
+        const entry = curatedEntryForResolvedMode(store.themeId, scheme)
+        if (entry) {
+          setStore("curatedKey", entry.key as CuratedThemeKey)
+        }
       }
     }
 
@@ -348,12 +384,18 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
       const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
       const onMedia = () => {
         if (store.colorScheme !== "system") return
-        setStore("mode", getSystemMode())
+        const mode = getSystemMode()
+        setStore("mode", mode)
+        const entry = curatedEntryForThemeId(store.themeId, mode)
+        if (entry) {
+          setStore("curatedKey", entry.key as CuratedThemeKey)
+          write(STORAGE_KEYS.curatedKey, entry.key)
+        }
       }
       makeEventListener(mediaQuery, "change", onMedia)
 
       if (rawCuratedKey !== savedCuratedKey || rawThemeId !== savedEntry.themeId) {
-        persistCurated(savedEntry)
+        persistCurated(savedEntry, savedColorScheme)
       }
 
       void load(savedEntry.themeId).then((theme) => {
@@ -383,6 +425,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
       setTheme,
       setCuratedTheme,
       setColorScheme,
+      terminalTheme: () => resolveTerminalTheme(store.themes[store.themeId], store.mode),
       registerTheme: (theme: DesktopTheme) => setStore("themes", theme.id, theme),
       previewCuratedTheme: (key: string) => {
         const entry = curatedEntryForKey(key)
@@ -411,13 +454,14 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
       },
       previewColorScheme: (scheme: ColorScheme) => {
         setStore("previewScheme", scheme)
-        const entry = curatedEntryForKey(store.previewCuratedKey ?? store.curatedKey)
-        if (!entry) return
-        const mode = scheme === "system" ? getSystemMode() : scheme
+        const active = curatedEntryForKey(store.previewCuratedKey ?? store.curatedKey)
+        if (!active) return
+        const mode = modeFromScheme(scheme)
+        const entry = curatedEntryForResolvedMode(active.themeId, scheme) ?? active
         void load(entry.themeId).then((theme) => {
           if (!theme) return
           if (store.previewScheme !== scheme) return
-          applyTheme(theme, entry.themeId, entry.forcedScheme ?? mode)
+          applyTheme(theme, entry.themeId, mode)
         })
       },
       commitPreview: () => {

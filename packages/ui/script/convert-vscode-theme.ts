@@ -212,6 +212,36 @@ function buildOverrides(colors: Record<string, string>, tokenColors: VSCodeTheme
   const weak = pickColor(colors, ["descriptionForeground", "editorLineNumber.foreground", "tab.inactiveForeground"])
   if (weak) overrides["text-weak"] = weak
 
+  const terminalBackground = pickColor(colors, ["terminal.background", "editor.background"])
+  if (terminalBackground) overrides["terminal-background"] = terminalBackground
+
+  const terminalForeground = pickColor(colors, ["terminal.foreground", "editor.foreground"])
+  if (terminalForeground) overrides["terminal-foreground"] = terminalForeground
+
+  const terminalAnsiMap: Array<[string, string]> = [
+    ["terminal.ansiBlack", "terminal-ansi-black"],
+    ["terminal.ansiRed", "terminal-ansi-red"],
+    ["terminal.ansiGreen", "terminal-ansi-green"],
+    ["terminal.ansiYellow", "terminal-ansi-yellow"],
+    ["terminal.ansiBlue", "terminal-ansi-blue"],
+    ["terminal.ansiMagenta", "terminal-ansi-magenta"],
+    ["terminal.ansiCyan", "terminal-ansi-cyan"],
+    ["terminal.ansiWhite", "terminal-ansi-white"],
+    ["terminal.ansiBrightBlack", "terminal-ansi-bright-black"],
+    ["terminal.ansiBrightRed", "terminal-ansi-bright-red"],
+    ["terminal.ansiBrightGreen", "terminal-ansi-bright-green"],
+    ["terminal.ansiBrightYellow", "terminal-ansi-bright-yellow"],
+    ["terminal.ansiBrightBlue", "terminal-ansi-bright-blue"],
+    ["terminal.ansiBrightMagenta", "terminal-ansi-bright-magenta"],
+    ["terminal.ansiBrightCyan", "terminal-ansi-bright-cyan"],
+    ["terminal.ansiBrightWhite", "terminal-ansi-bright-white"],
+  ]
+
+  for (const [vscodeKey, token] of terminalAnsiMap) {
+    const hex = normalizeHex(colors[vscodeKey])
+    if (hex) overrides[token] = hex
+  }
+
   const markdownText = pickColor(colors, ["editor.foreground"])
   if (markdownText) {
     overrides["markdown-text"] ??= markdownText
