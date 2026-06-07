@@ -19,33 +19,33 @@ beforeEach(() => {
 })
 
 describe("theme preload", () => {
-  test("migrates legacy oc-1 to flexoki dark before mount", () => {
+  test("migrates legacy oc-1 to orgn dark before mount", () => {
     localStorage.setItem("opencode-theme-id", "oc-1")
     localStorage.setItem("opencode-theme-css-light", "--background-base:#fff;")
     localStorage.setItem("opencode-theme-css-dark", "--background-base:#000;")
 
     run()
 
-    expect(document.documentElement.dataset.theme).toBe("flexoki")
+    expect(document.documentElement.dataset.theme).toBe("orgn")
     expect(document.documentElement.dataset.colorScheme).toBe("dark")
-    expect(localStorage.getItem("orgn-theme-id")).toBe("flexoki")
-    expect(localStorage.getItem("orgn-curated-theme-key")).toBe("flexoki-dark")
+    expect(localStorage.getItem("orgn-theme-id")).toBe("orgn")
+    expect(localStorage.getItem("orgn-curated-theme-key")).toBe("orgn-dark")
     expect(localStorage.getItem("opencode-theme-css-light")).toBeNull()
     expect(localStorage.getItem("opencode-theme-css-dark")).toBeNull()
     expect(document.getElementById("oc-theme-preload")).toBeNull()
   })
 
-  test("migrates legacy orgn theme id to flexoki", () => {
+  test("keeps orgn theme id (now the default, no longer migrated)", () => {
     localStorage.setItem("orgn-theme-id", "orgn")
 
     run()
 
-    expect(document.documentElement.dataset.theme).toBe("flexoki")
-    expect(localStorage.getItem("orgn-curated-theme-key")).toBe("flexoki-dark")
+    expect(document.documentElement.dataset.theme).toBe("orgn")
+    expect(localStorage.getItem("orgn-curated-theme-key")).toBeNull()
   })
 
   test("reads legacy theme id when orgn key is absent", () => {
-    localStorage.setItem("orgn-theme-cache-version", "2")
+    localStorage.setItem("orgn-theme-cache-version", "3")
     localStorage.setItem("opencode-theme-id", "nightowl")
     localStorage.setItem("orgn-color-scheme", "light")
     localStorage.setItem("opencode-theme-css-light", "--background-base:#fff;")
@@ -56,10 +56,10 @@ describe("theme preload", () => {
     expect(document.getElementById("oc-theme-preload")?.textContent).toContain("--background-base:#fff;")
   })
 
-  test("defaults to flexoki on cold start", () => {
+  test("defaults to orgn on cold start", () => {
     run()
 
-    expect(document.documentElement.dataset.theme).toBe("flexoki")
+    expect(document.documentElement.dataset.theme).toBe("orgn")
     expect(localStorage.getItem("orgn-curated-theme-key")).toBeNull()
     expect(document.getElementById("oc-theme-preload")).toBeNull()
   })
@@ -70,7 +70,7 @@ describe("theme preload", () => {
 
     run()
 
-    expect(localStorage.getItem("orgn-theme-cache-version")).toBe("2")
+    expect(localStorage.getItem("orgn-theme-cache-version")).toBe("3")
     expect(localStorage.getItem("orgn-theme-css-dark")).toBeNull()
   })
 })

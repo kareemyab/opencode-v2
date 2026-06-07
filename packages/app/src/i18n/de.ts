@@ -482,6 +482,7 @@ export const dict = {
   "session.todo.title": "Aufgaben",
   "session.todo.collapse": "Einklappen",
   "session.todo.expand": "Ausklappen",
+  "session.followup.progress": "{{queued}}/{{total}}",
   "session.followupDock.summary.one": "{{count}} Nachricht in der Warteschlange",
   "session.followupDock.summary.other": "{{count}} Nachrichten in der Warteschlange",
   "session.followupDock.sendNow": "Jetzt senden",

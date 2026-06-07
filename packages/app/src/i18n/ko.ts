@@ -469,6 +469,7 @@ export const dict = {
   "session.todo.title": "할 일",
   "session.todo.collapse": "접기",
   "session.todo.expand": "펼치기",
+  "session.followup.progress": "{{queued}}/{{total}}",
   "session.followupDock.summary.one": "{{count}}개의 대기 중인 메시지",
   "session.followupDock.summary.other": "{{count}}개의 대기 중인 메시지",
   "session.followupDock.sendNow": "지금 전송",

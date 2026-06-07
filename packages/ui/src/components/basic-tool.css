@@ -44,10 +44,6 @@
         display: block;
       }
 
-      [data-slot="tool-success-halo"] {
-        fill: color-mix(in srgb, var(--icon-success-base) 22%, transparent);
-      }
-
       [data-slot="tool-success-ring"] {
         stroke: var(--icon-success-base);
         stroke-width: 1.35;

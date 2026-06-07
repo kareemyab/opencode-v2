@@ -530,6 +530,7 @@ export const dict = {
   "session.todo.title": "Oppgaver",
   "session.todo.collapse": "Skjul",
   "session.todo.expand": "Utvid",
+  "session.followup.progress": "{{queued}}/{{total}}",
   "session.followupDock.summary.one": "{{count}} melding i kø",
   "session.followupDock.summary.other": "{{count}} meldinger i kø",
   "session.followupDock.sendNow": "Send nå",

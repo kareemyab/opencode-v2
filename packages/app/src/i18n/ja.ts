@@ -471,6 +471,7 @@ export const dict = {
   "session.todo.title": "ToDo",
   "session.todo.collapse": "折りたたむ",
   "session.todo.expand": "展開",
+  "session.followup.progress": "{{queued}}/{{total}}",
   "session.followupDock.summary.one": "{{count}} 件のメッセージが待機中",
   "session.followupDock.summary.other": "{{count}} 件のメッセージが待機中",
   "session.followupDock.sendNow": "今すぐ送信",

@@ -534,6 +534,7 @@ export const dict = {
   "session.todo.title": "Görevler",
   "session.todo.collapse": "Daralt",
   "session.todo.expand": "Genişlet",
+  "session.followup.progress": "{{queued}}/{{total}}",
   "session.followupDock.summary.one": "{{count}} sıradaki mesaj",
   "session.followupDock.summary.other": "{{count}} sıradaki mesaj",
   "session.followupDock.sendNow": "Şimdi gönder",

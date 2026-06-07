@@ -534,6 +534,7 @@ export const dict = {
   "session.todo.title": "待办事项",
   "session.todo.collapse": "折叠",
   "session.todo.expand": "展开",
+  "session.followup.progress": "{{queued}}/{{total}}",
   "session.followupDock.summary.one": "{{count}} 条排队消息",
   "session.followupDock.summary.other": "{{count}} 条排队消息",
   "session.followupDock.sendNow": "立即发送",

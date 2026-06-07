@@ -470,6 +470,7 @@ export const dict = {
   "session.todo.title": "المهام",
   "session.todo.collapse": "طي",
   "session.todo.expand": "توسيع",
+  "session.followup.progress": "{{queued}}/{{total}}",
   "session.followupDock.summary.one": "{{count}} رسالة في الانتظار",
   "session.followupDock.summary.other": "{{count}} رسائل في الانتظار",
   "session.followupDock.sendNow": "إرسال الآن",

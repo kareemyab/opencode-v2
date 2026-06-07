@@ -529,6 +529,7 @@ export const dict = {
   "session.todo.title": "Zadaci",
   "session.todo.collapse": "Sažmi",
   "session.todo.expand": "Proširi",
+  "session.followup.progress": "{{queued}}/{{total}}",
   "session.followupDock.summary.one": "{{count}} poruka na čekanju",
   "session.followupDock.summary.other": "{{count}} poruka na čekanju",
   "session.followupDock.sendNow": "Pošalji sada",

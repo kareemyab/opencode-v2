@@ -57,7 +57,7 @@ export const STORAGE_PREFIX = "orgn" as const
 /** Legacy prefix — read fallback only in compat mode. */
 export const LEGACY_STORAGE_PREFIX = "opencode" as const
 
-export const THEME_ID_DEFAULT = "flexoki" as const
+export const THEME_ID_DEFAULT = "orgn" as const
 
 export const THEME_STYLE_ID = "orgn-theme" as const
 
@@ -151,7 +151,7 @@ export const LEGACY_THEME_STORAGE = {
 } as const
 
 /** Bump when theme conversion output changes to invalidate FOUC preload caches. */
-export const THEME_CACHE_VERSION = "2" as const
+export const THEME_CACHE_VERSION = "3" as const
 
 export const DESKTOP_STORAGE = {
   settings: storageKey("settings"),

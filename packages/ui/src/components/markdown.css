@@ -248,6 +248,7 @@
     border: 1px solid var(--border, var(--border-weak-base));
     background: var(--surface-raised-base);
     padding: 12px;
+    color: #f4f4f5;
   }
 
   [data-slot="markdown-mermaid-svg"] {
@@ -255,6 +256,28 @@
     max-width: 100%;
     height: auto;
     margin: 0 auto;
+  }
+
+  /* Prevent markdown body color from washing out node labels via currentColor. */
+  [data-component="markdown-mermaid"] svg text,
+  [data-component="markdown-mermaid"] svg tspan {
+    fill: #f4f4f5;
+  }
+
+  [data-component="markdown-mermaid"] svg .edgeLabel text,
+  [data-component="markdown-mermaid"] svg .edgeLabel tspan,
+  [data-component="markdown-mermaid"] svg .labelText text,
+  [data-component="markdown-mermaid"] svg .labelText tspan {
+    fill: #f4f4f5;
+  }
+
+  [data-component="markdown-mermaid"] svg foreignObject div,
+  [data-component="markdown-mermaid"] svg foreignObject span,
+  [data-component="markdown-mermaid"] svg foreignObject p {
+    color: #f4f4f5 !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 14px;
+    line-height: 1.3;
   }
 
   [data-slot="markdown-copy-button"] [data-slot="check-icon"] {

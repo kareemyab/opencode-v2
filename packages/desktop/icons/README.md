@@ -2,24 +2,24 @@
 
 Channel folders (`dev/`, `beta/`, `prod/`) supply assets copied to `resources/icons/` by `scripts/copy-icons.ts` during `predev` / `prebuild`.
 
-## Regenerate orgn icons
+## macOS app icon
 
-Source SVG: `packages/ui/src/assets/orgn-app-icon.svg`
+Copied verbatim from `vscode-cde/resources/darwin/code.icns` → `icons/{channel}/icon.icns`.
 
 ```bash
 cd packages/desktop
 bun run generate:orgn-icons
 ```
 
-This renders PNG/ICO/ICNS for all channels and writes orgn favicon rasters to `packages/ui/src/assets/favicon/orgn-*`.
+## Regenerate all icons
 
-**macOS:** `.icns` requires `iconutil` (built-in).
+Source assets:
+- macOS: `vscode-cde/resources/darwin/code.icns`
+- Windows/Linux rasters: `vscode-cde/resources/darwin/app-icon.svg`
 
-**Note:** Packaged macOS icons may need Image2Icon Big Sur padding for final polish.
+```bash
+cd packages/desktop
+bun run generate:orgn-icons
+```
 
-## Historical reference process
-
-- Save source as `app-icon.png`
-- `bun tauri icon -o src-tauri/icons/{environment}`
-- Image2Icon Big Sur preset for `icon.icns` shadow/padding
-- Keep `dock.png` synced with `icon_128x128@2x.png` from `icon.icns`
+**macOS:** `.icns` requires `iconutil` (built-in) to extract PNG fallbacks for dev.

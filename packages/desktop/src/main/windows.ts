@@ -1,6 +1,7 @@
 import { ORGN_THEME_COLORS, PRODUCT_NAME } from "@opencode-ai/ui/brand"
 import windowState from "electron-window-state"
-import { app, BrowserWindow, dialog, net, nativeImage, nativeTheme, protocol } from "electron"
+import { app, BrowserWindow, dialog, net, nativeImage, nativeTheme, protocol, type NativeImage } from "electron"
+import { existsSync } from "node:fs"
 import { dirname, isAbsolute, join, relative, resolve } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 import type { TitlebarTheme } from "../preload/types"
@@ -58,13 +59,73 @@ export function getBackgroundColor(): string | undefined {
   return backgroundColor
 }
 
-function iconsDir() {
-  return app.isPackaged ? join(process.resourcesPath, "icons") : join(root, "../../resources/icons")
+function resolveChannel(): "dev" | "beta" | "prod" {
+  const raw = process.env.OPENCODE_CHANNEL
+  if (raw === "dev" || raw === "beta" || raw === "prod") return raw
+  return "dev"
 }
 
-function iconPath() {
-  const ext = process.platform === "win32" ? "ico" : "png"
-  return join(iconsDir(), `icon.${ext}`)
+function iconsDir() {
+  const channel = resolveChannel()
+  const candidates = app.isPackaged
+    ? [
+        join(process.resourcesPath, "icons"),
+        join(app.getAppPath(), "resources", "icons"),
+      ]
+    : [
+        join(app.getAppPath(), "icons", channel),
+        join(root, "../../icons", channel),
+        join(app.getAppPath(), "resources", "icons"),
+      ]
+
+  for (const dir of candidates) {
+    if (existsSync(join(dir, "icon.png")) || existsSync(join(dir, "icon.icns")) || existsSync(join(dir, "icon.ico"))) {
+      return dir
+    }
+  }
+
+  return candidates[0]
+}
+
+function loadIconFromDir(dir: string, names: string[]): NativeImage {
+  for (const name of names) {
+    const path = resolve(dir, name)
+    if (!existsSync(path)) continue
+    const image = nativeImage.createFromPath(path)
+    if (!image.isEmpty()) return image
+  }
+  return nativeImage.createEmpty()
+}
+
+function loadMacIcon(): NativeImage {
+  const dir = iconsDir()
+  const image = loadIconFromDir(dir, ["icon.icns", "icon.png"])
+  if (!image.isEmpty()) return image
+
+  writeLog("main", "failed to load macOS app icon", { dir, channel: resolveChannel() }, "warn")
+  return nativeImage.createEmpty()
+}
+
+function loadDockIcon(): NativeImage {
+  if (process.platform === "darwin") return loadMacIcon()
+  const dir = iconsDir()
+  const names = process.platform === "win32" ? ["icon.ico", "icon.png"] : ["icon.png"]
+  const image = loadIconFromDir(dir, names)
+  if (!image.isEmpty()) return image
+
+  writeLog("main", "failed to load dock icon", { dir, channel: resolveChannel() }, "warn")
+  return nativeImage.createEmpty()
+}
+
+function loadWindowIcon(): NativeImage {
+  if (process.platform === "darwin") return loadMacIcon()
+  const dir = iconsDir()
+  const names = process.platform === "win32" ? ["icon.ico", "icon.png"] : ["icon.png"]
+  const image = loadIconFromDir(dir, names)
+  if (!image.isEmpty()) return image
+
+  writeLog("main", "failed to load window icon", { dir, channel: resolveChannel() }, "warn")
+  return nativeImage.createEmpty()
 }
 
 function tone() {
@@ -109,8 +170,8 @@ export function getPinchZoomEnabled() {
 }
 
 export function setDockIcon() {
-  if (process.platform !== "darwin") return
-  const icon = nativeImage.createFromPath(join(iconsDir(), "dock.png"))
+  if (process.platform !== "darwin" || app.isPackaged) return
+  const icon = loadDockIcon()
   if (!icon.isEmpty()) app.dock?.setIcon(icon)
 }
 
@@ -129,7 +190,7 @@ export function createMainWindow() {
     show: false,
     autoHideMenuBar: true,
     title: PRODUCT_NAME,
-    icon: iconPath(),
+    icon: loadWindowIcon(),
     backgroundColor: backgroundColor ?? defaultBackgroundColor(),
     ...(process.platform === "darwin"
       ? {

@@ -16,11 +16,13 @@ import {
 const themesDir = join(import.meta.dir, "themes")
 
 describe("curated-themes registry", () => {
-  test("has exactly 40 entries in vscode order", () => {
-    expect(CURATED_THEME_ENTRIES.length).toBe(40)
+  test("has exactly 42 entries in vscode order", () => {
+    expect(CURATED_THEME_ENTRIES.length).toBe(42)
     expect(CURATED_THEME_ENTRIES[0]?.label).toBe("Light 2026")
     expect(CURATED_THEME_ENTRIES[11]?.label).toBe("ORGN Original Black")
     expect(CURATED_THEME_ENTRIES[39]?.label).toBe("SynthWave '84")
+    expect(CURATED_THEME_ENTRIES[40]?.label).toBe("ORGN Dark")
+    expect(CURATED_THEME_ENTRIES[41]?.label).toBe("ORGN Light")
   })
 
   test("uses unique curated keys", () => {

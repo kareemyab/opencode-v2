@@ -1,27 +1,26 @@
 #!/usr/bin/env bun
 /**
- * Generate orgn Electron + favicon raster assets from packages/ui/src/assets/orgn-app-icon.svg
+ * macOS app icon: copy vscode-cde/resources/darwin/code.icns verbatim to icon.icns.
+ * Windows/Linux rasters are generated from vscode-cde/resources/darwin/app-icon.svg.
  *
  * Usage: bun ./scripts/generate-orgn-icons.ts [dev|beta|prod|all|favicon]
- *
- * Requires: @resvg/resvg-js (devDependency). macOS: iconutil for .icns
  */
 
 import { $ } from "bun"
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { Resvg } from "@resvg/resvg-js"
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..")
-const sourceSvg = join(root, "../ui/src/assets/orgn-app-icon.svg")
-const faviconSvg = join(root, "../ui/src/assets/favicon/orgn-favicon.svg")
+const sourceSvg = join(root, "../../../vscode-cde/resources/darwin/app-icon.svg")
+const sourceIcns = join(root, "../../../vscode-cde/resources/darwin/code.icns")
 
 const channels = ["dev", "beta", "prod"] as const
 type Channel = (typeof channels)[number]
 
-function renderPng(svgPath: string, size: number): Buffer {
-  const svg = readFileSync(svgPath, "utf8")
+function renderPng(size: number): Buffer {
+  const svg = readFileSync(sourceSvg, "utf8")
   const resvg = new Resvg(svg, {
     fitTo: { mode: "width" as const, value: size },
     background: "black",
@@ -29,9 +28,9 @@ function renderPng(svgPath: string, size: number): Buffer {
   return resvg.render().asPng()
 }
 
-function writePng(path: string, svgPath: string, size: number) {
+function writePng(path: string, size: number) {
   mkdirSync(dirname(path), { recursive: true })
-  writeFileSync(path, renderPng(svgPath, size))
+  writeFileSync(path, renderPng(size))
 }
 
 async function buildIco(pngPaths: string[], dest: string) {
@@ -40,23 +39,37 @@ async function buildIco(pngPaths: string[], dest: string) {
   writeFileSync(dest, await toIco(images))
 }
 
-async function buildIcns(iconsetDir: string, dest: string) {
-  if (process.platform !== "darwin") {
-    console.warn("Skipping .icns generation (iconutil requires macOS)")
-    return
-  }
-  await $`iconutil -c icns ${iconsetDir} -o ${dest}`
+async function extractIcnsPngs(destIconset: string) {
+  rmSync(destIconset, { recursive: true, force: true })
+  mkdirSync(destIconset, { recursive: true })
+  if (process.platform !== "darwin") return
+  await $`iconutil --convert iconset --output ${destIconset} ${sourceIcns}`
 }
 
 async function generateChannelIcons(channel: Channel) {
   const dest = join(root, "icons", channel)
   mkdirSync(dest, { recursive: true })
 
-  const sizes: Array<[string, number]> = [
-    ["32x32.png", 32],
-    ["64x64.png", 64],
-    ["128x128.png", 128],
-    ["128x128@2x.png", 256],
+  const iconset = join(dest, "vscode.iconset")
+  await extractIcnsPngs(iconset)
+
+  copyFileSync(sourceIcns, join(dest, "icon.icns"))
+
+  const fromIcns: Array<[string, string]> = [
+    ["32x32.png", "icon_32x32.png"],
+    ["64x64.png", "icon_32x32@2x.png"],
+    ["128x128.png", "icon_128x128.png"],
+    ["128x128@2x.png", "icon_128x128@2x.png"],
+    ["256x256.png", "icon_256x256.png"],
+    ["icon.png", "icon_512x512.png"],
+    ["dock.png", "icon_128x128@2x.png"],
+  ]
+
+  for (const [name, icnsName] of fromIcns) {
+    copyFileSync(join(iconset, icnsName), join(dest, name))
+  }
+
+  const squareSizes: Array<[string, number]> = [
     ["Square30x30Logo.png", 30],
     ["Square44x44Logo.png", 44],
     ["Square71x71Logo.png", 71],
@@ -67,45 +80,19 @@ async function generateChannelIcons(channel: Channel) {
     ["Square284x284Logo.png", 284],
     ["Square310x310Logo.png", 310],
     ["StoreLogo.png", 50],
-    ["icon.png", 512],
-    ["dock.png", 256],
   ]
 
-  for (const [name, size] of sizes) {
-    writePng(join(dest, name), sourceSvg, size)
+  for (const [name, size] of squareSizes) {
+    writePng(join(dest, name), size)
   }
 
   const ico256 = join(dest, "256x256.png")
-  writePng(ico256, sourceSvg, 256)
   await buildIco(
     [join(dest, "32x32.png"), join(dest, "64x64.png"), join(dest, "128x128.png"), ico256],
     join(dest, "icon.ico"),
   )
 
-  const iconset = join(dest, "icon.iconset")
   rmSync(iconset, { recursive: true, force: true })
-  mkdirSync(iconset, { recursive: true })
-
-  const icnsMap: Array<[string, number]> = [
-    ["icon_16x16.png", 16],
-    ["icon_16x16@2x.png", 32],
-    ["icon_32x32.png", 32],
-    ["icon_32x32@2x.png", 64],
-    ["icon_128x128.png", 128],
-    ["icon_128x128@2x.png", 256],
-    ["icon_256x256.png", 256],
-    ["icon_256x256@2x.png", 512],
-    ["icon_512x512.png", 512],
-    ["icon_512x512@2x.png", 1024],
-  ]
-
-  for (const [name, size] of icnsMap) {
-    writePng(join(iconset, name), sourceSvg, size)
-  }
-
-  await buildIcns(iconset, join(dest, "icon.icns"))
-  rmSync(iconset, { recursive: true, force: true })
-
   console.log(`Generated ${channel} icons → ${dest}`)
 }
 
@@ -119,7 +106,7 @@ async function generateFavicons() {
   ]
 
   for (const [name, size] of pairs) {
-    writePng(join(dest, name), faviconSvg, size)
+    writePng(join(dest, name), size)
   }
 
   await buildIco(
@@ -154,6 +141,9 @@ async function main() {
 
   if (!existsSync(sourceSvg)) {
     throw new Error(`Missing source SVG: ${sourceSvg}`)
+  }
+  if (!existsSync(sourceIcns)) {
+    throw new Error(`Missing source ICNS: ${sourceIcns}`)
   }
 
   if (target === "favicon") {

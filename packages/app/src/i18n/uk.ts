@@ -565,6 +565,7 @@ export const dict = {
   "session.todo.expand": "Розгорнути",
   "session.todo.progress": "Виконано {{done}} з {{total}} завдань",
   "session.question.progress": "{{current}} з {{total}} запитань",
+  "session.followup.progress": "{{queued}}/{{total}}",
   "session.followupDock.summary.one": "{{count}} повідомлення в черзі",
   "session.followupDock.summary.other": "{{count}} повідомлень у черзі",
   "session.followupDock.sendNow": "Надіслати зараз",

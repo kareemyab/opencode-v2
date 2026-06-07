@@ -6,6 +6,8 @@ import { checksum } from "@opencode-ai/core/util/encode"
 import { ComponentProps, createEffect, createResource, createSignal, onCleanup, splitProps } from "solid-js"
 import { isServer } from "solid-js/web"
 import { normalizeMermaidSource } from "./markdown-mermaid"
+import { sanitizeMermaidSVG } from "./markdown-mermaid-svg"
+import { MERMAID_THEME_CONFIG } from "../theme/mermaid-theme"
 import { hasOpenTrailingFence, stream } from "./markdown-stream"
 
 type Entry = {
@@ -16,6 +18,7 @@ type Entry = {
 const max = 200
 const cache = new Map<string, Entry>()
 const mermaidCache = new Map<string, string>()
+const MERMAID_RENDER_CACHE_VERSION = "v2"
 let mermaidID = 0
 let mermaidPromise: Promise<typeof import("mermaid").default> | undefined
 
@@ -53,57 +56,10 @@ function sanitize(html: string) {
 
 function loadMermaid() {
   mermaidPromise ??= import("mermaid").then((mod) => {
-    mod.default.initialize({
-      startOnLoad: false,
-      securityLevel: "strict",
-      theme: "base",
-      flowchart: {
-        htmlLabels: false,
-      },
-      themeVariables: {
-        darkMode: true,
-        background: "transparent",
-        mainBkg: "#e8e7ff",
-        primaryColor: "#e8e7ff",
-        primaryTextColor: "#111111",
-        primaryBorderColor: "#9b99c9",
-        secondaryColor: "#fff6a8",
-        secondaryTextColor: "#111111",
-        secondaryBorderColor: "#c7b94a",
-        tertiaryColor: "#181818",
-        tertiaryTextColor: "#f4f4f5",
-        tertiaryBorderColor: "#3f3f46",
-        clusterBkg: "#ffffd6",
-        clusterBorder: "#c7b94a",
-        titleColor: "#f4f4f5",
-        textColor: "#f4f4f5",
-        lineColor: "#737373",
-        edgeLabelBackground: "#181818",
-        nodeTextColor: "#111111",
-        noteBkgColor: "#fff6a8",
-        noteTextColor: "#111111",
-        noteBorderColor: "#c7b94a",
-      },
-    })
+    mod.default.initialize(MERMAID_THEME_CONFIG)
     return mod.default
   })
   return mermaidPromise
-}
-
-function sanitizeMermaidSVG(svg: string) {
-  if (!DOMPurify.isSupported) return
-  const safe = DOMPurify.sanitize(svg, {
-    USE_PROFILES: { svg: true, svgFilters: true },
-    FORBID_TAGS: ["script", "foreignObject"],
-  })
-  const template = document.createElement("template")
-  template.innerHTML = safe
-  const element = template.content.firstElementChild
-  if (!(element instanceof SVGSVGElement)) return
-  element.dataset.slot = "markdown-mermaid-svg"
-  element.setAttribute("role", "img")
-  element.setAttribute("aria-label", "Mermaid diagram")
-  return element
 }
 
 function mermaidSource(source: string) {
@@ -126,7 +82,7 @@ async function renderMermaidDiagrams(html: string) {
     const source = diagram.querySelector("code")?.textContent?.trim()
     if (!source) continue
 
-    const sourceKey = checksum(source)
+    const sourceKey = checksum(`${MERMAID_RENDER_CACHE_VERSION}:${source}`)
     if (sourceKey) {
       const cached = mermaidCache.get(sourceKey)
       if (cached) {
