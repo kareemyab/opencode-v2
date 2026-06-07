@@ -11,6 +11,7 @@ import {
   homeProjectDirectories,
   homeSessionServerStatus,
   latestRootSession,
+  sortedChildSessions,
   toggleHomeProjectSelection,
 } from "./helpers"
 import { pathKey } from "@/utils/path-key"
@@ -124,6 +125,36 @@ describe("layout workspace helpers", () => {
     )
 
     expect(result?.id).toBe("root")
+  })
+
+  test("lists non-archived child sessions in creation order", () => {
+    const store = {
+      path: { directory: "/workspace" },
+      session: [
+        session({ id: "root", directory: "/workspace" }),
+        session({
+          id: "child-b",
+          directory: "/workspace",
+          parentID: "root",
+          time: { created: 20, updated: 20, archived: undefined },
+        }),
+        session({
+          id: "child-a",
+          directory: "/workspace",
+          parentID: "root",
+          time: { created: 10, updated: 10, archived: undefined },
+        }),
+        session({
+          id: "archived",
+          directory: "/workspace",
+          parentID: "root",
+          time: { created: 30, updated: 30, archived: 30 },
+        }),
+        session({ id: "other-root", directory: "/workspace", time: { created: 40, updated: 40, archived: undefined } }),
+      ],
+    }
+
+    expect(sortedChildSessions(store, "root").map((item) => item.id)).toEqual(["child-a", "child-b"])
   })
 
   test("finds the direct child on the active session path", () => {

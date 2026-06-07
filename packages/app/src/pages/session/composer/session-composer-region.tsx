@@ -22,7 +22,6 @@ import { NEW_SESSION_CONTENT_WIDTH } from "@/pages/session/new-session-layout"
 export function SessionComposerRegion(props: {
   state: SessionComposerState
   ready: boolean
-  centered: boolean
   placement?: "dock" | "inline"
   inputRef: (el: HTMLDivElement) => void
   newSessionWorktree: string
@@ -146,15 +145,13 @@ export function SessionComposerRegion(props: {
       data-component="session-prompt-dock"
       classList={{
         "w-full flex flex-col justify-center items-center pointer-events-none": true,
-        "shrink-0 pb-3 bg-background-base": props.placement !== "inline",
+        "shrink-0 bg-background-base": props.placement !== "inline",
       }}
     >
       <div
         classList={{
           "w-full pointer-events-auto": true,
-          "px-3": props.placement !== "inline",
           [NEW_SESSION_CONTENT_WIDTH]: props.placement === "inline",
-          "md:max-w-200 md:mx-auto 2xl:max-w-[1000px]": props.centered,
         }}
       >
         <Show when={props.state.questionRequest()} keyed>

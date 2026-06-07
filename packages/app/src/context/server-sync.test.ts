@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test"
 import { canDisposeDirectory, pickDirectoriesToEvict } from "./global-sync/eviction"
-import { estimateRootSessionTotal, loadRootSessionsWithFallback } from "./global-sync/session-load"
+import {
+  estimateRootSessionTotal,
+  loadDescendantSessions,
+  loadRootSessionsWithFallback,
+} from "./global-sync/session-load"
 
 describe("pickDirectoriesToEvict", () => {
   test("keeps pinned stores and evicts idle stores", () => {
@@ -20,6 +24,38 @@ describe("pickDirectoriesToEvict", () => {
     })
 
     expect(picks).toEqual(["d", "c"])
+  })
+})
+
+describe("loadDescendantSessions", () => {
+  test("loads nested descendants in creation order", async () => {
+    const known = new Set<string>(["root"])
+    const calls: string[] = []
+
+    const result = await loadDescendantSessions({
+      parentIDs: ["root"],
+      known,
+      listChildren: async (sessionID) => {
+        calls.push(sessionID)
+        if (sessionID === "root") {
+          return {
+            data: [
+              { id: "child", parentID: "root", time: { created: 1, updated: 1 } },
+            ] as never,
+          }
+        }
+        if (sessionID === "child") {
+          return {
+            data: [{ id: "leaf", parentID: "child", time: { created: 2, updated: 2 } }] as never,
+          }
+        }
+        return { data: [] }
+      },
+    })
+
+    expect(result.map((session) => session.id)).toEqual(["child", "leaf"])
+    expect(calls).toEqual(["root", "child", "leaf"])
+    expect(known).toEqual(new Set(["root", "child", "leaf"]))
   })
 })
 

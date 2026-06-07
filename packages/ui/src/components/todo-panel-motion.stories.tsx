@@ -270,7 +270,6 @@ export const Playground = {
                 <div ref={composerRef}>
                   <SessionComposerRegion
                     state={state}
-                    centered={false}
                     inputRef={() => {}}
                     newSessionWorktree=""
                     onNewSessionWorktreeReset={() => {}}

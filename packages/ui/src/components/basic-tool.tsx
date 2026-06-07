@@ -5,6 +5,7 @@ import { createStore } from "solid-js/store"
 import { Collapsible } from "./collapsible"
 import type { IconProps } from "./icon"
 import { TextShimmer } from "./text-shimmer"
+import { ToolSuccessIndicator } from "./tool-success-indicator"
 
 export type TriggerTitle = {
   title: string
@@ -88,6 +89,7 @@ export function BasicTool(props: BasicToolProps) {
   const open = () => props.open ?? state.open
   const ready = () => state.ready
   const pending = () => props.status === "pending" || props.status === "running"
+  const completed = () => props.status === "completed"
   const hasChildren = () => (props.defer ? "children" in props : props.children)
 
   let cancelReady: (() => void) | undefined
@@ -242,6 +244,9 @@ export function BasicTool(props: BasicToolProps) {
             <Match when={true}>{props.trigger as JSX.Element}</Match>
           </Switch>
         </div>
+        <Show when={completed()}>
+          <ToolSuccessIndicator />
+        </Show>
       </div>
       <Show when={hasChildren() && !props.hideDetails && !props.locked && !pending()}>
         <Collapsible.Arrow />

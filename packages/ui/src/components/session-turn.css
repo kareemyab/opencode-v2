@@ -58,8 +58,10 @@
     min-height: 20px;
 
     [data-component="spinner"] {
+      flex-shrink: 0;
       width: 16px;
       height: 16px;
+      color: var(--text-strong);
     }
   }
 

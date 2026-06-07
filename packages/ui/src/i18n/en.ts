@@ -70,6 +70,7 @@ export const dict: Record<string, string> = {
   "ui.sessionTurn.status.searchingWeb": "Searching the web",
   "ui.sessionTurn.status.makingEdits": "Making edits",
   "ui.sessionTurn.status.runningCommands": "Running commands",
+  "ui.sessionTurn.status.ranShell": "Shell",
   "ui.sessionTurn.status.thinking": "Thinking",
   "ui.sessionTurn.status.thinkingWithTopic": "Thinking - {{topic}}",
   "ui.sessionTurn.status.gatheringThoughts": "Gathering thoughts",
@@ -88,6 +89,8 @@ export const dict: Record<string, string> = {
   "ui.messagePart.context.search.other": "{{count}} searches",
   "ui.messagePart.context.list.one": "{{count}} list",
   "ui.messagePart.context.list.other": "{{count}} lists",
+  "ui.messagePart.shell.commands.one": "{{count}} command",
+  "ui.messagePart.shell.commands.other": "{{count}} commands",
 
   "ui.list.loading": "Loading",
   "ui.list.empty": "No results",

@@ -2,6 +2,44 @@
   border-bottom-color: var(--border-weak-base);
 }
 
+.stream-banner-color-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    #06b6d4,
+    #8b5cf6,
+    #ec4899,
+    #f97316,
+    #eab308,
+    #22c55e,
+    #06b6d4
+  );
+  background-size: 300% 100%;
+  animation: stream-banner-color-vibrate 2.4s linear infinite;
+}
+
+@keyframes stream-banner-color-vibrate {
+  0% {
+    background-position: 0% 50%;
+    filter: hue-rotate(0deg) saturate(1.1);
+  }
+
+  50% {
+    background-position: 100% 50%;
+    filter: hue-rotate(45deg) saturate(1.35);
+  }
+
+  100% {
+    background-position: 200% 50%;
+    filter: hue-rotate(0deg) saturate(1.1);
+  }
+}
+
 .stream-banner-shimmer {
   background-size: 220% 100%;
   background-image: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.28), transparent);
@@ -28,6 +66,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .stream-banner-color-line {
+    animation: none !important;
+    background-position: 0% 50%;
+    filter: none;
+  }
+
   .stream-banner-shimmer,
   .animate-shimmer {
     animation: none !important;

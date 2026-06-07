@@ -597,6 +597,7 @@ export default function Page() {
   }
 
   let inputRef!: HTMLDivElement
+  let autofocusPending = false
   let promptDock: HTMLDivElement | undefined
   let dockHeight = 0
   let scroller: HTMLDivElement | undefined
@@ -803,6 +804,20 @@ export default function Page() {
       current = current.shadowRoot.activeElement
     }
     return current instanceof HTMLElement ? current : undefined
+  }
+
+  const tryAutofocusInput = () => {
+    if (!autofocusPending) return
+    if (isChildSession()) return
+    if (composer.blocked()) return
+    if (dialog.active) return
+    const active = deepActiveElement()
+    if (active?.closest("[data-prevent-autofocus]")) return
+    if (active && isEditableTarget(active) && active !== inputRef) return
+    const el = inputRef
+    if (!el?.isConnected) return
+    autofocusPending = false
+    el.focus()
   }
 
   const handleKeyDown = (event: KeyboardEvent) => {
@@ -1627,10 +1642,25 @@ export default function Page() {
 
   createEffect(
     on(
-      () => params.id,
-      (id) => {
-        if (!id) requestAnimationFrame(() => inputRef?.focus())
+      sessionKey,
+      () => {
+        autofocusPending = true
+        requestAnimationFrame(() => {
+          requestAnimationFrame(tryAutofocusInput)
+        })
       },
+      { defer: true },
+    ),
+  )
+
+  createEffect(
+    on(
+      () => prompt.ready(),
+      (ready) => {
+        if (!ready || !autofocusPending) return
+        requestAnimationFrame(tryAutofocusInput)
+      },
+      { defer: true },
     ),
   )
 
@@ -1656,10 +1686,10 @@ export default function Page() {
     <SessionComposerRegion
       state={composer}
       ready={!store.deferRender && messagesReady()}
-      centered={placement === "dock" && centered()}
       placement={placement}
       inputRef={(el) => {
         inputRef = el
+        if (el) requestAnimationFrame(tryAutofocusInput)
       }}
       newSessionWorktree={newSessionWorktree()}
       onNewSessionWorktreeReset={() => setStore("newSessionWorktree", "main")}

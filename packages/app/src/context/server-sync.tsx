@@ -1,4 +1,12 @@
-import type { Config, OpencodeClient, Path, Project, ProviderAuthResponse, Todo } from "@opencode-ai/sdk/v2/client"
+import type {
+  Config,
+  OpencodeClient,
+  Path,
+  Project,
+  ProviderAuthResponse,
+  Session,
+  Todo,
+} from "@opencode-ai/sdk/v2/client"
 import { showToast } from "@/utils/toast"
 import { getFilename } from "@opencode-ai/core/util/path"
 import { batch, getOwner, onCleanup, onMount, untrack } from "solid-js"
@@ -19,7 +27,11 @@ import {
 import { createChildStoreManager } from "./global-sync/child-store"
 import { applyDirectoryEvent, applyGlobalEvent, cleanupDroppedSessionCaches } from "./global-sync/event-reducer"
 import { clearSessionPrefetchDirectory } from "./global-sync/session-prefetch"
-import { estimateRootSessionTotal, loadRootSessionsWithFallback } from "./global-sync/session-load"
+import {
+  estimateRootSessionTotal,
+  loadDescendantSessions,
+  loadRootSessionsWithFallback,
+} from "./global-sync/session-load"
 import { trimSessions } from "./global-sync/session-trim"
 import type { ProjectMeta } from "./global-sync/types"
 import { SESSION_RECENT_LIMIT } from "./global-sync/types"
@@ -92,6 +104,7 @@ export function createServerSyncContextInner(_serverSDK?: ServerSDK) {
   const sdkCache = new Map<string, OpencodeClient>()
   const booting = new Map<string, Promise<void>>()
   const sessionLoads = new Map<string, Promise<void>>()
+  const sessionChildrenLoads = new Map<string, Promise<void>>()
   const sessionMeta = new Map<string, { limit: number }>()
 
   const sdkFor = (directory: string) => {
@@ -247,6 +260,44 @@ export function createServerSyncContextInner(_serverSDK?: ServerSDK) {
     },
   })
 
+  async function loadSessionDescendants(directory: string, parentID: string) {
+    const key = directoryKey(directory)
+    const loadKey = `${key}:${parentID}`
+    const pending = sessionChildrenLoads.get(loadKey)
+    if (pending) return pending
+
+    children.pin(key)
+    const promise = Promise.resolve().then(async () => {
+      const [store, setStore] = children.child(directory, { bootstrap: false })
+      const known = new Set(store.session.map((session) => session.id))
+      const descendants = await loadDescendantSessions({
+        listChildren: (sessionID) =>
+          sdkFor(directory)
+            .session.children({ sessionID })
+            .catch(() => ({ data: [] as Session[] })),
+        parentIDs: [parentID],
+        known,
+      })
+      if (descendants.length === 0) return
+
+      const next = trimSessions([...store.session, ...descendants], {
+        limit: store.limit,
+        permission: store.permission,
+      })
+      batch(() => {
+        setStore("session", reconcile(next, { key: "id" }))
+        cleanupDroppedSessionCaches(store, setStore, next, setSessionTodo)
+      })
+    })
+
+    sessionChildrenLoads.set(loadKey, promise)
+    void promise.finally(() => {
+      sessionChildrenLoads.delete(loadKey)
+      children.unpin(key)
+    })
+    return promise
+  }
+
   async function loadSessions(directory: string) {
     const key = directoryKey(directory)
     const pending = sessionLoads.get(key)
@@ -278,14 +329,29 @@ export function createServerSyncContextInner(_serverSDK?: ServerSDK) {
             limit,
             list: (query) => serverSDK.client.session.list(query),
           })
-            .then((x) => {
+            .then(async (x) => {
               const nonArchived = (x.data ?? [])
                 .filter((s) => !!s?.id)
                 .filter((s) => !s.time?.archived)
                 .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
               const limit = store.limit
               const childSessions = store.session.filter((s) => !!s.parentID)
-              const sessions = trimSessions([...nonArchived, ...childSessions], {
+              const known = new Set([...nonArchived, ...childSessions].map((session) => session.id))
+              const parentIDs = [
+                ...new Set([
+                  ...nonArchived.filter((session) => !session.parentID).map((session) => session.id),
+                  ...store.session.filter((session) => !session.parentID).map((session) => session.id),
+                ]),
+              ]
+              const descendants = await loadDescendantSessions({
+                listChildren: (sessionID) =>
+                  sdkFor(directory)
+                    .session.children({ sessionID })
+                    .catch(() => ({ data: [] as Session[] })),
+                parentIDs,
+                known,
+              })
+              const sessions = trimSessions([...nonArchived, ...childSessions, ...descendants], {
                 limit,
                 permission: store.permission,
               })
@@ -436,6 +502,7 @@ export function createServerSyncContextInner(_serverSDK?: ServerSDK) {
 
   const projectApi = {
     loadSessions,
+    loadSessionDescendants,
     meta(directory: string, patch: ProjectMeta) {
       children.projectMeta(directory, patch)
     },

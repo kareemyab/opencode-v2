@@ -21,6 +21,7 @@ import { Button } from "@opencode-ai/ui/button"
 import { Card } from "@opencode-ai/ui/card"
 import {
   ContextToolGroup,
+  ShellToolGroup,
   Message,
   MessageDivider,
   Part as MessagePart,
@@ -161,6 +162,9 @@ function TimelineThinkingRow(props: { reasoningHeading?: string; showReasoningSu
 
   return (
     <div data-slot="session-turn-thinking">
+      <div aria-hidden="true">
+        <Spinner />
+      </div>
       <TextShimmer text={language.t("ui.sessionTurn.status.thinking")} />
       <Show when={!props.showReasoningSummaries}>
         <TextReveal text={props.reasoningHeading} class="session-turn-thinking-heading" travel={25} duration={700} />
@@ -1025,6 +1029,26 @@ export function MessageTimeline(props: {
       )
     }
 
+    if (row().group.type === "shell") {
+      const parts = createMemo(() => {
+        const group = row().group
+        if (group.type !== "shell") return emptyTools
+        return group.refs
+          .map((ref) => getMsgPart(ref.messageID, ref.partID))
+          .filter((part): part is ToolPart => part?.type === "tool")
+      })
+
+      return (
+        <ShellToolGroup
+          parts={parts()}
+          busy={
+            workingTurn(row().userMessageID) && lastAssistantGroupKey().get(row().userMessageID) === row().group.key
+          }
+          onSizeChange={measureTimeline}
+        />
+      )
+    }
+
     const message = createMemo(() => {
       const group = row().group
       if (group.type !== "part") return
@@ -1388,7 +1412,7 @@ export function MessageTimeline(props: {
                         />
                       </Show>
                     </Show>
-                    <Show when={!parentID() ? sessionID() : undefined} keyed>
+                    <Show when={sessionID() && !parentID() ? sessionID() : undefined} keyed>
                       {(id) => (
                         <div
                           class="relative z-[60] flex shrink-0 items-center gap-1 opacity-0 pointer-events-none transition-opacity duration-150 group-hover/session-title:opacity-100 group-hover/session-title:pointer-events-auto group-focus-within/session-title:opacity-100 group-focus-within/session-title:pointer-events-auto"

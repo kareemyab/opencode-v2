@@ -19,6 +19,7 @@ import { Accordion } from "./accordion"
 import { StickyAccordionHeader } from "./sticky-accordion-header"
 import { DiffChanges } from "./diff-changes"
 import { Icon } from "./icon"
+import { Spinner } from "./spinner"
 import { TextShimmer } from "./text-shimmer"
 import { SessionRetry } from "./session-retry"
 import { TextReveal } from "./text-reveal"
@@ -420,6 +421,9 @@ export function SessionTurn(
               </Show>
               <Show when={showThinking()}>
                 <div data-slot="session-turn-thinking">
+                  <div aria-hidden="true">
+                    <Spinner />
+                  </div>
                   <TextShimmer text={i18n.t("ui.sessionTurn.status.thinking")} />
                   <Show when={!showReasoningSummaries()}>
                     <TextReveal

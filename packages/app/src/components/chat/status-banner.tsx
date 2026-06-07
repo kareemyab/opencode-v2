@@ -28,6 +28,9 @@ export function StatusBanner(props: StatusBannerProps) {
       aria-live={isError() ? "assertive" : "polite"}
       data-testid="stream-banner"
     >
+      <Show when={!isError() && props.showLoader}>
+        <div class="stream-banner-color-line" aria-hidden="true" />
+      </Show>
       <div class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <Show when={!isError()}>
           <div class="stream-banner-shimmer absolute inset-0 animate-shimmer opacity-70" />

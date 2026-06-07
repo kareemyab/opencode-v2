@@ -53,11 +53,14 @@ import { Spinner } from "./spinner"
 import { TextShimmer } from "./text-shimmer"
 import { AnimatedCountList } from "./tool-count-summary"
 import { ToolStatusTitle } from "./tool-status-title"
+import { ToolSuccessIndicator } from "./tool-success-indicator"
 import { patchFiles } from "./apply-patch-file"
 import { animate } from "motion"
 import { useLocation } from "@solidjs/router"
 import { attached, inline, kind } from "./message-file"
 import { readPartText } from "./message-part-text"
+import { groupParts, sameGroups, type PartGroup } from "./message-part-group"
+export { groupParts, sameGroups, type PartGroup, type PartRef } from "./message-part-group"
 
 async function writeClipboard(text: string): Promise<boolean> {
   const body = typeof document === "undefined" ? undefined : document.body
@@ -515,91 +518,6 @@ function same<T>(a: readonly T[] | undefined, b: readonly T[] | undefined) {
   return a.every((x, i) => x === b[i])
 }
 
-export type PartRef = {
-  messageID: string
-  partID: string
-}
-
-export type PartGroup =
-  | {
-      key: string
-      type: "part"
-      ref: PartRef
-    }
-  | {
-      key: string
-      type: "context"
-      refs: PartRef[]
-    }
-
-function sameRef(a: PartRef, b: PartRef) {
-  return a.messageID === b.messageID && a.partID === b.partID
-}
-
-function sameGroup(a: PartGroup, b: PartGroup) {
-  if (a === b) return true
-  if (a.key !== b.key) return false
-  if (a.type !== b.type) return false
-  if (a.type === "part") {
-    if (b.type !== "part") return false
-    return sameRef(a.ref, b.ref)
-  }
-  if (b.type !== "context") return false
-  if (a.refs.length !== b.refs.length) return false
-  return a.refs.every((ref, i) => sameRef(ref, b.refs[i]!))
-}
-
-export function sameGroups(a: readonly PartGroup[] | undefined, b: readonly PartGroup[] | undefined) {
-  if (a === b) return true
-  if (!a || !b) return false
-  if (a.length !== b.length) return false
-  return a.every((item, i) => sameGroup(item, b[i]!))
-}
-
-export function groupParts(parts: { messageID: string; part: PartType }[]) {
-  const result: PartGroup[] = []
-  let start = -1
-
-  const flush = (end: number) => {
-    if (start < 0) return
-    const first = parts[start]
-    const last = parts[end]
-    if (!first || !last) {
-      start = -1
-      return
-    }
-    result.push({
-      key: `context:${first.part.id}`,
-      type: "context",
-      refs: parts.slice(start, end + 1).map((item) => ({
-        messageID: item.messageID,
-        partID: item.part.id,
-      })),
-    })
-    start = -1
-  }
-
-  parts.forEach((item, index) => {
-    if (isContextGroupTool(item.part)) {
-      if (start < 0) start = index
-      return
-    }
-
-    flush(index - 1)
-    result.push({
-      key: `part:${item.messageID}:${item.part.id}`,
-      type: "part",
-      ref: {
-        messageID: item.messageID,
-        partID: item.part.id,
-      },
-    })
-  })
-
-  flush(parts.length - 1)
-  return result
-}
-
 function index<T extends { id: string }>(items: readonly T[]) {
   return new Map(items.map((item) => [item.id, item] as const))
 }
@@ -692,6 +610,28 @@ export function AssistantParts(props: {
                 )
               })()}
             </Match>
+            <Match when={entryType() === "shell"}>
+              {(() => {
+                const parts = createMemo(
+                  () => {
+                    const entry = entryAccessor()
+                    if (entry.type !== "shell") return emptyTools
+                    return entry.refs
+                      .map((ref) => part().get(ref.messageID)?.get(ref.partID))
+                      .filter((part): part is ToolPart => !!part && isShellGroupTool(part))
+                  },
+                  emptyTools,
+                  { equals: same },
+                )
+                const busy = createMemo(() => props.working && last() === entryAccessor().key)
+
+                return (
+                  <Show when={parts().length > 0}>
+                    <ShellToolGroup parts={parts()} busy={busy()} />
+                  </Show>
+                )
+              })()}
+            </Match>
             <Match when={entryType() === "part"}>
               {(() => {
                 const message = createMemo(() => {
@@ -729,6 +669,10 @@ export function AssistantParts(props: {
 
 function isContextGroupTool(part: PartType): part is ToolPart {
   return part.type === "tool" && CONTEXT_GROUP_TOOLS.has(part.tool)
+}
+
+function isShellGroupTool(part: PartType): part is ToolPart {
+  return part.type === "tool" && part.tool === "bash"
 }
 
 function contextToolDetail(part: ToolPart): string | undefined {
@@ -803,6 +747,87 @@ function contextToolSummary(parts: ToolPart[]) {
   const search = parts.filter((part) => part.tool === "glob" || part.tool === "grep").length
   const list = parts.filter((part) => part.tool === "list").length
   return { read, search, list }
+}
+
+function shellToolTrigger(part: ToolPart, i18n: ReturnType<typeof useI18n>) {
+  const input = (part.state.input ?? {}) as Record<string, unknown>
+  const description = typeof input.description === "string" ? input.description : undefined
+  return {
+    title: i18n.t("ui.tool.shell"),
+    subtitle: description ?? "",
+    args: [] as string[],
+  }
+}
+
+function groupedToolIcon(part: ToolPart) {
+  if (part.tool === "read") return "eye" as const
+  if (part.tool === "bash") return "console" as const
+}
+
+function GroupedToolListItem(props: {
+  part: ToolPart
+  trigger: (part: ToolPart) => { title: string; subtitle?: string; args?: string[] }
+}) {
+  const trigger = createMemo(() => props.trigger(props.part))
+  const running = createMemo(
+    () => props.part.state.status === "pending" || props.part.state.status === "running",
+  )
+  const icon = createMemo(() => groupedToolIcon(props.part))
+
+  return (
+    <div data-slot="context-tool-group-item">
+      <div data-component="tool-trigger">
+        <div data-slot="basic-tool-tool-trigger-content">
+          <div data-slot="basic-tool-tool-info">
+            <div data-slot="basic-tool-tool-info-structured">
+              <Show when={icon()}>
+                <span data-slot="grouped-tool-item-icon" aria-hidden="true">
+                  <Icon name={icon()!} size="small" />
+                </span>
+              </Show>
+              <div data-slot="basic-tool-tool-info-main">
+                <Show when={!icon()}>
+                  <span data-slot="basic-tool-tool-title">
+                    <TextShimmer text={trigger().title} active={running()} />
+                  </span>
+                </Show>
+                <Show when={running() && icon()}>
+                  <span data-slot="basic-tool-tool-title">
+                    <TextShimmer text={trigger().title} active />
+                  </span>
+                </Show>
+                <Show when={!running() && trigger().subtitle}>
+                  <span data-slot="basic-tool-tool-subtitle">{trigger().subtitle}</span>
+                </Show>
+                <Show when={!running() && trigger().args?.length}>
+                  <For each={trigger().args}>
+                    {(arg) => <span data-slot="basic-tool-tool-arg">{arg}</span>}
+                  </For>
+                </Show>
+              </div>
+            </div>
+          </div>
+          <Show when={!running() && props.part.state.status === "completed"}>
+            <ToolSuccessIndicator />
+          </Show>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ToolGroupChevron() {
+  return (
+    <span data-slot="context-tool-group-chevron" aria-hidden="true">
+      <svg viewBox="0 0 16 16" fill="currentColor" stroke-linejoin="round">
+        <path
+          fill-rule="evenodd"
+          clip-rule="evenodd"
+          d="M12.0607 6.74999L11.5303 7.28032L8.7071 10.1035C8.31657 10.4941 7.68341 10.4941 7.29288 10.1035L4.46966 7.28032L3.93933 6.74999L4.99999 5.68933L5.53032 6.21966L7.99999 8.68933L10.4697 6.21966L11 5.68933L12.0607 6.74999Z"
+        />
+      </svg>
+    </span>
+  )
 }
 
 function ExaOutput(props: { output?: string }) {
@@ -907,6 +932,27 @@ export function AssistantMessageDisplay(props: {
                 )
               })()}
             </Match>
+            <Match when={entryType() === "shell"}>
+              {(() => {
+                const parts = createMemo(
+                  () => {
+                    const entry = entryAccessor()
+                    if (entry.type !== "shell") return emptyTools
+                    return entry.refs
+                      .map((ref) => part().get(ref.partID))
+                      .filter((part): part is ToolPart => !!part && isShellGroupTool(part))
+                  },
+                  emptyTools,
+                  { equals: same },
+                )
+
+                return (
+                  <Show when={parts().length > 0}>
+                    <ShellToolGroup parts={parts()} />
+                  </Show>
+                )
+              })()}
+            </Match>
             <Match when={entryType() === "part"}>
               {(() => {
                 const item = createMemo(() => {
@@ -955,18 +1001,22 @@ export function ContextToolGroup(props: { parts: ToolPart[]; busy?: boolean; onS
       data-timeline-part-ids={props.parts.map((part) => part.id).join(",")}
     >
       <Collapsible.Trigger>
-        <div data-component="context-tool-group-trigger">
+        <div data-component="context-tool-group-trigger" data-pending={pending() ? "true" : "false"}>
           <span
             data-slot="context-tool-group-title"
-            class="min-w-0 flex items-center gap-2 text-14-medium text-text-strong"
+            class="min-w-0 flex items-center gap-2 text-14-medium"
           >
-            <span data-slot="context-tool-group-label" class="shrink-0">
+            <span data-slot="context-tool-group-label" class="shrink-0 flex items-center gap-1.5">
+              <span data-slot="context-tool-group-brain" aria-hidden="true">
+                <Icon name="brain" size="small" />
+              </span>
               <ToolStatusTitle
                 active={pending()}
                 activeText={i18n.t("ui.sessionTurn.status.gatheringContext")}
                 doneText={i18n.t("ui.sessionTurn.status.gatheredContext")}
                 split={false}
               />
+              <ToolGroupChevron />
             </span>
             <span
               data-slot="context-tool-group-summary"
@@ -997,43 +1047,84 @@ export function ContextToolGroup(props: { parts: ToolPart[]; busy?: boolean; onS
               />
             </span>
           </span>
-          <Collapsible.Arrow />
         </div>
       </Collapsible.Trigger>
       <Collapsible.Content>
         <div data-component="context-tool-group-list">
           <Index each={props.parts}>
-            {(partAccessor) => {
-              const trigger = createMemo(() => contextToolTrigger(partAccessor(), i18n))
-              const running = createMemo(
-                () => partAccessor().state.status === "pending" || partAccessor().state.status === "running",
-              )
-              return (
-                <div data-slot="context-tool-group-item">
-                  <div data-component="tool-trigger">
-                    <div data-slot="basic-tool-tool-trigger-content">
-                      <div data-slot="basic-tool-tool-info">
-                        <div data-slot="basic-tool-tool-info-structured">
-                          <div data-slot="basic-tool-tool-info-main">
-                            <span data-slot="basic-tool-tool-title">
-                              <TextShimmer text={trigger().title} active={running()} />
-                            </span>
-                            <Show when={!running() && trigger().subtitle}>
-                              <span data-slot="basic-tool-tool-subtitle">{trigger().subtitle}</span>
-                            </Show>
-                            <Show when={!running() && trigger().args?.length}>
-                              <For each={trigger().args}>
-                                {(arg) => <span data-slot="basic-tool-tool-arg">{arg}</span>}
-                              </For>
-                            </Show>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )
-            }}
+            {(partAccessor) => (
+              <GroupedToolListItem part={partAccessor()} trigger={(part) => contextToolTrigger(part, i18n)} />
+            )}
+          </Index>
+        </div>
+      </Collapsible.Content>
+    </Collapsible>
+  )
+}
+
+export function ShellToolGroup(props: { parts: ToolPart[]; busy?: boolean; onSizeChange?: () => void }) {
+  const i18n = useI18n()
+  const [open, setOpen] = createSignal(false)
+  const pending = createMemo(
+    () =>
+      !!props.busy || props.parts.some((part) => part.state.status === "pending" || part.state.status === "running"),
+  )
+  const handleOpenChange = (value: boolean) => {
+    setOpen(value)
+    props.onSizeChange?.()
+  }
+
+  return (
+    <Collapsible
+      open={open()}
+      onOpenChange={handleOpenChange}
+      variant="ghost"
+      class="tool-collapsible"
+      data-timeline-part-ids={props.parts.map((part) => part.id).join(",")}
+    >
+      <Collapsible.Trigger>
+        <div data-component="shell-tool-group-trigger" data-pending={pending() ? "true" : "false"}>
+          <span
+            data-slot="context-tool-group-title"
+            class="min-w-0 flex items-center gap-2 text-14-medium"
+          >
+            <span data-slot="context-tool-group-label" class="shrink-0 flex items-center gap-1.5">
+              <span data-slot="shell-tool-group-icon" aria-hidden="true">
+                <Icon name="console" size="small" />
+              </span>
+              <ToolStatusTitle
+                active={pending()}
+                activeText={i18n.t("ui.sessionTurn.status.runningCommands")}
+                doneText={i18n.t("ui.sessionTurn.status.ranShell")}
+                split={false}
+              />
+              <ToolGroupChevron />
+            </span>
+            <span
+              data-slot="context-tool-group-summary"
+              class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-normal text-text-base"
+            >
+              <AnimatedCountList
+                items={[
+                  {
+                    key: "shell",
+                    count: props.parts.length,
+                    one: i18n.t("ui.messagePart.shell.commands.one"),
+                    other: i18n.t("ui.messagePart.shell.commands.other"),
+                  },
+                ]}
+                fallback=""
+              />
+            </span>
+          </span>
+        </div>
+      </Collapsible.Trigger>
+      <Collapsible.Content>
+        <div data-component="context-tool-group-list">
+          <Index each={props.parts}>
+            {(partAccessor) => (
+              <GroupedToolListItem part={partAccessor()} trigger={(part) => shellToolTrigger(part, i18n)} />
+            )}
           </Index>
         </div>
       </Collapsible.Content>
