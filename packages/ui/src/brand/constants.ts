@@ -72,9 +72,9 @@ export const APP_IDS: Record<OrgnChannel, string> = {
 }
 
 export const APP_NAMES: Record<OrgnChannel, string> = {
-  dev: "CDE Agent",
-  beta: "orgn Beta",
-  prod: "orgn",
+  dev: "Orgn CDE Dev",
+  beta: "Orgn CDE Beta",
+  prod: "Orgn CDE",
 }
 
 export const ARTIFACT_NAME = "orgn-desktop-${os}-${arch}.${ext}" as const
