@@ -29,7 +29,6 @@ export const getSessionKey = (dir: string | undefined, id: string | undefined) =
 
 export const createSessionTabs = (input: TabsInput) => {
   const review = input.review ?? (() => false)
-  const hasReview = input.hasReview ?? (() => false)
   const contextOpen = createMemo(() => input.tabs().active() === "context" || input.tabs().all().includes("context"))
   const openedTabs = createMemo(
     () => {
@@ -59,7 +58,7 @@ export const createSessionTabs = (input: TabsInput) => {
     const first = openedTabs()[0]
     if (first) return first
     if (contextOpen()) return "context"
-    if (review() && hasReview()) return "review"
+    if (review()) return "repo-files"
     return "empty"
   })
   const activeFileTab = createMemo(() => {

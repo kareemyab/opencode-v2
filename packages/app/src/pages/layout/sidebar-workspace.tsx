@@ -17,7 +17,7 @@ import { type LocalProject } from "@/context/layout"
 import { useServerSync, useQueryOptions } from "@/context/server-sync"
 import { useLanguage } from "@/context/language"
 import { pathKey } from "@/utils/path-key"
-import { NewSessionItem, SessionItem, SessionSkeleton } from "./sidebar-items"
+import { NewSessionItem, SESSION_TREE_BASE, SessionItem, SessionSkeleton, SessionTreeGroup } from "./sidebar-items"
 import { sortedRootSessions } from "./helpers"
 import { useIsFetching } from "@tanstack/solid-query"
 
@@ -244,7 +244,7 @@ const WorkspaceSessionList = (props: {
   loadMore: () => Promise<void>
   language: ReturnType<typeof useLanguage>
 }): JSX.Element => (
-  <nav class="flex flex-col gap-1">
+  <nav role="tree" class="flex flex-col gap-1">
     <Show when={props.showNew()}>
       <NewSessionItem
         slug={props.slug()}
@@ -383,9 +383,10 @@ export const SortableWorkspace = (props: {
                 when={workspaceEditActive()}
                 fallback={
                   <Collapsible.Trigger
-                    class={`flex items-center justify-between w-full pl-2 py-1.5 rounded-md hover:bg-surface-raised-base-hover transition-[padding] duration-200 ${
+                    class={`flex items-center justify-between w-full py-1.5 rounded-md hover:bg-surface-raised-base-hover transition-[padding] duration-200 ${
                       menu.open ? "pr-16" : "pr-2"
                     } group-hover/workspace:pr-16 group-focus-within/workspace:pr-16`}
+                    style={{ "padding-left": `${SESSION_TREE_BASE}px` }}
                     data-action="workspace-toggle"
                     data-workspace={base64Encode(props.directory)}
                   >
@@ -394,9 +395,10 @@ export const SortableWorkspace = (props: {
                 }
               >
                 <div
-                  class={`flex items-center justify-between w-full pl-2 py-1.5 rounded-md transition-[padding] duration-200 ${
+                  class={`flex items-center justify-between w-full py-1.5 rounded-md transition-[padding] duration-200 ${
                     menu.open ? "pr-16" : "pr-2"
                   } group-hover/workspace:pr-16 group-focus-within/workspace:pr-16`}
+                  style={{ "padding-left": `${SESSION_TREE_BASE}px` }}
                 >
                   {header()}
                 </div>
@@ -425,17 +427,19 @@ export const SortableWorkspace = (props: {
         </div>
 
         <Collapsible.Content>
-          <WorkspaceSessionList
-            slug={slug}
-            mobile={props.mobile}
-            ctx={props.ctx}
-            showNew={showNew}
-            loading={loading}
-            sessions={sessions}
-            hasMore={hasMore}
-            loadMore={loadMore}
-            language={language}
-          />
+          <SessionTreeGroup>
+            <WorkspaceSessionList
+              slug={slug}
+              mobile={props.mobile}
+              ctx={props.ctx}
+              showNew={showNew}
+              loading={loading}
+              sessions={sessions}
+              hasMore={hasMore}
+              loadMore={loadMore}
+              language={language}
+            />
+          </SessionTreeGroup>
         </Collapsible.Content>
       </Collapsible>
     </div>

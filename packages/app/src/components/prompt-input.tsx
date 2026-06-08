@@ -293,6 +293,11 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   const imageAttachments = createMemo(() =>
     prompt.current().filter((part): part is ImageAttachmentPart => part.type === "image"),
   )
+  const imageSupported = createMemo(() => {
+    const model = local.model.current()
+    if (!model) return true
+    return !!model.capabilities.input.image
+  })
 
   const [store, setStore] = createStore<{
     popover: "at" | "slash" | null
@@ -1113,6 +1118,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     },
     addPart,
     readClipboardImage: platform.readClipboardImage,
+    imageSupported,
   })
 
   const fileAttachmentInput = () => (

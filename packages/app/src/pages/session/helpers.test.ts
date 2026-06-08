@@ -150,7 +150,6 @@ describe("createSessionTabs", () => {
         pathFromTab: () => undefined,
         normalizeTab: (tab) => tab,
         review: () => true,
-        hasReview: () => true,
       })
 
       expect(result.activeTab()).toBe("context")
@@ -169,10 +168,9 @@ describe("createSessionTabs", () => {
         pathFromTab: () => undefined,
         normalizeTab: (tab) => tab,
         review: () => true,
-        hasReview: () => true,
       })
 
-      expect(result.activeTab()).toBe("review")
+      expect(result.activeTab()).toBe("repo-files")
       expect(result.activeFileTab()).toBeUndefined()
       expect(result.closableTab()).toBeUndefined()
       dispose()
@@ -191,7 +189,6 @@ describe("createSessionTabs", () => {
         pathFromTab: () => undefined,
         normalizeTab: (tab) => tab,
         review: () => true,
-        hasReview: () => true,
       })
 
       expect(result.activeTab()).toBe("repo-files")
