@@ -14,7 +14,15 @@
  *   trials   → [...] | { data: [...] } | { trials: [...] }
  *   object   → {...} | { data: {...} }
  */
-import type { CloudProject, CloudSandboxStatus, CloudTask, CloudTaskPage, CloudTrial, Team } from "./edge-api-types"
+import type {
+  CloudProject,
+  CloudSandboxStatus,
+  CloudTask,
+  CloudTaskPage,
+  CloudTrial,
+  CreateTrialInput,
+  Team,
+} from "./edge-api-types"
 
 export type EdgeFetch = (req: {
   url: string
@@ -211,6 +219,17 @@ export function createEdgeClient(config: EdgeClientConfig) {
     trials: {
       async get(id: string, opts: EdgeRequestOpts): Promise<CloudTrial> {
         return asObject<CloudTrial>(await request(apiUrl, `/api/v1/trials/${id}`, { teamId: opts.teamId }))
+      },
+      /**
+       * Create a new worktree (Trial) under a project/task — the CDE Web "Launch CDE"
+       * create step. The real `git worktree add` happens later, server-side, when the
+       * sandbox is provisioned (deno-stealth clones + installs the GIT_ASKPASS shim);
+       * createTrial only inserts the durable trial row, so no git credentials are needed.
+       */
+      async create(input: CreateTrialInput, opts: EdgeRequestOpts): Promise<CloudTrial> {
+        return asObject<CloudTrial>(
+          await request(apiUrl, "/api/v1/trials", { method: "POST", teamId: opts.teamId, body: input }),
+        )
       },
       async sandboxStatus(id: string, opts: EdgeRequestOpts): Promise<CloudSandboxStatus> {
         return asObject<CloudSandboxStatus>(await request(apiUrl, `/api/v1/trials/${id}/sandbox/status`, { teamId: opts.teamId }))

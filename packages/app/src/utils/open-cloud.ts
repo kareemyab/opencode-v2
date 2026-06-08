@@ -40,6 +40,12 @@ export interface OpenCloudInput {
   descriptor: ActiveTrialDescriptor
   /** When true, skip client provisioning (the trial provisions itself). */
   skipProvision?: boolean
+  /**
+   * Seed the freshly-opened session's input with this text (e.g. the task title +
+   * description for a newly-created worktree). Delivered via the session route's
+   * `?prompt=` param, which the session page consumes once for a session with no id.
+   */
+  initialPrompt?: string
 }
 
 function sandboxOrigin(status: CloudSandboxStatus): string | undefined {
@@ -112,5 +118,6 @@ export async function openCloudTrial(deps: OpenCloudDeps, input: OpenCloudInput)
   // "could not reach Local Server". `navigate` comes from the router (above ServerKey), so it
   // stays valid across the remount.
   deps.connect(origin, workspacePath)
-  deps.navigate(`/${base64Encode(workspacePath)}/session`)
+  const promptQuery = input.initialPrompt?.trim() ? `?prompt=${encodeURIComponent(input.initialPrompt.trim())}` : ""
+  deps.navigate(`/${base64Encode(workspacePath)}/session${promptQuery}`)
 }

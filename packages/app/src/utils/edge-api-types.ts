@@ -48,6 +48,28 @@ export interface CloudTaskPage {
   readonly hasMore: boolean
 }
 
+/**
+ * Input to create a new cloud worktree (a Trial), mirroring deno-stealth's
+ * createTrialSchema (POST /api/v1/trials) and CDE Web's "Launch CDE" start-trial
+ * payload. Git auth during provisioning is handled entirely server-side by
+ * deno-stealth's GIT_ASKPASS shim (fetches a live credential from id-orgn
+ * /api/git/credentials per prompt, no token at rest), so the desktop sends NO
+ * GitHub token here.
+ */
+export interface CreateTrialInput {
+  readonly projectId: string
+  readonly title: string
+  readonly taskId?: string
+  readonly type?: "CODE" | "RESEARCH" | "ASK"
+  readonly chatMode?: string
+  readonly baseBranch?: string
+  readonly repoFullName?: string
+  readonly repoUrl?: string
+  /** Suggested git branch for the worktree; backend may normalize/dedupe it. */
+  readonly agentOSBranch?: string
+  readonly mainModel?: string
+}
+
 /** A Trial == a worktree (trial record + its sandbox + its git branch). */
 export interface CloudTrial {
   readonly id: string
