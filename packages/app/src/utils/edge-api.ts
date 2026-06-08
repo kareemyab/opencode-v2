@@ -3,9 +3,16 @@
  *
  * Auth: first-party desktop uses the id-orgn **access token as a Bearer JWT** plus
  * `X-Selected-Team-ID` (deno-stealth middleware/auth.ts accepts JWT/opaque tokens on
- * /api/v1). NOT an sk_ api-key. Two bases: `apiUrl` (/api/v1: projects/tasks/trials) and
- * `idUrl` (/api/user/*: teams). Cross-origin from Electron must be routed through a
- * main-process fetch (`fetchImpl`) to avoid renderer CORS.
+ * /api/v1). NOT an sk_ api-key. Two bases: `apiUrl` (deno-stealth Edge — /api/v1:
+ * projects/tasks/trials) and `idUrl` (id-orgn — /api/user/*: teams). Cross-origin from
+ * Electron must be routed through a main-process fetch (`fetchImpl`) to avoid renderer CORS.
+ *
+ * Response shapes vary per endpoint (matching vscode-cde's parsers):
+ *   teams    → { teams: [...] }
+ *   projects → [...] | { data: [...] }
+ *   tasks    → [...] | { data: [...], meta: { cursor, hasMore } }
+ *   trials   → [...] | { data: [...] } | { trials: [...] }
+ *   object   → {...} | { data: {...} }
  */
 import type { CloudProject, CloudSandboxStatus, CloudTask, CloudTaskPage, CloudTrial, Team } from "./edge-api-types"
 
@@ -17,8 +24,8 @@ export type EdgeFetch = (req: {
 }) => Promise<{ ok: boolean; status: number; statusText: string; headers: Record<string, string>; body: string }>
 
 export interface EdgeClientConfig {
-  apiUrl: string // e.g. https://api.orgn.com
-  idUrl: string // e.g. https://id.orgn.com
+  apiUrl: string // deno-stealth Edge, e.g. https://api.orgn.com
+  idUrl: string // id-orgn, e.g. https://id.orgn.com
   getToken: (opts?: { force?: boolean }) => Promise<string | undefined>
   fetchImpl: EdgeFetch
 }
@@ -42,20 +49,39 @@ const RETRYABLE = new Set([408, 425, 429, 500, 502, 503, 504])
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 const trimUrl = (raw: string) => raw.trim().replace(/\/+$/, "")
 
-function unwrap<T>(raw: unknown): T {
-  if (raw && typeof raw === "object" && "success" in (raw as Record<string, unknown>)) {
-    const env = raw as { success: boolean; data?: unknown; error?: { code?: string; message?: string } }
-    if (env.success) return env.data as T
-    throw new EdgeApiError(env.error?.code ?? "error", env.error?.message ?? "Edge API error", 200)
+type Json = unknown
+
+/** Extract an array from a response: bare array, `{ <key>: [...] }`, `{ data: [...] }`, or `{ data: { <key>: [...] } }`. */
+function asArray<T>(body: Json, key?: string): T[] {
+  if (Array.isArray(body)) return body as T[]
+  if (body && typeof body === "object") {
+    const o = body as Record<string, unknown>
+    if (key && Array.isArray(o[key])) return o[key] as T[]
+    if (Array.isArray(o.data)) return o.data as T[]
+    if (o.data && typeof o.data === "object") {
+      const d = o.data as Record<string, unknown>
+      if (key && Array.isArray(d[key])) return d[key] as T[]
+    }
   }
-  return raw as T // bare payload (some endpoints return arrays directly)
+  return []
+}
+
+/** Extract an object from a response: bare object or `{ data: {...} }`. */
+function asObject<T>(body: Json): T {
+  if (body && typeof body === "object" && "data" in (body as Record<string, unknown>)) {
+    const d = (body as Record<string, unknown>).data
+    if (d && typeof d === "object") return d as T
+  }
+  return body as T
 }
 
 export function createEdgeClient(config: EdgeClientConfig) {
   const apiUrl = trimUrl(config.apiUrl)
   const idUrl = trimUrl(config.idUrl)
 
-  async function request<T>(
+  // Returns parsed JSON on success (caller extracts the shape); throws EdgeApiError on
+  // transport/HTTP/envelope failure. Retries idempotent transient errors; one forced re-auth.
+  async function request(
     base: string,
     path: string,
     opts: {
@@ -64,7 +90,7 @@ export function createEdgeClient(config: EdgeClientConfig) {
       body?: unknown
       teamId?: string
     } = {},
-  ): Promise<T> {
+  ): Promise<Json> {
     const url = new URL(base + path)
     if (opts.query) {
       for (const [k, v] of Object.entries(opts.query)) if (v !== undefined && v !== null) url.searchParams.set(k, String(v))
@@ -90,12 +116,10 @@ export function createEdgeClient(config: EdgeClientConfig) {
           body: "",
         }))
 
-      // Network error → retryable.
       if (res.status === 0 && attempt < 3) {
         await delay(1500 * (attempt + 1))
         continue
       }
-      // One forced re-auth attempt (force-refresh the token, not just re-send it).
       if (res.status === 401 && attempt === 0) {
         force = true
         continue
@@ -108,15 +132,23 @@ export function createEdgeClient(config: EdgeClientConfig) {
         let code = String(res.status)
         let message = res.statusText || "Edge API error"
         try {
-          const j = JSON.parse(res.body) as { error?: { code?: string; message?: string } }
+          const j = JSON.parse(res.body) as { error?: { code?: string; message?: string }; message?: string }
           if (j?.error?.code) code = j.error.code
           if (j?.error?.message) message = j.error.message
+          else if (typeof j?.message === "string") message = j.message
         } catch {
           /* non-JSON error body */
         }
         throw new EdgeApiError(code, message, res.status)
       }
-      return unwrap<T>(res.body ? JSON.parse(res.body) : null)
+
+      const parsed: Json = res.body ? JSON.parse(res.body) : null
+      // Explicit failure envelope on a 2xx.
+      if (parsed && typeof parsed === "object" && (parsed as Record<string, unknown>).success === false) {
+        const err = (parsed as { error?: { code?: string; message?: string } }).error
+        throw new EdgeApiError(err?.code ?? "error", err?.message ?? "Edge API error", res.status)
+      }
+      return parsed
     }
     throw new EdgeApiError("network", "Edge API request failed", 0)
   }
@@ -124,54 +156,57 @@ export function createEdgeClient(config: EdgeClientConfig) {
   return {
     request,
     teams: {
-      list(): Promise<Team[]> {
-        // id-orgn base, no team header.
-        return request<Team[]>(idUrl, "/api/user/teams")
+      async list(): Promise<Team[]> {
+        return asArray<Team>(await request(idUrl, "/api/user/teams"), "teams")
       },
     },
     projects: {
-      list(teamId: string): Promise<CloudProject[]> {
-        return request<CloudProject[]>(apiUrl, "/api/v1/projects", {
-          teamId,
-          query: { teamId, archived: false, deleted: false },
-        })
+      async list(teamId: string): Promise<CloudProject[]> {
+        return asArray<CloudProject>(
+          await request(apiUrl, "/api/v1/projects", { teamId, query: { teamId, archived: false, deleted: false } }),
+          "projects",
+        )
       },
-      get(id: string, opts: EdgeRequestOpts): Promise<CloudProject> {
-        return request<CloudProject>(apiUrl, `/api/v1/projects/${id}`, { teamId: opts.teamId })
+      async get(id: string, opts: EdgeRequestOpts): Promise<CloudProject> {
+        return asObject<CloudProject>(await request(apiUrl, `/api/v1/projects/${id}`, { teamId: opts.teamId }))
       },
     },
     tasks: {
-      list(
+      async list(
         projectId: string,
         opts: EdgeRequestOpts & { limit?: number; cursor?: string; status?: string },
       ): Promise<CloudTaskPage> {
-        return request<CloudTaskPage>(apiUrl, "/api/v1/tasks", {
+        const body = (await request(apiUrl, "/api/v1/tasks", {
           teamId: opts.teamId,
           query: { projectId, limit: opts.limit ?? 100, cursor: opts.cursor, status: opts.status },
-        })
+        })) as Record<string, unknown> | unknown[]
+        const meta = (!Array.isArray(body) ? (body?.meta as { cursor?: string; hasMore?: boolean }) : undefined) ?? {}
+        return {
+          tasks: asArray<CloudTask>(body, "tasks"),
+          cursor: meta.cursor ?? (!Array.isArray(body) ? (body?.cursor as string | undefined) : undefined),
+          hasMore: meta.hasMore ?? (!Array.isArray(body) ? Boolean(body?.hasMore) : false),
+        }
       },
-      trials(taskId: string, opts: EdgeRequestOpts): Promise<CloudTrial[]> {
-        return request<CloudTrial[]>(apiUrl, `/api/v1/tasks/${taskId}/trials`, { teamId: opts.teamId })
+      async trials(taskId: string, opts: EdgeRequestOpts): Promise<CloudTrial[]> {
+        return asArray<CloudTrial>(await request(apiUrl, `/api/v1/tasks/${taskId}/trials`, { teamId: opts.teamId }), "trials")
       },
     },
     trials: {
-      get(id: string, opts: EdgeRequestOpts): Promise<CloudTrial> {
-        return request<CloudTrial>(apiUrl, `/api/v1/trials/${id}`, { teamId: opts.teamId })
+      async get(id: string, opts: EdgeRequestOpts): Promise<CloudTrial> {
+        return asObject<CloudTrial>(await request(apiUrl, `/api/v1/trials/${id}`, { teamId: opts.teamId }))
       },
-      sandboxStatus(id: string, opts: EdgeRequestOpts): Promise<CloudSandboxStatus> {
-        return request<CloudSandboxStatus>(apiUrl, `/api/v1/trials/${id}/sandbox/status`, { teamId: opts.teamId })
+      async sandboxStatus(id: string, opts: EdgeRequestOpts): Promise<CloudSandboxStatus> {
+        return asObject<CloudSandboxStatus>(await request(apiUrl, `/api/v1/trials/${id}/sandbox/status`, { teamId: opts.teamId }))
       },
-      provisionSandbox(id: string, opts: EdgeRequestOpts): Promise<CloudSandboxStatus> {
-        return request<CloudSandboxStatus>(apiUrl, `/api/v1/trials/${id}/provision-sandbox`, {
-          method: "POST",
-          teamId: opts.teamId,
-        })
+      async provisionSandbox(id: string, opts: EdgeRequestOpts): Promise<CloudSandboxStatus> {
+        return asObject<CloudSandboxStatus>(
+          await request(apiUrl, `/api/v1/trials/${id}/provision-sandbox`, { method: "POST", teamId: opts.teamId }),
+        )
       },
-      startSandbox(id: string, opts: EdgeRequestOpts): Promise<CloudSandboxStatus> {
-        return request<CloudSandboxStatus>(apiUrl, `/api/v1/trials/${id}/sandbox/start`, {
-          method: "POST",
-          teamId: opts.teamId,
-        })
+      async startSandbox(id: string, opts: EdgeRequestOpts): Promise<CloudSandboxStatus> {
+        return asObject<CloudSandboxStatus>(
+          await request(apiUrl, `/api/v1/trials/${id}/sandbox/start`, { method: "POST", teamId: opts.teamId }),
+        )
       },
     },
   }

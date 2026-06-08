@@ -118,6 +118,14 @@ export function DialogCloudProjects() {
         </div>
 
         <div class="max-h-[50vh] min-h-[180px] overflow-y-auto px-1 pb-2">
+          <Show
+            when={team.activeTeamId()}
+            fallback={
+              <div class="px-3 py-6 text-14-mono text-text-weak">
+                {team.loading() ? "Loading teams…" : "No team available — sign in or check your connection."}
+              </div>
+            }
+          >
           <Switch>
             {/* Projects */}
             <Match when={level() === "projects"}>
@@ -193,6 +201,7 @@ export function DialogCloudProjects() {
               </CloudList>
             </Match>
           </Switch>
+          </Show>
         </div>
       </Show>
     </Dialog>
