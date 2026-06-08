@@ -326,6 +326,11 @@ jobs:
         working-directory: packages/desktop
         env:
           OPENCODE_CHANNEL: ${{ (github.ref_name == 'beta' && 'beta') || 'prod' }}
+          # Optional per-environment override for the id-orgn view-gate. Defaults are hardcoded
+          # in packages/app/vite.js (id.orgn.com + public PKCE client); set these repo vars only
+          # to point a build at a different IdP / public client. Gate activates on prod (desktop).
+          ID_ORGN_URL: ${{ vars.ID_ORGN_URL }}
+          ID_ORGN_DESKTOP_CLIENT_ID: ${{ vars.ID_ORGN_DESKTOP_CLIENT_ID }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ vars.WEB_SENTRY_PROJECT }}

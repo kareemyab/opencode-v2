@@ -30,8 +30,10 @@ export const { use: useAuth, provider: AuthProvider } = createSimpleContext({
     let pending: { state: string; codeVerifier: string } | undefined
 
     const config: DesktopAuthConfig = {
-      idOrgnUrl: import.meta.env.VITE_ID_ORGN_URL ?? "",
-      clientId: import.meta.env.VITE_ID_ORGN_CLIENT_ID ?? "",
+      // Hardcoded prod defaults for the Orgn CDE desktop app (env override kept for
+      // local/dev). The OAuth client is the id-orgn "opencode (web)" client.
+      idOrgnUrl: import.meta.env.VITE_ID_ORGN_URL ?? "https://id.orgn.com",
+      clientId: import.meta.env.VITE_ID_ORGN_CLIENT_ID ?? "vU3lIIaieXkg4dzpd6GVee76CsDNHFRD",
       redirectUri: "opencode://auth-callback",
     }
 
