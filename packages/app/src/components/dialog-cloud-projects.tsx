@@ -56,6 +56,7 @@ export function DialogCloudProjects() {
           connect: (origin) => server.add({ type: "http", http: { url: origin } }),
           navigate: (path) => navigate(path, { replace: true }),
           setActiveTrial: (d) => team.setActiveTrial(d),
+          beforeConnect: () => dialog.close(),
           probe: platform.apiFetch
             ? async (origin) => {
                 const res = await platform.apiFetch!({ url: origin, method: "GET" }).catch(() => null)
@@ -79,7 +80,7 @@ export function DialogCloudProjects() {
           },
         },
       )
-      dialog.close()
+      // dialog already closed via beforeConnect (before the route/server mutation).
     } catch (e) {
       showToast({
         variant: "error",

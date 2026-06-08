@@ -77,29 +77,44 @@ export const { use: useAuth, provider: AuthProvider } = createSimpleContext({
       if (next) setUser(next)
     }
 
-    // Returns a valid access token for Edge API calls, refreshing proactively when within
-    // 60s of expiry (or on demand). Returns undefined when not signed in.
-    const getAccessToken = async (): Promise<string | undefined> => {
+    // Returns a valid access token for Edge API calls. Refreshes proactively within 60s of
+    // expiry, or on demand (opts.force, e.g. after a 401). Concurrent callers share a single
+    // in-flight refresh (avoids invalidating a rotating refresh token). Returns undefined
+    // when signed out, or after a failed refresh of an already-expired token (needs re-auth).
+    let refreshing: Promise<string | undefined> | undefined
+    const getAccessToken = async (opts?: { force?: boolean }): Promise<string | undefined> => {
       const current = tokens()
       if (!current) return undefined
-      if (current.refreshToken && Date.now() >= current.expiresAt - 60_000) {
-        try {
-          const next = await refreshTokens(config(), current.refreshToken)
-          const merged: StoredTokens = {
-            accessToken: next.accessToken,
-            idToken: next.idToken || current.idToken,
-            refreshToken: next.refreshToken ?? current.refreshToken,
-            expiresAt: Date.now() + next.expiresIn * 1000,
+      const nearExpiry = Date.now() >= current.expiresAt - 60_000
+      if (!current.refreshToken || (!opts?.force && !nearExpiry)) return current.accessToken
+      if (!refreshing) {
+        const refreshToken = current.refreshToken
+        const wasExpired = Date.now() >= current.expiresAt
+        refreshing = (async () => {
+          try {
+            const next = await refreshTokens(config(), refreshToken)
+            const merged: StoredTokens = {
+              accessToken: next.accessToken,
+              idToken: next.idToken || current.idToken,
+              refreshToken: next.refreshToken ?? refreshToken,
+              expiresAt: Date.now() + next.expiresIn * 1000,
+            }
+            setTokens(merged)
+            const u = userFromIdToken(merged.idToken)
+            if (u) setUser(u)
+            return merged.accessToken
+          } catch {
+            if (wasExpired) {
+              setTokens(null) // surface needs-reauth rather than loop on a dead token
+              return undefined
+            }
+            return current.accessToken
+          } finally {
+            refreshing = undefined
           }
-          setTokens(merged)
-          const u = userFromIdToken(merged.idToken)
-          if (u) setUser(u)
-          return merged.accessToken
-        } catch {
-          return current.accessToken // best effort; the Edge client retries on 401
-        }
+        })()
       }
-      return current.accessToken
+      return refreshing
     }
 
     onMount(() => {

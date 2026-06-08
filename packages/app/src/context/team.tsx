@@ -1,5 +1,5 @@
 import { createSimpleContext } from "@opencode-ai/ui/context"
-import { createMemo, createResource } from "solid-js"
+import { createEffect, createMemo, createResource } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useAuth } from "./auth"
 import { useEdgeApi } from "./edge-api"
@@ -18,7 +18,7 @@ export const { use: useTeam, provider: TeamProvider } = createSimpleContext({
     const auth = useAuth()
     const edge = useEdgeApi()
 
-    const [selected, setSelected] = persisted(
+    const [selected, setSelected, , selectedReady] = persisted(
       Persist.global("selectedTeamId"),
       createStore<{ id: string | null }>({ id: null }),
     )
@@ -40,6 +40,16 @@ export const { use: useTeam, provider: TeamProvider } = createSimpleContext({
       return pinned?.id ?? list[0]?.id
     })
     const activeTeam = createMemo(() => teams().find((t) => t.id === activeTeamId()))
+
+    // Make the first-team fallback sticky once persistence has hydrated, so the active team
+    // is deterministic across reloads/refetches (and not silently re-keyed by team order).
+    createEffect(() => {
+      if (!selectedReady()) return
+      const list = teams()
+      if (list.length === 0) return
+      if (selected.id && list.some((t) => t.id === selected.id)) return
+      if (!activeTrialStore.value) setSelected("id", list[0].id)
+    })
 
     return {
       teams,

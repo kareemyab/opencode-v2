@@ -10,8 +10,10 @@ import type { ActiveTrialDescriptor, CloudSandboxStatus } from "./edge-api-types
 
 const DEFAULT_WORKSPACE_PATH = "/home/daytona/project"
 const READY_STATUSES = new Set(["running", "active", "started"])
+const TERMINAL_STATUSES = new Set(["failed", "error", "deleted", "terminated", "destroyed"])
 const POLL_INTERVAL_MS = 2000
 const POLL_ATTEMPTS = 60 // ~2 min
+const MAX_STATUS_ERRORS = 5
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
 export interface OpenCloudDeps {
@@ -22,6 +24,8 @@ export interface OpenCloudDeps {
   connect: (origin: string) => void
   navigate: (path: string) => void
   setActiveTrial: (descriptor: ActiveTrialDescriptor) => void
+  /** Called immediately before the route/server mutation (e.g. close the dialog). */
+  beforeConnect?: () => void
   /** Optional main-process liveness probe (no CORS): resolves true when the origin answers. */
   probe?: (origin: string) => Promise<boolean>
   onProgress?: (message: string) => void
@@ -61,14 +65,25 @@ export async function openCloudTrial(deps: OpenCloudDeps, input: OpenCloudInput)
       : await deps.provision(trialId).catch(() => status)
   }
 
+  let statusErrors = 0
   for (let attempt = 0; attempt < POLL_ATTEMPTS && !isReady(status); attempt++) {
+    const terminal = status.sandboxStatus?.toLowerCase()
+    if (terminal && TERMINAL_STATUSES.has(terminal)) throw new Error(`Sandbox ${terminal}`)
     await delay(POLL_INTERVAL_MS)
     progress(`Provisioning sandbox… (${attempt + 1})`)
-    status = await deps.status(trialId).catch(() => status)
+    try {
+      status = await deps.status(trialId)
+      statusErrors = 0
+    } catch (e) {
+      if (++statusErrors >= MAX_STATUS_ERRORS) throw e instanceof Error ? e : new Error("Sandbox status failed")
+    }
   }
 
   const origin = sandboxOrigin(status)
-  if (!origin) throw new Error("Sandbox did not become ready in time")
+  if (!origin) {
+    const running = status.sandboxStatus ? READY_STATUSES.has(status.sandboxStatus.toLowerCase()) : false
+    throw new Error(running ? "Sandbox is running but exposed no OpenCode URL" : "Sandbox did not become ready in time")
+  }
 
   // Best-effort: wait for the opencode HTTP server to answer (main-process probe; no CORS).
   if (deps.probe) {
@@ -82,6 +97,10 @@ export async function openCloudTrial(deps: OpenCloudDeps, input: OpenCloudInput)
   const workspacePath = status.workspacePath?.startsWith("/") ? status.workspacePath : DEFAULT_WORKSPACE_PATH
 
   deps.setActiveTrial({ ...descriptor, csbID: status.csbID ?? descriptor.csbID, workspacePath })
+
+  // Tear down any owner-scoped UI (e.g. the dialog) BEFORE the route/server mutation: the
+  // connect below flips the keyed <ServerKey>, disposing the owner the caller ran under.
+  deps.beforeConnect?.()
 
   // Navigate first so the route is replaced before the active-server change remounts the
   // server-scoped subtree (ServerKey is keyed), then pin the sandbox (desktop connects direct).

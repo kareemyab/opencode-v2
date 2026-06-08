@@ -32,7 +32,7 @@ export const { use: useEdgeApi, provider: EdgeAPIProvider } = createSimpleContex
     return createEdgeClient({
       apiUrl,
       idUrl,
-      getToken: () => auth.getAccessToken(),
+      getToken: (opts) => auth.getAccessToken(opts),
       fetchImpl,
     })
   },

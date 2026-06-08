@@ -19,7 +19,7 @@ export type EdgeFetch = (req: {
 export interface EdgeClientConfig {
   apiUrl: string // e.g. https://api.orgn.com
   idUrl: string // e.g. https://id.orgn.com
-  getToken: () => Promise<string | undefined>
+  getToken: (opts?: { force?: boolean }) => Promise<string | undefined>
   fetchImpl: EdgeFetch
 }
 
@@ -71,22 +71,35 @@ export function createEdgeClient(config: EdgeClientConfig) {
     }
     const bodyStr = opts.body !== undefined ? JSON.stringify(opts.body) : undefined
 
+    let force = false
     for (let attempt = 0; attempt < 4; attempt++) {
-      const token = await config.getToken()
+      const token = await config.getToken({ force })
+      force = false
       const headers: Record<string, string> = { Accept: "application/json" }
       if (token) headers["Authorization"] = `Bearer ${token}`
       if (opts.teamId) headers["X-Selected-Team-ID"] = opts.teamId
       if (bodyStr !== undefined) headers["Content-Type"] = "application/json"
 
-      const res = await config.fetchImpl({
-        url: url.toString(),
-        method: opts.method ?? "GET",
-        headers,
-        body: bodyStr,
-      })
+      const res = await config
+        .fetchImpl({ url: url.toString(), method: opts.method ?? "GET", headers, body: bodyStr })
+        .catch((e: unknown) => ({
+          ok: false,
+          status: 0,
+          statusText: e instanceof Error ? e.message : "network error",
+          headers: {} as Record<string, string>,
+          body: "",
+        }))
 
-      // One reactive re-auth attempt (getToken may refresh a near-expiry token).
-      if (res.status === 401 && attempt === 0) continue
+      // Network error → retryable.
+      if (res.status === 0 && attempt < 3) {
+        await delay(1500 * (attempt + 1))
+        continue
+      }
+      // One forced re-auth attempt (force-refresh the token, not just re-send it).
+      if (res.status === 401 && attempt === 0) {
+        force = true
+        continue
+      }
       if (!res.ok) {
         if (RETRYABLE.has(res.status) && attempt < 3) {
           await delay(1500 * (attempt + 1))

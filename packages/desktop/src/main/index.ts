@@ -206,12 +206,16 @@ const main = Effect.gen(function* () {
     // Cross-origin fetch from the main process — no renderer CORS. Used by the Edge API
     // client and the cloud sandbox SDK (api.orgn.com / *.proxy.daytona.orgn.com).
     apiFetch: async (req) => {
-      const res = await fetch(req.url, { method: req.method, headers: req.headers, body: req.body })
-      const headers: Record<string, string> = {}
-      res.headers.forEach((value, key) => {
-        headers[key] = value
-      })
-      return { ok: res.ok, status: res.status, statusText: res.statusText, headers, body: await res.text() }
+      try {
+        const res = await fetch(req.url, { method: req.method, headers: req.headers, body: req.body })
+        const headers: Record<string, string> = {}
+        res.headers.forEach((value, key) => {
+          headers[key] = value
+        })
+        return { ok: res.ok, status: res.status, statusText: res.statusText, headers, body: await res.text() }
+      } catch (e) {
+        return { ok: false, status: 0, statusText: e instanceof Error ? e.message : "network error", headers: {}, body: "" }
+      }
     },
     awaitInitialization: Effect.fnUntraced(
       function* () {
