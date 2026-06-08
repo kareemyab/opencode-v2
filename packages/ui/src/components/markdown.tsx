@@ -1,4 +1,5 @@
 import { useMarked } from "../context/marked"
+import { useDialog } from "../context/dialog"
 import { useI18n } from "../context/i18n"
 import DOMPurify from "dompurify"
 import morphdom from "morphdom"
@@ -7,6 +8,14 @@ import { ComponentProps, createEffect, createResource, createSignal, onCleanup, 
 import { isServer } from "solid-js/web"
 import { normalizeMermaidSource } from "./markdown-mermaid"
 import { sanitizeMermaidSVG } from "./markdown-mermaid-svg"
+import {
+  applyMermaidTransform,
+  ensureMermaidToolbar,
+  setupMermaidViewer,
+  wrapMermaidSVG,
+  type MermaidViewerLabels,
+} from "./markdown-mermaid-viewer"
+import { MermaidPreview } from "./mermaid-preview"
 import { MERMAID_THEME_CONFIG } from "../theme/mermaid-theme"
 import { hasOpenTrailingFence, stream } from "./markdown-stream"
 
@@ -18,7 +27,7 @@ type Entry = {
 const max = 200
 const cache = new Map<string, Entry>()
 const mermaidCache = new Map<string, string>()
-const MERMAID_RENDER_CACHE_VERSION = "v2"
+const MERMAID_RENDER_CACHE_VERSION = "v3"
 let mermaidID = 0
 let mermaidPromise: Promise<typeof import("mermaid").default> | undefined
 
@@ -96,7 +105,7 @@ async function renderMermaidDiagrams(html: string) {
       const rendered = await mermaid.render(`markdown-mermaid-${++mermaidID}`, normalizeMermaidSource(source))
       const svg = sanitizeMermaidSVG(rendered.svg)
       if (!svg) continue
-      diagram.replaceChildren(svg, mermaidSource(source))
+      diagram.replaceChildren(wrapMermaidSVG(svg), mermaidSource(source))
       diagram.dataset.state = "rendered"
       if (sourceKey) mermaidCache.set(sourceKey, diagram.innerHTML)
     } catch {
@@ -209,18 +218,25 @@ function ensureCodeWrapper(block: HTMLPreElement, labels: CopyLabels) {
 
 function ensureMermaidCopyButton(block: HTMLDivElement, labels: CopyLabels) {
   if (!block.querySelector('[data-slot="markdown-mermaid-source"]')) return
-  const buttons = Array.from(block.querySelectorAll('[data-slot="markdown-copy-button"]')).filter(
+  const host = block.querySelector('[data-slot="markdown-mermaid-toolbar"]') ?? block
+  const buttons = Array.from(host.querySelectorAll('[data-slot="markdown-copy-button"]')).filter(
     (el): el is HTMLButtonElement => el instanceof HTMLButtonElement,
   )
 
   if (buttons.length === 0) {
-    block.appendChild(createCopyButton(labels))
+    host.appendChild(createCopyButton(labels))
     return
   }
 
   for (const button of buttons.slice(1)) {
     button.remove()
   }
+}
+
+function ensureMermaidControls(block: HTMLDivElement, labels: CopyLabels, viewerLabels: MermaidViewerLabels) {
+  if (block.dataset.state !== "rendered") return
+  ensureMermaidToolbar(block, viewerLabels)
+  ensureMermaidCopyButton(block, labels)
 }
 
 function markCodeLinks(root: HTMLDivElement) {
@@ -252,7 +268,7 @@ function markCodeLinks(root: HTMLDivElement) {
   }
 }
 
-function decorate(root: HTMLDivElement, labels: CopyLabels) {
+function decorate(root: HTMLDivElement, labels: CopyLabels, viewerLabels: MermaidViewerLabels) {
   const blocks = Array.from(root.querySelectorAll("pre"))
   for (const block of blocks) {
     ensureCodeWrapper(block, labels)
@@ -261,7 +277,7 @@ function decorate(root: HTMLDivElement, labels: CopyLabels) {
     (el): el is HTMLDivElement => el instanceof HTMLDivElement,
   )
   for (const block of mermaidBlocks) {
-    ensureMermaidCopyButton(block, labels)
+    ensureMermaidControls(block, labels, viewerLabels)
   }
   markCodeLinks(root)
 }
@@ -335,6 +351,7 @@ export function Markdown(
 ) {
   const [local, others] = splitProps(props, ["text", "cacheKey", "streaming", "class", "classList"])
   const marked = useMarked()
+  const dialog = useDialog()
   const i18n = useI18n()
   const [root, setRoot] = createSignal<HTMLDivElement>()
   const [html] = createResource(
@@ -376,6 +393,21 @@ export function Markdown(
   )
 
   let copyCleanup: (() => void) | undefined
+  let mermaidCleanup: (() => void) | undefined
+
+  const getCopyLabels = () => ({
+    copy: i18n.t("ui.message.copy"),
+    copied: i18n.t("ui.message.copied"),
+  })
+
+  const getMermaidLabels = (): MermaidViewerLabels => ({
+    zoomIn: i18n.t("ui.mermaidPreview.zoomIn"),
+    zoomOut: i18n.t("ui.mermaidPreview.zoomOut"),
+    reset: i18n.t("ui.mermaidPreview.reset"),
+    expand: i18n.t("ui.mermaidPreview.expand"),
+    copy: i18n.t("ui.message.copy"),
+    copied: i18n.t("ui.message.copied"),
+  })
 
   createEffect(() => {
     const container = root()
@@ -388,13 +420,11 @@ export function Markdown(
       return
     }
 
-    const labels = {
-      copy: i18n.t("ui.message.copy"),
-      copied: i18n.t("ui.message.copied"),
-    }
+    const labels = getCopyLabels()
+    const viewerLabels = getMermaidLabels()
     const temp = document.createElement("div")
     temp.innerHTML = content
-    decorate(temp, labels)
+    decorate(temp, labels, viewerLabels)
 
     morphdom(container, temp, {
       childrenOnly: true,
@@ -408,20 +438,33 @@ export function Markdown(
         ) {
           setCopyState(toEl, labels, true)
         }
+        if (
+          fromEl instanceof HTMLDivElement &&
+          toEl instanceof HTMLDivElement &&
+          fromEl.getAttribute("data-component") === "markdown-mermaid" &&
+          toEl.getAttribute("data-component") === "markdown-mermaid" &&
+          (fromEl.dataset.zoom || fromEl.dataset.panX || fromEl.dataset.panY)
+        ) {
+          if (fromEl.dataset.zoom) toEl.dataset.zoom = fromEl.dataset.zoom
+          if (fromEl.dataset.panX) toEl.dataset.panX = fromEl.dataset.panX
+          if (fromEl.dataset.panY) toEl.dataset.panY = fromEl.dataset.panY
+          applyMermaidTransform(toEl, fromEl.dataset.dragging === "true")
+        }
         if (fromEl.isEqualNode(toEl)) return false
         return true
       },
     })
 
-    if (!copyCleanup)
-      copyCleanup = setupCodeCopy(container, () => ({
-        copy: i18n.t("ui.message.copy"),
-        copied: i18n.t("ui.message.copied"),
-      }))
+    if (!copyCleanup) copyCleanup = setupCodeCopy(container, getCopyLabels)
+    if (!mermaidCleanup)
+      mermaidCleanup = setupMermaidViewer(container, {
+        onExpand: (svgHtml) => dialog.show(() => <MermaidPreview svgHtml={svgHtml} />),
+      })
   })
 
   onCleanup(() => {
     if (copyCleanup) copyCleanup()
+    if (mermaidCleanup) mermaidCleanup()
   })
 
   return (

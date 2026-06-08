@@ -1,8 +1,5 @@
 @layer theme, base, components, utilities;
 
-@import "./fonts.css";
-@import "./design-system/index.css";
-
 @import "./colors.css" layer(theme);
 @import "./theme.css" layer(theme);
 
@@ -31,6 +28,7 @@
 @import "../components/icon.css" layer(components);
 @import "../components/icon-button.css" layer(components);
 @import "../components/image-preview.css" layer(components);
+@import "../components/mermaid-preview.css" layer(components);
 @import "../components/keybind.css" layer(components);
 @import "../components/text-field.css" layer(components);
 @import "../components/inline-input.css" layer(components);
