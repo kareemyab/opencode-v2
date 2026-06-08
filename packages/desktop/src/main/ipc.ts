@@ -3,7 +3,15 @@ import { BrowserWindow, Notification, app, clipboard, dialog, ipcMain, shell } f
 import type { IpcMainEvent, IpcMainInvokeEvent } from "electron"
 import type { DesktopMenuAction } from "@opencode-ai/app/desktop-menu"
 
-import type { FatalRendererError, ServerReadyData, TitlebarTheme, WindowConfig, WslConfig } from "../preload/types"
+import type {
+  ApiFetchRequest,
+  ApiFetchResponse,
+  FatalRendererError,
+  ServerReadyData,
+  TitlebarTheme,
+  WindowConfig,
+  WslConfig,
+} from "../preload/types"
 import { runDesktopMenuAction } from "./desktop-menu-actions"
 import { getStore } from "./store"
 import { getPinchZoomEnabled, setPinchZoomEnabled, setTitlebar, updateTitlebar } from "./windows"
@@ -15,6 +23,7 @@ const pickerFilters = (ext?: string[]) => {
 
 type Deps = {
   killSidecar: () => Promise<void> | void
+  apiFetch: (req: ApiFetchRequest) => Promise<ApiFetchResponse>
   awaitInitialization: () => Promise<ServerReadyData>
   getWindowConfig: () => Promise<WindowConfig> | WindowConfig
   consumeInitialDeepLinks: () => Promise<string[]> | string[]
@@ -38,6 +47,7 @@ type Deps = {
 
 export function registerIpcHandlers(deps: Deps) {
   ipcMain.handle("kill-sidecar", () => deps.killSidecar())
+  ipcMain.handle("api-fetch", (_event: IpcMainInvokeEvent, req: ApiFetchRequest) => deps.apiFetch(req))
   ipcMain.handle("await-initialization", () => deps.awaitInitialization())
   ipcMain.handle("get-window-config", () => deps.getWindowConfig())
   ipcMain.handle("consume-initial-deep-links", () => deps.consumeInitialDeepLinks())

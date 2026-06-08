@@ -28,6 +28,9 @@ import {
 } from "solid-js"
 import { Dynamic } from "solid-js/web"
 import { AuthProvider } from "@/context/auth"
+import { EdgeAPIProvider } from "@/context/edge-api"
+import { TeamProvider } from "@/context/team"
+import { CloudProvider } from "@/context/cloud"
 import { AuthGate } from "@/components/auth-gate"
 import { CommandProvider } from "@/context/command"
 import { CommentsProvider } from "@/context/comments"
@@ -320,6 +323,9 @@ export function AppInterface(props: {
       servers={props.servers}
     >
       <GlobalProvider>
+        <EdgeAPIProvider>
+        <TeamProvider>
+        <CloudProvider>
         <AuthGate>
         <ConnectionGate disableHealthCheck={props.disableHealthCheck}>
           <Dynamic
@@ -347,6 +353,9 @@ export function AppInterface(props: {
           </Dynamic>
         </ConnectionGate>
         </AuthGate>
+        </CloudProvider>
+        </TeamProvider>
+        </EdgeAPIProvider>
       </GlobalProvider>
     </ServerProvider>
     </AuthProvider>

@@ -1,7 +1,9 @@
 import { createSimpleContext } from "@opencode-ai/ui/context"
 import { makeEventListener } from "@solid-primitives/event-listener"
-import { createSignal, onMount } from "solid-js"
+import { createEffect, createSignal, onMount } from "solid-js"
+import { createStore } from "solid-js/store"
 import { usePlatform } from "./platform"
+import { Persist, persisted } from "@/utils/persist"
 import { collectAuthCallbackDeepLinks, deepLinkEvent } from "@/pages/layout/deep-links"
 import {
   buildAuthorizeUrl,
@@ -9,13 +11,17 @@ import {
   generateCodeChallenge,
   generateCodeVerifier,
   generateState,
+  refreshTokens,
   userFromIdToken,
   type AuthUser,
   type DesktopAuthConfig,
 } from "@/utils/id-orgn-auth"
 
+type StoredTokens = { accessToken: string; idToken: string; refreshToken?: string; expiresAt: number }
+
 /**
- * Desktop id-orgn view-gate state (in-memory only; never persisted).
+ * Desktop id-orgn view-gate state. Tokens are persisted (Persist.global) so the session
+ * survives reloads/restarts; the user is restored from the persisted id token on hydration.
  *
  * The auth-callback (orgn://auth-callback, or orgn-dev:// for an unpackaged dev build)
  * arrives BEFORE the user is signed in, while the gated app tree is unmounted — so this
@@ -28,7 +34,24 @@ export const { use: useAuth, provider: AuthProvider } = createSimpleContext({
   init: () => {
     const platform = usePlatform()
     const [user, setUser] = createSignal<AuthUser | null>(null)
+    const [tokenStore, setTokenStore, , tokensReady] = persisted(
+      Persist.global("idOrgnTokens"),
+      createStore<{ value: StoredTokens | null }>({ value: null }),
+    )
+    const tokens = () => tokenStore.value
+    const setTokens = (next: StoredTokens | null) => setTokenStore("value", next)
     let pending: { state: string; codeVerifier: string } | undefined
+
+    // Restore the signed-in user from persisted tokens once storage hydrates (so a reload
+    // doesn't bounce back to the sign-in screen). getAccessToken refreshes if expired.
+    createEffect(() => {
+      if (!tokensReady()) return
+      const t = tokenStore.value
+      if (t && !user()) {
+        const restored = userFromIdToken(t.idToken)
+        if (restored) setUser(restored)
+      }
+    })
 
     // Hardcoded prod defaults for the Orgn CDE desktop app (env override kept for
     // local/dev). The OAuth client is the id-orgn public PKCE client.
@@ -61,10 +84,58 @@ export const { use: useAuth, provider: AuthProvider } = createSimpleContext({
       if (!pending || pending.state !== cb.state) return
       const codeVerifier = pending.codeVerifier
       pending = undefined
-      const tokens = await exchangeCode(config(), { code: cb.code, codeVerifier }).catch(() => null)
-      if (!tokens) return
-      const next = userFromIdToken(tokens.idToken)
+      const set = await exchangeCode(config(), { code: cb.code, codeVerifier }).catch(() => null)
+      if (!set) return
+      setTokens({
+        accessToken: set.accessToken,
+        idToken: set.idToken,
+        refreshToken: set.refreshToken,
+        expiresAt: Date.now() + set.expiresIn * 1000,
+      })
+      const next = userFromIdToken(set.idToken)
       if (next) setUser(next)
+    }
+
+    // Returns a valid access token for Edge API calls. Refreshes proactively within 60s of
+    // expiry, or on demand (opts.force, e.g. after a 401). Concurrent callers share a single
+    // in-flight refresh (avoids invalidating a rotating refresh token). Returns undefined
+    // when signed out, or after a failed refresh of an already-expired token (needs re-auth).
+    let refreshing: Promise<string | undefined> | undefined
+    const getAccessToken = async (opts?: { force?: boolean }): Promise<string | undefined> => {
+      const current = tokens()
+      if (!current) return undefined
+      const nearExpiry = Date.now() >= current.expiresAt - 60_000
+      if (!current.refreshToken || (!opts?.force && !nearExpiry)) return current.accessToken
+      if (!refreshing) {
+        const refreshToken = current.refreshToken
+        const wasExpired = Date.now() >= current.expiresAt
+        refreshing = (async () => {
+          try {
+            const next = await refreshTokens(config(), refreshToken)
+            const merged: StoredTokens = {
+              accessToken: next.accessToken,
+              idToken: next.idToken || current.idToken,
+              refreshToken: next.refreshToken ?? refreshToken,
+              expiresAt: Date.now() + next.expiresIn * 1000,
+            }
+            setTokens(merged)
+            const u = userFromIdToken(merged.idToken)
+            if (u) setUser(u)
+            return merged.accessToken
+          } catch {
+            if (wasExpired) {
+              // Dead session: clear tokens + user so the gate cleanly re-prompts sign-in.
+              setTokens(null)
+              setUser(null)
+              return undefined
+            }
+            return current.accessToken
+          } finally {
+            refreshing = undefined
+          }
+        })()
+      }
+      return refreshing
     }
 
     onMount(() => {
@@ -83,7 +154,14 @@ export const { use: useAuth, provider: AuthProvider } = createSimpleContext({
       user,
       signedIn: () => !!user(),
       signIn,
-      signOut: () => setUser(null),
+      signOut: () => {
+        setUser(null)
+        setTokens(null)
+      },
+      /** Current access token (may be expired); prefer getAccessToken() for API calls. */
+      accessToken: () => tokens()?.accessToken,
+      /** Valid access token with proactive refresh; undefined when signed out. */
+      getAccessToken,
     }
   },
 })

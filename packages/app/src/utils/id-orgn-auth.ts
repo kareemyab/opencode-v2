@@ -95,6 +95,35 @@ export async function exchangeCode(
   }
 }
 
+// Refresh the access token using the long-lived refresh token (public PKCE client form:
+// client_id in the body, no secret). The token endpoint may omit a new id_token/refresh_token;
+// callers should keep the prior values when these are absent.
+export async function refreshTokens(config: DesktopAuthConfig, refreshToken: string): Promise<DesktopTokenSet> {
+  const body = new URLSearchParams({
+    grant_type: "refresh_token",
+    refresh_token: refreshToken,
+    client_id: config.clientId,
+  })
+  const res = await fetch(`${normalizeBaseUrl(config.idOrgnUrl)}/api/auth/oauth2/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  })
+  if (!res.ok) throw new Error(`Token refresh failed: ${res.status}`)
+  const data = (await res.json()) as {
+    access_token: string
+    id_token?: string
+    expires_in?: number
+    refresh_token?: string
+  }
+  return {
+    accessToken: data.access_token,
+    idToken: data.id_token ?? "",
+    refreshToken: data.refresh_token,
+    expiresIn: typeof data.expires_in === "number" && data.expires_in > 0 ? data.expires_in : 3600,
+  }
+}
+
 export interface AuthUser {
   id: string
   email: string

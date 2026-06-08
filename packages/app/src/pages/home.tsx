@@ -1,10 +1,9 @@
 import type { Session } from "@opencode-ai/sdk/v2/client"
-import { batch, createEffect, createMemo, For, Match, on, onCleanup, onMount, Show, Switch } from "solid-js"
+import { batch, createEffect, createMemo, For, on, onCleanup, onMount, Show } from "solid-js"
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { createStore } from "solid-js/store"
 import { useQuery } from "@tanstack/solid-query"
-import { Button } from "@opencode-ai/ui/button"
-import { Logo } from "@opencode-ai/ui/logo"
+import { Mark } from "@opencode-ai/ui/logo"
 import { Spinner } from "@opencode-ai/ui/spinner"
 import { ProjectAvatar } from "@opencode-ai/ui/v2/project-avatar-v2"
 import { ButtonV2 } from "@opencode-ai/ui/v2/button-v2"
@@ -14,12 +13,12 @@ import { MenuV2 } from "@opencode-ai/ui/v2/menu-v2"
 import { getProjectAvatarVariant, useLayout, type LocalProject } from "@/context/layout"
 import { useNavigate } from "@solidjs/router"
 import { base64Encode } from "@opencode-ai/core/util/encode"
-import { Icon } from "@opencode-ai/ui/icon"
 import { usePlatform } from "@/context/platform"
 import { DateTime } from "luxon"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { DialogSelectDirectory } from "@/components/dialog-select-directory"
 import { DialogSelectServer, useServerManagementController } from "@/components/dialog-select-server"
+import { DialogCloudProjects } from "@/components/dialog-cloud-projects"
 import { DialogServerV2 } from "@/components/settings-v2/dialog-server-v2"
 import { ServerConnection, useServer } from "@/context/server"
 import { sessionHasOpenTab, useTabs } from "@/context/tabs"
@@ -1082,6 +1081,21 @@ function groupSessions(records: HomeSessionRecord[], language: ReturnType<typeof
   ].filter((group) => group.sessions.length > 0)
 }
 
+// Command shortcuts shown on the welcome screen. `id` triggers the command when it
+// exists (no-op otherwise); `keys` are the keycap glyphs rendered on the right.
+const HOME_COMMAND_ROWS: ReadonlyArray<{ label: string; id: string; keys: readonly string[] }> = [
+  { label: "Open Chat", id: "chat.open", keys: ["⌃", "⌘", "I"] },
+  { label: "Toggle Terminal", id: "terminal.toggle", keys: ["⌃", "`"] },
+  { label: "Open Browser", id: "browser.open", keys: ["⌥", "⌘", "/"] },
+  { label: "Show All Commands", id: "command.palette", keys: ["⇧", "⌘", "P"] },
+  { label: "Open Recent", id: "project.recent", keys: ["⌃", "R"] },
+  { label: "Open File or Folder", id: "project.open", keys: ["⌘", "O"] },
+  { label: "New Untitled Text File", id: "file.new", keys: ["⌘", "N"] },
+]
+
+const HOME_KEYCAP =
+  "inline-flex h-6 min-w-6 items-center justify-center rounded-md border border-border-weak-base bg-surface-raised-base px-1.5 text-12-mono text-text-weak"
+
 function LegacyHome() {
   const sync = useServerSync()
   const platform = usePlatform()
@@ -1090,19 +1104,13 @@ function LegacyHome() {
   const global = useGlobal()
   const server = useServer()
   const language = useLanguage()
+  const command = useCommand()
   const homedir = createMemo(() => sync.data.path.home)
   const recent = createMemo(() => {
     return sync.data.project
       .slice()
       .sort((a, b) => (b.time.updated ?? b.time.created) - (a.time.updated ?? a.time.created))
       .slice(0, 5)
-  })
-
-  const serverDotClass = createMemo(() => {
-    const healthy = global.servers.health[server.key]?.healthy
-    if (healthy === true) return "bg-icon-success-base"
-    if (healthy === false) return "bg-icon-critical-base"
-    return "bg-border-weak-base"
   })
 
   function openProject(server: ServerConnection.Any, directory: string) {
@@ -1140,72 +1148,83 @@ function LegacyHome() {
     }
   }
 
+  const projectName = (project: { name?: string; worktree: string }) => displayName(project)
+  const projectPath = (project: { worktree: string }) => project.worktree.replace(homedir(), "~")
+  const projectTag = () => (server.isLocal() ? "LOCAL" : (server.name || "CLOUD").toUpperCase())
+
   return (
-    <div class="mx-auto mt-55 w-full md:w-auto px-4">
-      <Logo class="md:w-xl opacity-12" />
-      <Button
-        size="large"
-        variant="ghost"
-        class="mt-4 mx-auto text-14-regular text-text-weak"
-        onClick={() => dialog.show(() => <DialogSelectServer />)}
-      >
-        <div
-          classList={{
-            "size-2 rounded-full": true,
-            [serverDotClass()]: true,
-          }}
-        />
-        {server.name}
-      </Button>
-      <Switch>
-        <Match when={sync.data.project.length > 0}>
-          <div class="mt-20 w-full flex flex-col gap-4">
-            <div class="flex gap-2 items-center justify-between pl-3">
-              <div class="text-14-medium text-text-strong">{language.t("home.recentProjects")}</div>
-              <Button icon="folder-add-left" size="normal" class="pl-2 pr-3" onClick={chooseProject}>
-                {language.t("command.project.open")}
-              </Button>
-            </div>
-            <ul class="flex flex-col gap-2">
-              <For each={recent()}>
-                {(project) => (
-                  <Button
-                    size="large"
-                    variant="ghost"
-                    class="text-14-mono text-left justify-between px-3"
+    <div class="mx-auto flex w-full max-w-[640px] flex-col px-6 pb-16 pt-[14vh]">
+      {/* Brand lockup */}
+      <div class="flex items-center justify-center gap-2">
+        <Mark class="h-[22px] w-auto text-text-strong" />
+        <span class="rounded bg-text-strong px-1.5 py-[3px] text-[11px] leading-none font-[var(--font-family-mono)] [font-weight:600] tracking-[0.08em] text-background-base">
+          ALPHA
+        </span>
+      </div>
+
+      {/* Primary actions */}
+      <div class="mt-8 flex items-center justify-center gap-3">
+        <button
+          type="button"
+          class="rounded-lg border border-border-weak-base bg-transparent px-6 py-2.5 text-14-regular text-text-strong transition-colors hover:bg-surface-raised-base-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3578f5]"
+          onClick={chooseProject}
+        >
+          Open Project
+        </button>
+        <button
+          type="button"
+          class="rounded-lg border border-[#3578f5] bg-transparent px-6 py-2.5 text-14-regular text-text-strong ring-1 ring-[#3578f5] transition-colors hover:bg-surface-raised-base-hover focus-visible:outline-none"
+          onClick={() => dialog.show(() => <DialogCloudProjects />)}
+        >
+          Open Cloud Project
+        </button>
+      </div>
+
+      {/* Recent projects */}
+      <Show when={recent().length > 0}>
+        <div class="mt-14 flex flex-col">
+          <div class="text-12-mono tracking-[0.12em] text-text-weak">RECENT</div>
+          <ul class="mt-5 flex flex-col gap-6">
+            <For each={recent()}>
+              {(project) => (
+                <li>
+                  <button
+                    type="button"
+                    class="group flex w-full items-baseline justify-between gap-4 text-left focus-visible:outline-none"
                     onClick={() => openProject(server.current!, project.worktree)}
                   >
-                    {project.worktree.replace(homedir(), "~")}
-                    <div class="text-14-regular text-text-weak">
-                      {DateTime.fromMillis(project.time.updated ?? project.time.created).toRelative()}
+                    <div class="min-w-0">
+                      <div class="truncate text-14-mono [font-weight:600] text-text-strong group-hover:underline">
+                        {projectName(project)}
+                      </div>
+                      <div class="mt-1 truncate text-12-mono text-text-weak">{projectPath(project)}</div>
                     </div>
-                  </Button>
-                )}
-              </For>
-            </ul>
-          </div>
-        </Match>
-        <Match when={!sync.ready}>
-          <div class="mt-30 mx-auto flex flex-col items-center gap-3">
-            <div class="text-12-regular text-text-weak">{language.t("common.loading")}</div>
-            <Button class="px-3" onClick={chooseProject}>
-              {language.t("command.project.open")}
-            </Button>
-          </div>
-        </Match>
-        <Match when={true}>
-          <div class="mt-30 mx-auto flex flex-col items-center gap-3">
-            <Icon name="folder-add-left" size="large" />
-            <div class="flex flex-col gap-1 items-center justify-center">
-              <div class="text-14-medium text-text-strong">{language.t("home.empty.title")}</div>
-              <div class="text-12-regular text-text-weak">{language.t("home.empty.description")}</div>
-            </div>
-            <Button class="px-3 mt-1" onClick={chooseProject}>
-              {language.t("command.project.open")}
-            </Button>
-          </div>
-        </Match>
-      </Switch>
+                    <span class="shrink-0 text-12-mono tracking-[0.12em] text-text-weak">{projectTag()}</span>
+                  </button>
+                </li>
+              )}
+            </For>
+          </ul>
+        </div>
+      </Show>
+
+      {/* Command shortcuts */}
+      <div class="mt-14 flex flex-col gap-3.5">
+        <For each={HOME_COMMAND_ROWS}>
+          {(row) => (
+            <button
+              type="button"
+              class="flex items-center justify-between gap-4 text-left focus-visible:outline-none"
+              onClick={() => command.trigger(row.id)}
+            >
+              <span class="text-14-mono text-text-weak transition-colors hover:text-text-strong">{row.label}</span>
+              <span class="flex items-center gap-1">
+                <For each={row.keys}>{(key) => <kbd class={HOME_KEYCAP}>{key}</kbd>}</For>
+              </span>
+            </button>
+          )}
+        </For>
+      </div>
     </div>
   )
 }

@@ -37,6 +37,17 @@ export type Platform = {
    */
   getAuthRedirectUri?(): Promise<string | null>
 
+  /**
+   * Cross-origin fetch executed in the desktop main process — bypasses renderer CORS.
+   * Desktop only; used by the Edge API client and cloud sandbox SDK. Undefined on web.
+   */
+  apiFetch?(req: {
+    url: string
+    method?: string
+    headers?: Record<string, string>
+    body?: string
+  }): Promise<{ ok: boolean; status: number; statusText: string; headers: Record<string, string>; body: string }>
+
   /** Open a URL in the default browser */
   openLink(url: string): void
 
