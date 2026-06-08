@@ -20,8 +20,12 @@ export interface OpenCloudDeps {
   status: (trialId: string) => Promise<CloudSandboxStatus>
   provision: (trialId: string) => Promise<CloudSandboxStatus>
   start: (trialId: string) => Promise<CloudSandboxStatus>
-  /** Pin the active server to the sandbox opencode origin (server.add http). */
-  connect: (origin: string) => void
+  /**
+   * Pin the active server to the sandbox opencode origin AND register the worktree as an
+   * open project on it (server.add + projects.open/touch), so the sidebar shows its sessions
+   * and a close action — mirroring the local open path.
+   */
+  connect: (origin: string, workspacePath: string) => void
   navigate: (path: string) => void
   setActiveTrial: (descriptor: ActiveTrialDescriptor) => void
   /** Called immediately before the route/server mutation (e.g. close the dialog). */
@@ -107,6 +111,6 @@ export async function openCloudTrial(deps: OpenCloudDeps, input: OpenCloudInput)
   // the worktree route against the local server (which lacks that dir) → a transient
   // "could not reach Local Server". `navigate` comes from the router (above ServerKey), so it
   // stays valid across the remount.
-  deps.connect(origin)
+  deps.connect(origin, workspacePath)
   deps.navigate(`/${base64Encode(workspacePath)}/session`)
 }
