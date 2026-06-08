@@ -1,7 +1,41 @@
+import { fileURLToPath } from "node:url"
 import { sentryVitePlugin } from "@sentry/vite-plugin"
 import { defineConfig } from "electron-vite"
 import appPlugin from "@opencode-ai/app/vite"
 import * as fs from "node:fs/promises"
+
+const appSrc = fileURLToPath(new URL("../app/src", import.meta.url))
+const sidebarItems = fileURLToPath(new URL("../app/src/pages/layout/sidebar-items.tsx", import.meta.url))
+const sidebarItemsPatched = fileURLToPath(new URL("../app/src/pages/layout/sidebar-items.patched.tsx", import.meta.url))
+
+const patchedAliases = [
+  { find: "@/pages/layout", replacement: `${appSrc}/pages/layout.patched.tsx` },
+  { find: "@/components/titlebar", replacement: `${appSrc}/components/titlebar.patched.tsx` },
+  { find: sidebarItems, replacement: sidebarItemsPatched },
+]
+
+const patchedAliasOrder = {
+  name: "opencode:patched-alias-order",
+  config(config) {
+    const existing = config.resolve?.alias
+    const list = Array.isArray(existing)
+      ? [...existing]
+      : existing
+        ? Object.entries(existing).map(([find, replacement]) => ({ find, replacement }))
+        : []
+
+    const rest = list.filter((entry) => {
+      const find = String(entry.find)
+      return find !== "@" && find !== "@/pages/layout" && find !== "@/components/titlebar" && entry.replacement !== sidebarItemsPatched
+    })
+
+    return {
+      resolve: {
+        alias: [...patchedAliases, ...rest, { find: "@", replacement: appSrc }],
+      },
+    }
+  },
+}
 
 const OPENCODE_SERVER_DIST = "../opencode/dist/node"
 
@@ -80,7 +114,10 @@ export default defineConfig({
     },
   },
   renderer: {
-    plugins: [appPlugin, sentry],
+    plugins: [appPlugin, patchedAliasOrder, sentry],
+    resolve: {
+      alias: patchedAliases,
+    },
     publicDir: "../../../app/public",
     root: "src/renderer",
     build: {

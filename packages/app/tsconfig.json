@@ -18,6 +18,9 @@
     "outDir": "node_modules/.ts-dist",
     "isolatedModules": true,
     "paths": {
+      "@/pages/layout": ["./src/pages/layout.patched.tsx"],
+      "@/components/titlebar": ["./src/components/titlebar.patched.tsx"],
+      "@/pages/layout/sidebar-items": ["./src/pages/layout/sidebar-items.patched.tsx"],
       "@/*": ["./src/*"]
     }
   },
