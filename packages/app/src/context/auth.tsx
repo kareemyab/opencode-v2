@@ -1,7 +1,9 @@
 import { createSimpleContext } from "@opencode-ai/ui/context"
 import { makeEventListener } from "@solid-primitives/event-listener"
-import { createSignal, onMount } from "solid-js"
+import { createEffect, createSignal, onMount } from "solid-js"
+import { createStore } from "solid-js/store"
 import { usePlatform } from "./platform"
+import { Persist, persisted } from "@/utils/persist"
 import { collectAuthCallbackDeepLinks, deepLinkEvent } from "@/pages/layout/deep-links"
 import {
   buildAuthorizeUrl,
@@ -18,7 +20,8 @@ import {
 type StoredTokens = { accessToken: string; idToken: string; refreshToken?: string; expiresAt: number }
 
 /**
- * Desktop id-orgn view-gate state (in-memory only; never persisted).
+ * Desktop id-orgn view-gate state. Tokens are persisted (Persist.global) so the session
+ * survives reloads/restarts; the user is restored from the persisted id token on hydration.
  *
  * The auth-callback (orgn://auth-callback, or orgn-dev:// for an unpackaged dev build)
  * arrives BEFORE the user is signed in, while the gated app tree is unmounted — so this
@@ -31,8 +34,24 @@ export const { use: useAuth, provider: AuthProvider } = createSimpleContext({
   init: () => {
     const platform = usePlatform()
     const [user, setUser] = createSignal<AuthUser | null>(null)
-    const [tokens, setTokens] = createSignal<StoredTokens | null>(null)
+    const [tokenStore, setTokenStore, , tokensReady] = persisted(
+      Persist.global("idOrgnTokens"),
+      createStore<{ value: StoredTokens | null }>({ value: null }),
+    )
+    const tokens = () => tokenStore.value
+    const setTokens = (next: StoredTokens | null) => setTokenStore("value", next)
     let pending: { state: string; codeVerifier: string } | undefined
+
+    // Restore the signed-in user from persisted tokens once storage hydrates (so a reload
+    // doesn't bounce back to the sign-in screen). getAccessToken refreshes if expired.
+    createEffect(() => {
+      if (!tokensReady()) return
+      const t = tokenStore.value
+      if (t && !user()) {
+        const restored = userFromIdToken(t.idToken)
+        if (restored) setUser(restored)
+      }
+    })
 
     // Hardcoded prod defaults for the Orgn CDE desktop app (env override kept for
     // local/dev). The OAuth client is the id-orgn public PKCE client.
@@ -105,7 +124,9 @@ export const { use: useAuth, provider: AuthProvider } = createSimpleContext({
             return merged.accessToken
           } catch {
             if (wasExpired) {
-              setTokens(null) // surface needs-reauth rather than loop on a dead token
+              // Dead session: clear tokens + user so the gate cleanly re-prompts sign-in.
+              setTokens(null)
+              setUser(null)
               return undefined
             }
             return current.accessToken

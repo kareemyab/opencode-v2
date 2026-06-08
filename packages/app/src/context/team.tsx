@@ -56,12 +56,8 @@ export const { use: useTeam, provider: TeamProvider } = createSimpleContext({
       activeTeamId,
       activeTeam,
       loading: () => teamsRes.loading,
-      /** Switch the active team. Returns false (no-op) while a cloud worktree is active. */
-      setActiveTeam: (id: string): boolean => {
-        if (activeTrialStore.value) return false
-        setSelected("id", id)
-        return true
-      },
+      /** Switch the active team (re-keys all team-scoped cloud queries). */
+      setActiveTeam: (id: string) => setSelected("id", id),
       /** Persisted descriptor of the currently-open cloud worktree (or null). */
       activeTrial: () => activeTrialStore.value,
       setActiveTrial: (descriptor: ActiveTrialDescriptor | null) => setActiveTrialStore("value", descriptor),

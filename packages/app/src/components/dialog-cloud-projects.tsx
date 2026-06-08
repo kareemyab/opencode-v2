@@ -1,5 +1,6 @@
 import { Dialog } from "@opencode-ai/ui/dialog"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
+import { DropdownMenu } from "@opencode-ai/ui/dropdown-menu"
 import { Icon } from "@opencode-ai/ui/icon"
 import { Spinner } from "@opencode-ai/ui/spinner"
 import { useQuery } from "@tanstack/solid-query"
@@ -102,9 +103,30 @@ export function DialogCloudProjects() {
       </Show>
 
       <Show when={!nav.opening}>
-        {/* Breadcrumb */}
+        {/* Breadcrumb (team is a switcher) */}
         <div class="flex items-center gap-1.5 px-3 pb-2 text-12-mono text-text-weak">
-          <span class="text-text-strong">{team.activeTeam()?.name ?? team.activeTeam()?.displayName ?? "Team"}</span>
+          <DropdownMenu placement="bottom-start" gutter={4}>
+            <DropdownMenu.Trigger class="flex items-center gap-1 text-text-strong hover:text-text-base focus-visible:outline-none">
+              {team.activeTeam()?.name ?? team.activeTeam()?.displayName ?? "Team"}
+              <Icon name="chevron-down" class="size-3 text-icon-weak-base" />
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content class="min-w-48">
+                <For each={team.teams()}>
+                  {(t) => (
+                    <DropdownMenu.Item
+                      onSelect={() => {
+                        team.setActiveTeam(t.id)
+                        setNav({ project: undefined, task: undefined })
+                      }}
+                    >
+                      <DropdownMenu.ItemLabel>{t.name ?? t.displayName ?? t.id}</DropdownMenu.ItemLabel>
+                    </DropdownMenu.Item>
+                  )}
+                </For>
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu>
           <Show when={nav.project}>
             <Icon name="chevron-right" class="size-3" />
             <button type="button" class="hover:text-text-strong" onClick={() => setNav({ task: undefined })}>
