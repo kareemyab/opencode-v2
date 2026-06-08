@@ -273,11 +273,48 @@ export const layer = Layer.effect(
 
       if (flags.experimentalIconDiscovery) yield* discover(existing).pipe(Effect.ignore, Effect.forkIn(scope))
 
+      // Promote the queried directory to the project's primary `worktree` when it
+      // is a LINKED git worktree and the existing record is pinned to the main
+      // checkout (which is what happens when opencode first resolves the project
+      // from `worktree.create({ directory: <main repo> })` before any linked
+      // worktree exists). A linked worktree's `vcs.store` (the shared `.git`
+      // directory) sits OUTSIDE its working tree, while the main checkout's
+      // `.git` is exactly `<directory>/.git`. We use that distinction to detect
+      // both sides without hardcoded path conventions.
+      //
+      // This matters in deployments where ONE opencode hosts many linked
+      // worktrees of the same project (e.g. orgn CDE Web sandboxes): the user
+      // deep-links to a specific trial worktree URL and expects THAT worktree as
+      // the project root. Without promotion, every UI that reads
+      // `project.worktree` (project label, sidebar workspaces, `/project/current`)
+      // surfaces the main checkout instead.
+      //
+      // Promotion only fires when the existing record is the main checkout, so
+      // once a linked worktree wins it stays put — siblings still get pushed
+      // into `sandboxes` (no bouncing between worktrees on later queries).
+      const queriedIsLinkedWorktree =
+        !!data.vcs && data.vcs.store !== `${data.directory}/.git`
+      const existingIsMainCheckout =
+        !!data.vcs && data.vcs.store === `${existing.worktree}/.git`
+      const preferredWorktree =
+        projectID !== ProjectV2.ID.global && queriedIsLinkedWorktree && existingIsMainCheckout
+          ? data.directory
+          : existing.worktree
+      const promoting = preferredWorktree !== existing.worktree
+
       const result: Info = {
         ...existing,
-        worktree: projectID === ProjectV2.ID.global ? worktree : existing.worktree,
+        worktree: projectID === ProjectV2.ID.global ? worktree : preferredWorktree,
         vcs: data.vcs?.type ?? fakeVcs,
         time: { ...existing.time, updated: Date.now() },
+      }
+      if (promoting) {
+        // The previous main-checkout becomes a sibling sandbox of the project.
+        if (!result.sandboxes.includes(existing.worktree)) {
+          result.sandboxes = [...result.sandboxes, existing.worktree]
+        }
+        // The newly-promoted worktree must not also appear as one of its own sandboxes.
+        result.sandboxes = result.sandboxes.filter((s) => s !== preferredWorktree)
       }
       if (
         projectID !== ProjectV2.ID.global &&
