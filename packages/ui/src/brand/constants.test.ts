@@ -22,8 +22,8 @@ describe("orgn brand constants", () => {
 
   test("electron ids by channel", () => {
     expect(APP_IDS.prod).toBe("com.orgn.desktop")
-    expect(APP_NAMES.prod).toBe("orgn")
-    expect(APP_NAMES.dev).toBe("CDE Agent")
+    expect(APP_NAMES.prod).toBe("Orgn CDE")
+    expect(APP_NAMES.dev).toBe("Orgn CDE Dev")
   })
 
   test("storage key helpers", () => {
