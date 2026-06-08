@@ -30,6 +30,13 @@ export type Platform = {
   /** App version */
   version?: string
 
+  /**
+   * Desktop id-orgn OAuth redirect URI, resolved at runtime from the main process
+   * (scheme differs packaged vs unpackaged dev). Desktop only; web returns undefined
+   * so the auth gate keeps its hardcoded prod default.
+   */
+  getAuthRedirectUri?(): Promise<string | null>
+
   /** Open a URL in the default browser */
   openLink(url: string): void
 

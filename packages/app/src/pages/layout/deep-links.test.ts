@@ -1,12 +1,14 @@
 import { describe, expect, test } from "bun:test"
 import {
   ALLOWED_DEEP_LINK_HOSTS,
+  collectAuthCallbackDeepLinks,
   collectNewSessionDeepLinks,
   collectOpenProjectDeepLinks,
   collectOpenSandboxDeepLinks,
   drainPendingDeepLinks,
   isAllowedDeepLinkUrl,
   isSafeDirectoryPath,
+  parseAuthCallbackDeepLink,
   parseDeepLink,
   parseNewSessionDeepLink,
   parseOpenSandboxDeepLink,
@@ -20,6 +22,16 @@ describe("deep link security", () => {
     expect(isAllowedDeepLinkUrl(new URL("orgn://open-sandbox?sandbox=abc&dir=/tmp"))).toBe(true)
     expect(isAllowedDeepLinkUrl(new URL("orgn://evil?directory=/tmp"))).toBe(false)
     expect(isAllowedDeepLinkUrl(new URL("orgn://open-project:8080?directory=/tmp"))).toBe(false)
+  })
+
+  test("parses auth-callback across schemes incl. orgn-dev", () => {
+    expect(parseAuthCallbackDeepLink("orgn://auth-callback?code=a&state=b")).toEqual({ code: "a", state: "b" })
+    expect(parseAuthCallbackDeepLink("opencode://auth-callback?code=a&state=b")).toEqual({ code: "a", state: "b" })
+    expect(parseAuthCallbackDeepLink("orgn-dev://auth-callback?code=a&state=b")).toEqual({ code: "a", state: "b" })
+    expect(parseAuthCallbackDeepLink("orgn-dev://auth-callback?code=a")).toBeUndefined()
+    expect(collectAuthCallbackDeepLinks(["orgn-dev://auth-callback?code=a&state=b", "https://x"])).toEqual([
+      { code: "a", state: "b" },
+    ])
   })
 
   test("rejects embedded credentials", () => {
