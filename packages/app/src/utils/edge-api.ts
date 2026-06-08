@@ -75,9 +75,12 @@ function asObject<T>(body: Json): T {
   return body as T
 }
 
+const OLLM_KEY_TTL_MS = 5 * 60 * 1000
+
 export function createEdgeClient(config: EdgeClientConfig) {
   const apiUrl = trimUrl(config.apiUrl)
   const idUrl = trimUrl(config.idUrl)
+  const ollmKeyCache = new Map<string, { key: string; fetchedAt: number }>()
 
   // Returns parsed JSON on success (caller extracts the shape); throws EdgeApiError on
   // transport/HTTP/envelope failure. Retries idempotent transient errors; one forced re-auth.
@@ -158,6 +161,20 @@ export function createEdgeClient(config: EdgeClientConfig) {
     teams: {
       async list(): Promise<Team[]> {
         return asArray<Team>(await request(idUrl, "/api/user/teams"), "teams")
+      },
+      /** Team OLLM gateway key (sk-ollm-*), via deno-stealth. Cached 5 min per team. */
+      async ollmKey(teamId: string, opts?: { force?: boolean }): Promise<string> {
+        const cached = ollmKeyCache.get(teamId)
+        if (!opts?.force && cached && Date.now() - cached.fetchedAt < OLLM_KEY_TTL_MS) return cached.key
+        const body = await request(apiUrl, `/api/v1/teams/${teamId}/ollm-key`, { teamId })
+        const { apiKey } = asObject<{ apiKey?: string }>(body)
+        if (typeof apiKey !== "string" || !apiKey) throw new EdgeApiError("ollm_key", "No OLLM key returned", 0)
+        ollmKeyCache.set(teamId, { key: apiKey, fetchedAt: Date.now() })
+        return apiKey
+      },
+      clearOllmKeyCache(teamId?: string) {
+        if (teamId) ollmKeyCache.delete(teamId)
+        else ollmKeyCache.clear()
       },
     },
     projects: {
