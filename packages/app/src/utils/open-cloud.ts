@@ -98,12 +98,15 @@ export async function openCloudTrial(deps: OpenCloudDeps, input: OpenCloudInput)
 
   deps.setActiveTrial({ ...descriptor, csbID: status.csbID ?? descriptor.csbID, workspacePath })
 
-  // Tear down any owner-scoped UI (e.g. the dialog) BEFORE the route/server mutation: the
-  // connect below flips the keyed <ServerKey>, disposing the owner the caller ran under.
+  // Tear down any owner-scoped UI (e.g. the dialog) BEFORE the route/server mutation: connect
+  // flips the keyed <ServerKey>, disposing the owner the caller ran under.
   deps.beforeConnect?.()
 
-  // Navigate first so the route is replaced before the active-server change remounts the
-  // server-scoped subtree (ServerKey is keyed), then pin the sandbox (desktop connects direct).
-  deps.navigate(`/${base64Encode(workspacePath)}/session`)
+  // Pin the sandbox as the active server FIRST so the keyed <ServerKey> remounts onto the
+  // (healthy) sandbox before the worktree route renders. Navigating first would briefly mount
+  // the worktree route against the local server (which lacks that dir) → a transient
+  // "could not reach Local Server". `navigate` comes from the router (above ServerKey), so it
+  // stays valid across the remount.
   deps.connect(origin)
+  deps.navigate(`/${base64Encode(workspacePath)}/session`)
 }
