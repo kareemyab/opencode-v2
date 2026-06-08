@@ -18,6 +18,7 @@ import { DateTime } from "luxon"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { DialogSelectDirectory } from "@/components/dialog-select-directory"
 import { DialogSelectServer, useServerManagementController } from "@/components/dialog-select-server"
+import { DialogCloudProjects } from "@/components/dialog-cloud-projects"
 import { DialogServerV2 } from "@/components/settings-v2/dialog-server-v2"
 import { ServerConnection, useServer } from "@/context/server"
 import { sessionHasOpenTab, useTabs } from "@/context/tabs"
@@ -1173,7 +1174,7 @@ function LegacyHome() {
         <button
           type="button"
           class="rounded-lg border border-[#3578f5] bg-transparent px-6 py-2.5 text-14-regular text-text-strong ring-1 ring-[#3578f5] transition-colors hover:bg-surface-raised-base-hover focus-visible:outline-none"
-          onClick={() => dialog.show(() => <DialogSelectServer />)}
+          onClick={() => dialog.show(() => <DialogCloudProjects />)}
         >
           Open Cloud Project
         </button>
