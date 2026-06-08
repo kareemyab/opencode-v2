@@ -10,6 +10,7 @@ import { createStore } from "solid-js/store"
 import { useCloud } from "@/context/cloud"
 import { useTeam } from "@/context/team"
 import { useServer } from "@/context/server"
+import { useGlobal } from "@/context/global"
 import { usePlatform } from "@/context/platform"
 import { openCloudTrial } from "@/utils/open-cloud"
 import { showToast } from "@/utils/toast"
@@ -24,6 +25,7 @@ export function DialogCloudProjects() {
   const cloud = useCloud()
   const team = useTeam()
   const server = useServer()
+  const global = useGlobal()
   const platform = usePlatform()
   const navigate = useNavigate()
   const dialog = useDialog()
@@ -54,7 +56,14 @@ export function DialogCloudProjects() {
           status: (id) => cloud.sandboxStatus(id),
           provision: (id) => cloud.provisionSandbox(id),
           start: (id) => cloud.startSandbox(id),
-          connect: (origin) => server.add({ type: "http", http: { url: origin } }),
+          connect: (origin, workspacePath) => {
+            const conn = server.add({ type: "http", http: { url: origin } })
+            if (conn) {
+              const ctx = global.createServerCtx(conn)
+              ctx.projects.open(workspacePath)
+              ctx.projects.touch(workspacePath)
+            }
+          },
           navigate: (path) => navigate(path, { replace: true }),
           setActiveTrial: (d) => team.setActiveTrial(d),
           beforeConnect: () => dialog.close(),
