@@ -1,19 +1,20 @@
 import { createMemo } from "solid-js"
 import { AnimatedNumber } from "./animated-number"
 
-function split(text: string) {
-  const match = /{{\s*count\s*}}/.exec(text)
-  if (!match) return { before: "", after: text }
-  if (match.index === undefined) return { before: "", after: text }
+function split(text: string | undefined) {
+  const value = text ?? ""
+  const match = /{{\s*count\s*}}/.exec(value)
+  if (!match) return { before: "", after: value }
+  if (match.index === undefined) return { before: "", after: value }
   return {
-    before: text.slice(0, match.index),
-    after: text.slice(match.index + match[0].length),
+    before: value.slice(0, match.index),
+    after: value.slice(match.index + match[0].length),
   }
 }
 
-function common(one: string, other: string) {
-  const a = Array.from(one)
-  const b = Array.from(other)
+function common(one: string | undefined, other: string | undefined) {
+  const a = Array.from(one ?? "")
+  const b = Array.from(other ?? "")
   let i = 0
   while (i < a.length && i < b.length && a[i] === b[i]) i++
   return {

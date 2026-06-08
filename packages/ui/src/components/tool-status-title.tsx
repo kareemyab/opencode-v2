@@ -2,9 +2,9 @@ import { Show, createEffect, createMemo, on, onCleanup } from "solid-js"
 import { createStore } from "solid-js/store"
 import { TextShimmer } from "./text-shimmer"
 
-function common(active: string, done: string) {
-  const a = Array.from(active)
-  const b = Array.from(done)
+function common(active: string | undefined, done: string | undefined) {
+  const a = Array.from(active ?? "")
+  const b = Array.from(done ?? "")
   let i = 0
   while (i < a.length && i < b.length && a[i] === b[i]) i++
   return {
