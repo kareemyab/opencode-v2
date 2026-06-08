@@ -33,7 +33,7 @@ import {
 import { useData } from "../context"
 import { useFileComponent } from "../context/file"
 import { useDialog } from "../context/dialog"
-import { type UiI18n, useI18n } from "../context/i18n"
+import { type UiI18n, type UiI18nKey, useI18n } from "../context/i18n"
 import { BasicTool, GenericTool } from "./basic-tool"
 import { Accordion } from "./accordion"
 import { StickyAccordionHeader } from "./sticky-accordion-header"
@@ -1095,7 +1095,7 @@ export function ShellToolGroup(props: { parts: ToolPart[]; busy?: boolean; onSiz
               <ToolStatusTitle
                 active={pending()}
                 activeText={i18n.t("ui.sessionTurn.status.runningCommands")}
-                doneText={i18n.t("ui.sessionTurn.status.ranShell")}
+                doneText={i18n.t("ui.sessionTurn.status.ranShell" as UiI18nKey) ?? "Shell"}
                 split={false}
               />
               <ToolGroupChevron />
@@ -1109,8 +1109,8 @@ export function ShellToolGroup(props: { parts: ToolPart[]; busy?: boolean; onSiz
                   {
                     key: "shell",
                     count: props.parts.length,
-                    one: i18n.t("ui.messagePart.shell.commands.one"),
-                    other: i18n.t("ui.messagePart.shell.commands.other"),
+                    one: i18n.t("ui.messagePart.shell.commands.one" as UiI18nKey) ?? "{{count}} command",
+                    other: i18n.t("ui.messagePart.shell.commands.other" as UiI18nKey) ?? "{{count}} commands",
                   },
                 ]}
                 fallback=""
