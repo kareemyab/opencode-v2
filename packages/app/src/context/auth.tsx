@@ -9,10 +9,13 @@ import {
   generateCodeChallenge,
   generateCodeVerifier,
   generateState,
+  refreshTokens,
   userFromIdToken,
   type AuthUser,
   type DesktopAuthConfig,
 } from "@/utils/id-orgn-auth"
+
+type StoredTokens = { accessToken: string; idToken: string; refreshToken?: string; expiresAt: number }
 
 /**
  * Desktop id-orgn view-gate state (in-memory only; never persisted).
@@ -28,6 +31,7 @@ export const { use: useAuth, provider: AuthProvider } = createSimpleContext({
   init: () => {
     const platform = usePlatform()
     const [user, setUser] = createSignal<AuthUser | null>(null)
+    const [tokens, setTokens] = createSignal<StoredTokens | null>(null)
     let pending: { state: string; codeVerifier: string } | undefined
 
     // Hardcoded prod defaults for the Orgn CDE desktop app (env override kept for
@@ -61,10 +65,41 @@ export const { use: useAuth, provider: AuthProvider } = createSimpleContext({
       if (!pending || pending.state !== cb.state) return
       const codeVerifier = pending.codeVerifier
       pending = undefined
-      const tokens = await exchangeCode(config(), { code: cb.code, codeVerifier }).catch(() => null)
-      if (!tokens) return
-      const next = userFromIdToken(tokens.idToken)
+      const set = await exchangeCode(config(), { code: cb.code, codeVerifier }).catch(() => null)
+      if (!set) return
+      setTokens({
+        accessToken: set.accessToken,
+        idToken: set.idToken,
+        refreshToken: set.refreshToken,
+        expiresAt: Date.now() + set.expiresIn * 1000,
+      })
+      const next = userFromIdToken(set.idToken)
       if (next) setUser(next)
+    }
+
+    // Returns a valid access token for Edge API calls, refreshing proactively when within
+    // 60s of expiry (or on demand). Returns undefined when not signed in.
+    const getAccessToken = async (): Promise<string | undefined> => {
+      const current = tokens()
+      if (!current) return undefined
+      if (current.refreshToken && Date.now() >= current.expiresAt - 60_000) {
+        try {
+          const next = await refreshTokens(config(), current.refreshToken)
+          const merged: StoredTokens = {
+            accessToken: next.accessToken,
+            idToken: next.idToken || current.idToken,
+            refreshToken: next.refreshToken ?? current.refreshToken,
+            expiresAt: Date.now() + next.expiresIn * 1000,
+          }
+          setTokens(merged)
+          const u = userFromIdToken(merged.idToken)
+          if (u) setUser(u)
+          return merged.accessToken
+        } catch {
+          return current.accessToken // best effort; the Edge client retries on 401
+        }
+      }
+      return current.accessToken
     }
 
     onMount(() => {
@@ -83,7 +118,14 @@ export const { use: useAuth, provider: AuthProvider } = createSimpleContext({
       user,
       signedIn: () => !!user(),
       signIn,
-      signOut: () => setUser(null),
+      signOut: () => {
+        setUser(null)
+        setTokens(null)
+      },
+      /** Current access token (may be expired); prefer getAccessToken() for API calls. */
+      accessToken: () => tokens()?.accessToken,
+      /** Valid access token with proactive refresh; undefined when signed out. */
+      getAccessToken,
     }
   },
 })
