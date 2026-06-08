@@ -116,10 +116,14 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
 export function userFromIdToken(idToken: string): AuthUser | null {
   const payload = decodeJwtPayload(idToken)
   if (!payload || typeof payload.sub !== "string") return null
+  const str = (value: unknown): string | null => (typeof value === "string" && value.length > 0 ? value : null)
   return {
     id: payload.sub,
-    email: typeof payload.email === "string" ? payload.email : "",
-    name: typeof payload.name === "string" ? payload.name : null,
-    image: typeof payload.image === "string" ? payload.image : null,
+    email: str(payload.email) ?? "",
+    name: str(payload.name),
+    // Avatar claim name varies by provider: OIDC userinfo uses `picture`, some IdPs use
+    // `image`, and id-orgn's (Better Auth) id_token carries the avatar under `profile`
+    // (it maps user.image -> profile). Read the first that's present.
+    image: str(payload.picture) ?? str(payload.image) ?? str(payload.profile),
   }
 }
