@@ -40,34 +40,36 @@ type SimpleFetch = (req: {
   body?: string
 }) => Promise<{ ok: boolean; status: number; body: string }>
 
-/** Fetch the live OLLM model list (team-keyed). Returns the static fallback on any failure. */
+const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+
+/**
+ * Fetch the live OLLM model list (team-keyed). Retries transient failures before falling back
+ * to the static catalog: at app boot the main-process fetch / network may not be ready yet, and
+ * a boot-time fallback would otherwise persist a truncated 9-model list over the live ~217.
+ */
 export async function fetchOllmModels(baseURL: string, apiKey: string, fetchImpl?: SimpleFetch): Promise<OllmModel[]> {
   // allow_tee/allow_zdr MUST be boolean strings: empty values 400, `false` returns 0 models
   // (which would drop the provider). `true` returns the full confidential-compute catalog.
   const url = `${baseURL.replace(/\/+$/, "")}/models?allow_tee=true&allow_zdr=true`
   const headers = { Authorization: `Bearer ${apiKey}`, Accept: "application/json" }
-  try {
-    let ok: boolean
-    let bodyText: string
-    if (fetchImpl) {
-      const r = await fetchImpl({ url, headers })
-      ok = r.ok
-      bodyText = r.body
-    } else {
-      const r = await fetch(url, { headers })
-      ok = r.ok
-      bodyText = await r.text()
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const { ok, body } = fetchImpl
+        ? await fetchImpl({ url, headers })
+        : await fetch(url, { headers }).then(async (r) => ({ ok: r.ok, body: await r.text() }))
+      if (!ok) throw new Error("models fetch failed")
+      const json = JSON.parse(body) as { data?: Array<{ id?: string; name?: string }> } | Array<{ id?: string; name?: string }>
+      const list = Array.isArray(json) ? json : (json.data ?? [])
+      const models = list
+        .filter((m): m is { id: string; name?: string } => !!m && typeof m.id === "string" && m.id.length > 0)
+        .map((m) => ({ id: m.id, name: m.name }))
+      if (models.length) return models
+      throw new Error("empty model list")
+    } catch {
+      if (attempt < 2) await delay(800 * (attempt + 1))
     }
-    if (!ok) throw new Error("models fetch failed")
-    const json = JSON.parse(bodyText) as { data?: Array<{ id?: string; name?: string }> } | Array<{ id?: string; name?: string }>
-    const list = Array.isArray(json) ? json : (json.data ?? [])
-    const models = list
-      .filter((m): m is { id: string; name?: string } => !!m && typeof m.id === "string" && m.id.length > 0)
-      .map((m) => ({ id: m.id, name: m.name }))
-    return models.length ? models : OLLM_FALLBACK_MODELS
-  } catch {
-    return OLLM_FALLBACK_MODELS
   }
+  return OLLM_FALLBACK_MODELS
 }
 
 /** Build the opencode config.provider["ollm"] block. The apiKey is NOT included here — it is

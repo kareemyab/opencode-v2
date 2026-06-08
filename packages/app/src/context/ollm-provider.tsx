@@ -1,5 +1,5 @@
 import { createSimpleContext } from "@opencode-ai/ui/context"
-import { createEffect, createSignal, untrack } from "solid-js"
+import { createEffect, untrack } from "solid-js"
 import { OLLM_GATEWAY_URL } from "@opencode-ai/ui/brand"
 import { useAuth } from "./auth"
 import { useTeam } from "./team"
@@ -11,12 +11,18 @@ import { buildOllmProviderConfig, fetchOllmModels, pickDefaultModelKey } from "@
 
 const OLLM_PROVIDER_ID = "ollm"
 
+// Module-level so all OllmProvider instances/remounts share one applied-state and a single
+// serialized apply chain. Without this, the effect can fire several times (boot/remount) and
+// the concurrent config.update calls race (stale read-modify-write) — a slow correct write
+// gets clobbered by a fast stale one.
+let appliedTeam: string | undefined
+let applyChain: Promise<unknown> = Promise.resolve()
+
 /**
  * Configures OLLM (the org's confidential-compute OpenAI-compatible gateway) as a default
- * provider on the active opencode server, keyed by the active team's OLLM key. Mirrors the
- * vscode-cde "default-on" behavior: signed in + a team selected ⇒ OLLM is configured
- * automatically (no manual setup). Uses the same hot-apply path as the custom-provider dialog
- * (auth.set + global config.update → server rebuilds providers, no restart).
+ * provider on the active opencode server, keyed by the active team's OLLM key. Default-on
+ * (signed in + a team selected ⇒ configured automatically), hot-applied via auth.set + global
+ * config.update (server rebuilds providers, no restart).
  */
 export const { use: useOllm, provider: OllmProvider } = createSimpleContext({
   name: "Ollm",
@@ -28,60 +34,54 @@ export const { use: useOllm, provider: OllmProvider } = createSimpleContext({
     const serverSDK = useServerSDK()
     const serverSync = useServerSync()
 
-    const [configuredTeam, setConfiguredTeam] = createSignal<string | undefined>()
-    let applying: string | undefined
+    const queueApply = (teamId: string) => {
+      applyChain = applyChain
+        .then(async () => {
+          if (appliedTeam === teamId) return // already applied (deduped across instances)
+          const key = await edge.teams.ollmKey(teamId).catch(() => undefined)
+          if (!key) return
+          const baseURL = import.meta.env.VITE_OLLM_GATEWAY_URL ?? OLLM_GATEWAY_URL
+          const models = await fetchOllmModels(baseURL, key, platform.apiFetch)
 
-    const apply = async (teamId: string) => {
-      if (applying === teamId) return
-      applying = teamId
-      try {
-        const key = await edge.teams.ollmKey(teamId).catch(() => undefined)
-        if (!key) return
-        const baseURL = import.meta.env.VITE_OLLM_GATEWAY_URL ?? OLLM_GATEWAY_URL
-        const models = await fetchOllmModels(baseURL, key, platform.apiFetch)
+          // Order matters: write the key (auth.json) FIRST so the provider is "connected" by
+          // the time config.model is validated against connected providers.
+          await serverSDK.client.auth.set({ providerID: OLLM_PROVIDER_ID, auth: { type: "api", key } })
 
-        // Order matters: write the key (auth.json) FIRST so the provider is "connected" by the
-        // time config.model is validated against connected providers, then patch the config.
-        await serverSDK.client.auth.set({ providerID: OLLM_PROVIDER_ID, auth: { type: "api", key } })
+          const cfg = serverSync.data.config
+          const patch: Record<string, unknown> = {
+            provider: { [OLLM_PROVIDER_ID]: buildOllmProviderConfig({ baseURL, models, teamId }) },
+          }
+          const disabled = cfg.disabled_providers ?? []
+          if (disabled.includes(OLLM_PROVIDER_ID)) {
+            patch.disabled_providers = disabled.filter((id) => id !== OLLM_PROVIDER_ID)
+          }
+          const enabled = cfg.enabled_providers
+          if (Array.isArray(enabled) && !enabled.includes(OLLM_PROVIDER_ID)) {
+            patch.enabled_providers = [...enabled, OLLM_PROVIDER_ID]
+          }
+          if (!cfg.model) {
+            const def = pickDefaultModelKey(models)
+            if (def) patch.model = `${OLLM_PROVIDER_ID}/${def}`
+          }
 
-        const cfg = serverSync.data.config
-        const patch: Record<string, unknown> = {
-          provider: { [OLLM_PROVIDER_ID]: buildOllmProviderConfig({ baseURL, models, teamId }) },
-        }
-        const disabled = cfg.disabled_providers ?? []
-        if (disabled.includes(OLLM_PROVIDER_ID)) {
-          patch.disabled_providers = disabled.filter((id) => id !== OLLM_PROVIDER_ID)
-        }
-        // If an allowlist is set, OLLM must be in it or the provider is dropped.
-        const enabled = cfg.enabled_providers
-        if (Array.isArray(enabled) && !enabled.includes(OLLM_PROVIDER_ID)) {
-          patch.enabled_providers = [...enabled, OLLM_PROVIDER_ID]
-        }
-        // Default to an OLLM model only if the user hasn't already chosen one.
-        if (!cfg.model) {
-          const def = pickDefaultModelKey(models)
-          if (def) patch.model = `${OLLM_PROVIDER_ID}/${def}`
-        }
-
-        await serverSync.updateConfig(patch)
-        setConfiguredTeam(teamId)
-      } finally {
-        applying = undefined
-      }
+          await serverSync.updateConfig(patch)
+          appliedTeam = teamId
+        })
+        .catch((e) => console.error("[ollm] apply failed:", e))
+      return applyChain
     }
 
     createEffect(() => {
       const signedIn = auth.signedIn()
       const teamId = team.activeTeamId()
-      const stamp = signedIn && teamId ? teamId : undefined
-      if (!stamp) {
-        setConfiguredTeam(undefined)
+      if (!signedIn || !teamId) {
+        appliedTeam = undefined
         return
       }
-      if (untrack(configuredTeam) === stamp) return
-      untrack(() => void apply(stamp))
+      if (appliedTeam === teamId) return
+      untrack(() => void queueApply(teamId))
     })
 
-    return { configuredTeam }
+    return { providerID: OLLM_PROVIDER_ID }
   },
 })
