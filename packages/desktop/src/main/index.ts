@@ -12,9 +12,9 @@ import contextMenu from "electron-context-menu"
 
 import type { ServerReadyData, WslConfig } from "../preload/types"
 import { checkAppExists, resolveAppPath, wslPath } from "./apps"
-import { APP_IDS, APP_NAMES } from "@opencode-ai/ui/brand"
+import { APP_IDS, APP_NAMES, authRedirectUriFor, deepLinkSchemeFor } from "@opencode-ai/ui/brand"
 import { CHANNEL, UPDATER_ENABLED } from "./constants"
-import { extractDeepLinkUrls, registerDeepLinkProtocolHandlers } from "./deep-link-protocol"
+import { extractDeepLinkUrls, registerDeepLinkProtocolHandlers, schemesToRegister } from "./deep-link-protocol"
 import { registerIpcHandlers, sendDeepLinks, sendMenuCommand } from "./ipc"
 import { forwardInitializationFailure } from "./initialization"
 import { exportDebugLogs, initCrashReporter, initLogging, startNetLog, write as writeLog } from "./logging"
@@ -212,7 +212,11 @@ const main = Effect.gen(function* () {
       },
       (e) => Effect.runPromise(e),
     ),
-    getWindowConfig: () => ({ updaterEnabled: UPDATER_ENABLED }),
+    getWindowConfig: () => ({
+      updaterEnabled: UPDATER_ENABLED,
+      authRedirectUri: authRedirectUriFor(app.isPackaged),
+      deepLinkScheme: deepLinkSchemeFor(app.isPackaged),
+    }),
     consumeInitialDeepLinks: () => pendingDeepLinks.splice(0),
     getDefaultServerUrl: () => getDefaultServerUrl(),
     setDefaultServerUrl: (url) => setDefaultServerUrl(url),
@@ -235,14 +239,15 @@ const main = Effect.gen(function* () {
   yield* Effect.promise(() => app.whenReady())
 
   if (!TEST_ONBOARDING) migrate()
-  // Only claim the orgn:// / opencode:// schemes as the OS-default handler from a
-  // packaged build. In an unpackaged macOS dev run, setAsDefaultProtocolClient
-  // registers the raw Electron.app (the "Open Electron?" prompt) and steals the
-  // schemes from an installed Orgn CDE, which breaks prod deep-link / OAuth-callback
-  // testing. Win/Linux dev registers via execPath (attributed to this app), so keep it.
-  if (app.isPackaged || process.platform !== "darwin") {
-    registerDeepLinkProtocolHandlers((scheme) => app.setAsDefaultProtocolClient(scheme))
-  }
+  // Claim the build-appropriate scheme set: packaged → orgn:// (+ legacy opencode://);
+  // unpackaged dev → orgn-dev:// only. Scheme separation (not skipping) is what keeps an
+  // unpackaged dev run from hijacking an installed Orgn CDE's orgn:// — so local dev can
+  // still own its own OAuth callback (orgn-dev://auth-callback). On macOS the dev bundle
+  // must also declare orgn-dev:// in Info.plist (see scripts/patch-dev-electron.ts).
+  registerDeepLinkProtocolHandlers(
+    (scheme) => app.setAsDefaultProtocolClient(scheme),
+    schemesToRegister(app.isPackaged),
+  )
   registerRendererProtocol()
   setupAutoUpdater()
   yield* Effect.promise(() => startNetLog()).pipe(

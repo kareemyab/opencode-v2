@@ -47,6 +47,13 @@ export const DEEP_LINK_SCHEME = "orgn" as const
 /** Read-only alias during transition — remove after one release. */
 export const LEGACY_DEEP_LINK_SCHEME = "opencode" as const
 
+/**
+ * Scheme for UNPACKAGED dev builds (`npm run dev:desktop`). Kept distinct from the
+ * packaged `orgn://` so a local dev instance can own its OAuth callback on macOS
+ * without colliding with an installed Orgn CDE (which keeps `orgn://`).
+ */
+export const DEV_DEEP_LINK_SCHEME = "orgn-dev" as const
+
 export const DEEP_LINK_EVENT = "orgn:deep-link" as const
 
 export const LEGACY_DEEP_LINK_EVENT = "opencode:deep-link" as const
@@ -172,7 +179,21 @@ export function isDeepLink(url: string, scheme: string = DEEP_LINK_SCHEME): bool
 }
 
 export function isAnyDeepLink(url: string): boolean {
-  return isDeepLink(url, DEEP_LINK_SCHEME) || isDeepLink(url, LEGACY_DEEP_LINK_SCHEME)
+  return (
+    isDeepLink(url, DEEP_LINK_SCHEME) ||
+    isDeepLink(url, LEGACY_DEEP_LINK_SCHEME) ||
+    isDeepLink(url, DEV_DEEP_LINK_SCHEME)
+  )
+}
+
+/** Active deep-link scheme: packaged builds use `orgn://`; unpackaged dev uses `orgn-dev://`. */
+export function deepLinkSchemeFor(isPackaged: boolean): string {
+  return isPackaged ? DEEP_LINK_SCHEME : DEV_DEEP_LINK_SCHEME
+}
+
+/** id-orgn OAuth redirect URI for the active build (scheme differs packaged vs dev). */
+export function authRedirectUriFor(isPackaged: boolean): string {
+  return `${deepLinkSchemeFor(isPackaged)}://auth-callback`
 }
 
 export function productNameForChannel(channel: OrgnChannel): string {

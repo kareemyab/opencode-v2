@@ -3,12 +3,15 @@ import {
   APP_IDS,
   APP_NAMES,
   DEEP_LINK_SCHEME,
+  DEV_DEEP_LINK_SCHEME,
   LEGACY_DEEP_LINK_SCHEME,
   ORGN_RADIUS_CSS,
   PRODUCT_NAME,
   THEME_ID_DEFAULT,
   THEME_STORAGE,
   LEGACY_THEME_STORAGE,
+  authRedirectUriFor,
+  deepLinkSchemeFor,
   isAnyDeepLink,
   storageKey,
   updatePublishUrl,
@@ -35,9 +38,18 @@ describe("orgn brand constants", () => {
   test("deep link schemes", () => {
     expect(isAnyDeepLink("orgn://open-project?directory=/tmp")).toBe(true)
     expect(isAnyDeepLink("opencode://open-project?directory=/tmp")).toBe(true)
+    expect(isAnyDeepLink("orgn-dev://auth-callback?code=a&state=b")).toBe(true)
     expect(isAnyDeepLink("https://orgn.com")).toBe(false)
     expect(DEEP_LINK_SCHEME).toBe("orgn")
     expect(LEGACY_DEEP_LINK_SCHEME).toBe("opencode")
+    expect(DEV_DEEP_LINK_SCHEME).toBe("orgn-dev")
+  })
+
+  test("active scheme + redirect by packaged state", () => {
+    expect(deepLinkSchemeFor(true)).toBe("orgn")
+    expect(deepLinkSchemeFor(false)).toBe("orgn-dev")
+    expect(authRedirectUriFor(true)).toBe("orgn://auth-callback")
+    expect(authRedirectUriFor(false)).toBe("orgn-dev://auth-callback")
   })
 
   test("update publish urls", () => {

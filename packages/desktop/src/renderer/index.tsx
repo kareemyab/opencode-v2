@@ -150,6 +150,12 @@ const createPlatform = (): Platform => {
     os,
     version: pkg.version,
 
+    getAuthRedirectUri: async () =>
+      window.api
+        .getWindowConfig()
+        .then((c) => c.authRedirectUri)
+        .catch(() => null),
+
     async openDirectoryPickerDialog(opts) {
       const defaultPath = await wslHome()
       const result = await window.api.openDirectoryPicker({

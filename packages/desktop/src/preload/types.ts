@@ -14,6 +14,10 @@ export type TitlebarTheme = {
 }
 export type WindowConfig = {
   updaterEnabled: boolean
+  /** id-orgn OAuth redirect URI for this build (orgn:// packaged, orgn-dev:// unpackaged dev). */
+  authRedirectUri: string
+  /** Active deep-link scheme for this build. */
+  deepLinkScheme: string
 }
 
 export type FatalRendererError = {

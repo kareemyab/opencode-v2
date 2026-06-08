@@ -24,7 +24,7 @@ import { $ } from "bun"
 import electronExecPath from "electron"
 import { copyFileSync, existsSync } from "node:fs"
 import { join } from "node:path"
-import { APP_NAMES } from "@opencode-ai/ui/brand"
+import { APP_IDS, APP_NAMES, DEV_DEEP_LINK_SCHEME } from "@opencode-ai/ui/brand"
 import { resolveChannel } from "./utils"
 
 if (process.platform !== "darwin") process.exit(0)
@@ -62,7 +62,29 @@ await $`/usr/libexec/PlistBuddy -c ${`Set :CFBundleDisplayName ${name}`} ${plist
   .quiet()
   .catch(() => $`/usr/libexec/PlistBuddy -c ${`Add :CFBundleDisplayName string ${name}`} ${plist}`.quiet())
 
+// Declare the dev deep-link scheme (orgn-dev://) so macOS routes orgn-dev://auth-callback
+// to THIS unpackaged bundle. setAsDefaultProtocolClient alone is ignored without an
+// Info.plist declaration. Delete-then-add keeps it idempotent across predev re-runs.
+await $`/usr/libexec/PlistBuddy -c ${"Delete :CFBundleURLTypes"} ${plist}`.quiet().catch(() => {})
+for (const cmd of [
+  "Add :CFBundleURLTypes array",
+  "Add :CFBundleURLTypes:0 dict",
+  `Add :CFBundleURLTypes:0:CFBundleURLName string ${APP_IDS.dev}`,
+  "Add :CFBundleURLTypes:0:CFBundleURLSchemes array",
+  `Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string ${DEV_DEEP_LINK_SCHEME}`,
+]) {
+  await $`/usr/libexec/PlistBuddy -c ${cmd} ${plist}`.quiet()
+}
+
 // Bump the bundle's mtime so LaunchServices/Dock refresh the icon on next launch.
 await $`touch ${appBundle}`.quiet()
 
-console.log(`patch-dev-electron: ${appBundle} → name "${name}", icon "${iconFile}" (${channel})`)
+// Force Launch Services to re-read CFBundleURLTypes so orgn-dev:// resolves to this bundle
+// immediately (otherwise it can resolve to "none" until the next relogin).
+const lsregister =
+  "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+await $`${lsregister} -f ${appBundle}`.quiet().catch(() => {})
+
+console.log(
+  `patch-dev-electron: ${appBundle} → name "${name}", icon "${iconFile}", scheme "${DEV_DEEP_LINK_SCHEME}://" (${channel})`,
+)
