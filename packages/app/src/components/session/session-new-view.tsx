@@ -5,7 +5,7 @@ import { useSDK } from "@/context/sdk"
 import { useLanguage } from "@/context/language"
 import { Icon } from "@opencode-ai/ui/icon"
 import { Isotype } from "@opencode-ai/ui/logo"
-import { getDirectory, getFilename } from "@opencode-ai/core/util/path"
+import { getFilename } from "@opencode-ai/core/util/path"
 
 const MAIN_WORKTREE = "main"
 const CREATE_WORKTREE = "create"
@@ -27,7 +27,6 @@ export function NewSessionView(props: NewSessionViewProps) {
     if (options().includes(selection)) return selection
     return MAIN_WORKTREE
   })
-  const projectRoot = createMemo(() => sync.project?.worktree ?? sdk.directory)
   const isWorktree = createMemo(() => {
     const project = sync.project
     if (!project) return false
@@ -55,10 +54,6 @@ export function NewSessionView(props: NewSessionViewProps) {
           <Isotype class="h-10 w-auto text-text-strong" aria-hidden="true" />
           <div class="text-20-medium text-text-strong">{language.t("session.new.title")}</div>
           <div class="flex flex-col items-center gap-4">
-            <div class="text-12-medium text-text-weak select-text leading-5 text-center">
-              {getDirectory(projectRoot())}
-              <span class="text-text-strong">{getFilename(projectRoot())}</span>
-            </div>
             <div class="inline-flex items-center justify-center gap-1.5">
               <Icon name="branch" size="small" class="shrink-0" />
               <span class="text-12-medium text-text-weak select-text leading-5 text-center">
