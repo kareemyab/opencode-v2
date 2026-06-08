@@ -42,7 +42,9 @@ type SimpleFetch = (req: {
 
 /** Fetch the live OLLM model list (team-keyed). Returns the static fallback on any failure. */
 export async function fetchOllmModels(baseURL: string, apiKey: string, fetchImpl?: SimpleFetch): Promise<OllmModel[]> {
-  const url = `${baseURL.replace(/\/+$/, "")}/models?allow_tee=&allow_zdr=`
+  // allow_tee/allow_zdr MUST be boolean strings: empty values 400, `false` returns 0 models
+  // (which would drop the provider). `true` returns the full confidential-compute catalog.
+  const url = `${baseURL.replace(/\/+$/, "")}/models?allow_tee=true&allow_zdr=true`
   const headers = { Authorization: `Bearer ${apiKey}`, Accept: "application/json" }
   try {
     let ok: boolean
