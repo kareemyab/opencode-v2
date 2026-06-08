@@ -32,6 +32,7 @@ type PromptAttachmentsInput = {
   focusEditor: () => void
   addPart: (part: ContentPart) => boolean
   readClipboardImage?: () => Promise<File | null>
+  imageSupported: () => boolean
 }
 
 export function createPromptAttachments(input: PromptAttachmentsInput) {
@@ -44,19 +45,29 @@ export function createPromptAttachments(input: PromptAttachmentsInput) {
       description: language.t("prompt.toast.pasteUnsupported.description"),
     })
   }
+  const warnImage = () => {
+    showToast({
+      title: language.t("prompt.toast.imageModelUnsupported.title"),
+      description: language.t("prompt.toast.imageModelUnsupported.description"),
+    })
+  }
 
   const add = async (file: File, toast = true) => {
+    if (!input.imageSupported()) {
+      if (toast) warnImage()
+      return "blocked" as const
+    }
     const mime = await attachmentMime(file)
     if (!mime) {
       if (toast) warn()
-      return false
+      return "rejected" as const
     }
 
     const editor = input.editor()
-    if (!editor) return false
+    if (!editor) return "rejected" as const
 
     const url = await dataUrl(file, mime)
-    if (!url) return false
+    if (!url) return "rejected" as const
 
     const attachment: ImageAttachmentPart = {
       type: "image",
@@ -67,21 +78,28 @@ export function createPromptAttachments(input: PromptAttachmentsInput) {
     }
     const cursor = prompt.cursor() ?? getCursorPosition(editor)
     prompt.set([...prompt.current(), attachment], cursor)
-    return true
+    return "added" as const
   }
 
   const addAttachment = (file: File) => add(file)
 
   const addAttachments = async (files: File[], toast = true) => {
-    let found = false
+    let added = false
+    let blocked = false
+    let rejected = false
 
     for (const file of files) {
-      const ok = await add(file, false)
-      if (ok) found = true
+      const state = await add(file, false)
+      if (state === "added") added = true
+      if (state === "blocked") blocked = true
+      if (state === "rejected") rejected = true
     }
 
-    if (!found && files.length > 0 && toast) warn()
-    return found
+    if (blocked && toast) warnImage()
+    if (!added && rejected && toast) warn()
+    if (added) return "added" as const
+    if (blocked) return "blocked" as const
+    return "rejected" as const
   }
 
   const removeAttachment = (id: string) => {

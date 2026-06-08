@@ -1,11 +1,12 @@
 import type { Session } from "@opencode-ai/sdk/v2/client"
 import { Avatar } from "@opencode-ai/ui/avatar"
+import { Collapsible } from "@opencode-ai/ui/collapsible"
 import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Spinner } from "@opencode-ai/ui/spinner"
 import { Tooltip } from "@opencode-ai/ui/tooltip"
 import { getFilename } from "@opencode-ai/core/util/path"
-import { A } from "@solidjs/router"
+import { A, useParams } from "@solidjs/router"
 import { type Accessor, createEffect, createMemo, For, type JSX, Match, Show, Switch } from "solid-js"
 import { useServerSync } from "@/context/server-sync"
 import { useLanguage } from "@/context/language"
@@ -15,7 +16,8 @@ import { usePermission } from "@/context/permission"
 import { messageAgentColor } from "@/utils/agent"
 import { sessionTitle } from "@/utils/session-title"
 import { sessionPermissionRequest } from "../session/composer/session-request-tree"
-import { getProjectAvatarSource, hasProjectPermissions, sortedChildSessions } from "./helpers"
+import { setSessionChildrenExpanded, sessionChildrenExpanded, sessionChildrenKey } from "./sidebar-session-children"
+import { childSessionOnPath, getProjectAvatarSource, hasProjectPermissions, sortedChildSessions } from "./helpers"
 
 export const ProjectIcon = (props: {
   project: LocalProject
@@ -70,6 +72,21 @@ export const ProjectIcon = (props: {
   )
 }
 
+export const SESSION_TREE_BASE = 12
+export const SESSION_TREE_INDENT = 20
+
+export const sessionTreeBranch = (level: number) => SESSION_TREE_BASE + SESSION_TREE_INDENT * level
+
+export const SessionTreeGroup = (props: { level?: number; class?: string; children: JSX.Element }): JSX.Element => (
+  <div
+    role="group"
+    class={`flex flex-col gap-1 ${props.class ?? ""}`}
+    style={{ "padding-left": `${sessionTreeBranch(props.level ?? 0)}px` }}
+  >
+    {props.children}
+  </div>
+)
+
 export type SessionItemProps = {
   session: Session
   list: Session[]
@@ -92,6 +109,9 @@ const SessionRow = (props: {
   slug: string
   mobile?: boolean
   dense?: boolean
+  level: number
+  childCount: number
+  childrenOpen: Accessor<boolean>
   tint: Accessor<string | undefined>
   isWorking: Accessor<boolean>
   hasPermissions: Accessor<boolean>
@@ -103,6 +123,8 @@ const SessionRow = (props: {
   warmFocus: () => void
 }): JSX.Element => {
   const title = () => sessionTitle(props.session.title)
+  const collapsedChildCount = (count: number, open: boolean) => (open ? undefined : count)
+  const collapsedCount = createMemo(() => collapsedChildCount(props.childCount, props.childrenOpen()))
 
   return (
     <A
@@ -136,12 +158,23 @@ const SessionRow = (props: {
           </Switch>
         </div>
       </Show>
-      <span class="text-14-regular text-text-strong min-w-0 flex-1 truncate">{title()}</span>
+      <span
+        class="text-14-regular text-text-strong min-w-0 flex-1 truncate"
+        classList={{
+          "text-13-regular text-text-base": props.level > 0,
+        }}
+      >
+        {title()}
+      </span>
+      <Show when={collapsedCount()}>
+        {(count) => <span class="shrink-0 text-12-regular text-text-weak">+{count()}</span>}
+      </Show>
     </A>
   )
 }
 
 export const SessionItem = (props: SessionItemProps): JSX.Element => {
+  const params = useParams()
   const layout = useLayout()
   const language = useLanguage()
   const notification = useNotification()
@@ -167,11 +200,25 @@ export const SessionItem = (props: SessionItemProps): JSX.Element => {
     void sessionStore.session
     return sortedChildSessions(sessionStore, props.session.id)
   })
+  const childCount = createMemo(() => childSessions().length)
+  const childrenKey = createMemo(() => sessionChildrenKey(props.session.directory, props.session.id))
+  const childrenOpen = createMemo(() => {
+    const saved = sessionChildrenExpanded(childrenKey())
+    if (saved !== undefined) return saved
+    return childCount() > 0
+  })
+  const activeChild = createMemo(() => childSessionOnPath(sessionStore.session, props.session.id, params.id))
+  const canExpand = createMemo(() => childCount() > 0)
 
   createEffect(() => {
     if (!props.showChild) return
     if (childSessions().length > 0) return
     void serverSync.project.loadSessionDescendants(props.session.directory, props.session.id)
+  })
+  createEffect(() => {
+    if (!activeChild()) return
+    if (childrenOpen()) return
+    setSessionChildrenExpanded(childrenKey(), true)
   })
 
   const warm = (span: number, priority: "high" | "low") => {
@@ -194,7 +241,7 @@ export const SessionItem = (props: SessionItemProps): JSX.Element => {
     }
   }
 
-  const inset = () => 8 + (props.level ?? 0) * 16
+  const inset = () => props.bleed ? sessionTreeBranch(props.level ?? 0) : 8 + (props.level ?? 0) * 16
 
   const item = (
     <SessionRow
@@ -202,6 +249,9 @@ export const SessionItem = (props: SessionItemProps): JSX.Element => {
       slug={props.slug}
       mobile={props.mobile}
       dense={props.dense}
+      level={props.level ?? 0}
+      childCount={childCount()}
+      childrenOpen={childrenOpen}
       tint={tint}
       isWorking={isWorking}
       hasPermissions={hasPermissions}
@@ -215,21 +265,36 @@ export const SessionItem = (props: SessionItemProps): JSX.Element => {
   )
 
   return (
-    <>
+    <Collapsible open={childrenOpen()} onOpenChange={(value) => setSessionChildrenExpanded(childrenKey(), value)}>
       <div
+        role="treeitem"
+        aria-level={(props.level ?? 0) + 1}
+        aria-expanded={canExpand() ? childrenOpen() : undefined}
         data-session-id={props.session.id}
         class="group/session relative w-full min-w-0 cursor-default transition-colors hover:bg-surface-raised-base-hover [&:has(:focus-visible)]:bg-surface-raised-base-hover has-[[data-expanded]]:bg-surface-raised-base-hover has-[.active]:bg-surface-base-active"
         classList={{
           "rounded-none": props.bleed,
           "rounded-md pr-3": !props.bleed,
         }}
-        style={props.bleed ? undefined : { "padding-left": `${inset()}px` }}
+        style={props.bleed ? { "padding-left": `${inset()}px` } : { "padding-left": `${inset()}px` }}
       >
-        <div
-          class="flex min-w-0 items-center gap-1"
-          classList={{ "px-3": props.bleed }}
-          style={props.bleed ? { "padding-left": `${12 + (props.level ?? 0) * 16}px` } : undefined}
-        >
+        <div class="flex min-w-0 items-center gap-1" classList={{ "pr-3": props.bleed }}>
+          <Show
+            when={canExpand()}
+            fallback={<div class="shrink-0 size-6" />}
+          >
+            <Collapsible.Trigger
+              as={IconButton}
+              icon={childrenOpen() ? "chevron-down" : "chevron-right"}
+              variant="ghost"
+              class="size-6 rounded-md shrink-0"
+              aria-label={childrenOpen() ? "Collapse children" : "Expand children"}
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+              }}
+            />
+          </Show>
           <div class="min-w-0 flex-1">
             <Show
               when={!tooltip()}
@@ -247,7 +312,6 @@ export const SessionItem = (props: SessionItemProps): JSX.Element => {
               {item}
             </Show>
           </div>
-
           <Show when={!props.level}>
             <div
               class="shrink-0 overflow-hidden transition-[width,opacity]"
@@ -275,14 +339,16 @@ export const SessionItem = (props: SessionItemProps): JSX.Element => {
           </Show>
         </div>
       </div>
-      <For each={childSessions()}>
-        {(child) => (
-          <div class="w-full">
-            <SessionItem {...props} session={child} level={(props.level ?? 0) + 1} />
-          </div>
-        )}
-      </For>
-    </>
+      <Show when={canExpand()}>
+        <Collapsible.Content>
+          <SessionTreeGroup level={(props.level ?? 0) + 1}>
+            <For each={childSessions()}>
+              {(child) => <SessionItem {...props} session={child} level={(props.level ?? 0) + 1} />}
+            </For>
+          </SessionTreeGroup>
+        </Collapsible.Content>
+      </Show>
+    </Collapsible>
   )
 }
 

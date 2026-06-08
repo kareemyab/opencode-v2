@@ -15,9 +15,8 @@ import {
 } from "./permission-auto-respond"
 
 type PermissionRespondFn = (input: {
-  sessionID: string
-  permissionID: string
-  response: "once" | "always" | "reject"
+  requestID: string
+  reply: "once" | "always" | "reject"
   directory?: string
 }) => void
 
@@ -119,8 +118,8 @@ export const { use: usePermission, provider: PermissionProvider } = createSimple
     }
 
     const respond: PermissionRespondFn = (input) => {
-      serverSDK.client.permission.respond(input).catch(() => {
-        responded.delete(input.permissionID)
+      serverSDK.client.permission.reply(input).catch(() => {
+        responded.delete(input.requestID)
       })
     }
 
@@ -132,9 +131,8 @@ export const { use: usePermission, provider: PermissionProvider } = createSimple
       pruneResponded(now)
       if (hit) return
       respond({
-        sessionID: permission.sessionID,
-        permissionID: permission.id,
-        response: "once",
+        requestID: permission.id,
+        reply: "once",
         directory,
       })
     }

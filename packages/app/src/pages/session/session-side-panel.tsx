@@ -1,4 +1,4 @@
-import { For, Match, Show, Switch, createEffect, createMemo, onCleanup, type JSX } from "solid-js"
+import { For, Match, Show, Switch, createEffect, createMemo, on, onCleanup, type JSX } from "solid-js"
 import { createStore } from "solid-js/store"
 import { createMediaQuery } from "@solid-primitives/media"
 import { Tabs } from "@opencode-ai/ui/tabs"
@@ -153,7 +153,6 @@ export function SessionSidePanel(props: {
     pathFromTab: file.pathFromTab,
     normalizeTab,
     review: reviewTab,
-    hasReview: props.canReview,
   })
   const openedTabs = tabState.openedTabs
   const activeTab = tabState.activeTab
@@ -170,7 +169,22 @@ export function SessionSidePanel(props: {
 
   const [store, setStore] = createStore({
     activeDraggable: undefined as string | undefined,
+    defaultedSectionTab: false,
   })
+
+  createEffect(
+    on(reviewOpen, (open) => {
+      if (!open) {
+        setStore("defaultedSectionTab", false)
+        return
+      }
+      if (store.defaultedSectionTab) return
+      const active = tabs().active()
+      if (active && active !== "review" && active !== "empty") return
+      tabs().setActive("repo-files")
+      setStore("defaultedSectionTab", true)
+    }),
+  )
 
   const handleDragStart = (event: unknown) => {
     const id = getDraggableId(event)
