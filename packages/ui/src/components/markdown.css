@@ -236,7 +236,9 @@
   }
 
   [data-component="markdown-code"]:hover [data-slot="markdown-copy-button"],
-  [data-component="markdown-mermaid"]:hover [data-slot="markdown-copy-button"] {
+  [data-component="markdown-mermaid"]:hover [data-slot="markdown-copy-button"],
+  [data-component="markdown-mermaid"]:hover [data-slot="markdown-mermaid-toolbar"],
+  [data-component="markdown-mermaid"]:focus-within [data-slot="markdown-mermaid-toolbar"] {
     opacity: 1;
   }
 
@@ -244,16 +246,84 @@
     position: relative;
     margin-top: 12px;
     margin-bottom: 32px;
-    overflow-x: auto;
     border: 1px solid var(--border, var(--border-weak-base));
     background: var(--surface-raised-base);
     padding: 12px;
     color: #f4f4f5;
+    overflow: hidden;
+  }
+
+  [data-slot="markdown-mermaid-toolbar"] {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--border-weak-base);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--surface-raised-stronger-non-alpha) 92%, transparent);
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+
+  [data-slot="markdown-mermaid-toolbar"] [data-component="icon-button"],
+  [data-slot="markdown-mermaid-toolbar"] [data-slot="markdown-copy-button"] {
+    position: static;
+    opacity: 1;
+    box-shadow: none;
+  }
+
+  [data-slot="markdown-mermaid-toolbar"] .markdown-mermaid-zoom-text {
+    min-width: 24px;
+    font-family: var(--font-family-mono);
+    font-size: 14px;
+    line-height: 1;
+    color: var(--icon-base);
+  }
+
+  [data-slot="markdown-mermaid-zoom-level"] {
+    min-width: 40px;
+    text-align: center;
+    color: var(--text-weak);
+    font-family: var(--font-family-mono);
+    font-size: 11px;
+    line-height: 1;
+    user-select: none;
+  }
+
+  [data-slot="markdown-mermaid-viewport"] {
+    overflow: hidden;
+    min-height: 160px;
+    max-height: min(70vh, 640px);
+    cursor: grab;
+    border-radius: var(--radius-sm);
+    touch-action: none;
+    user-select: none;
+  }
+
+  [data-component="markdown-mermaid"][data-dragging="true"] [data-slot="markdown-mermaid-viewport"] {
+    cursor: grabbing;
+  }
+
+  [data-slot="markdown-mermaid-canvas"] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 100%;
+    padding: 16px;
+    transform-origin: center center;
+    pointer-events: none;
   }
 
   [data-slot="markdown-mermaid-svg"] {
     display: block;
-    max-width: 100%;
+    max-width: none;
+    width: auto;
     height: auto;
     margin: 0 auto;
   }

@@ -55,7 +55,7 @@ export const dict: Record<string, string> = {
 
   "dialog.usageExceeded.freeTier.title": "Free limit reached",
   "dialog.usageExceeded.freeTier.description":
-    "Subscribe to orgn for reliable access to the best open-source models, starting at $5/month.",
+    "Subscribe to OpenCode Go for reliable access to the best open-source models, starting at $5/month.",
   "dialog.usageExceeded.freeTier.actionLabel": "Subscribe",
   "dialog.usageExceeded.accountRateLimit.title": "Go limit reached",
   "dialog.usageExceeded.accountRateLimit.description":
@@ -70,7 +70,6 @@ export const dict: Record<string, string> = {
   "ui.sessionTurn.status.searchingWeb": "Searching the web",
   "ui.sessionTurn.status.makingEdits": "Making edits",
   "ui.sessionTurn.status.runningCommands": "Running commands",
-  "ui.sessionTurn.status.ranShell": "Shell",
   "ui.sessionTurn.status.thinking": "Thinking",
   "ui.sessionTurn.status.thinkingWithTopic": "Thinking - {{topic}}",
   "ui.sessionTurn.status.gatheringThoughts": "Gathering thoughts",
@@ -89,8 +88,6 @@ export const dict: Record<string, string> = {
   "ui.messagePart.context.search.other": "{{count}} searches",
   "ui.messagePart.context.list.one": "{{count}} list",
   "ui.messagePart.context.list.other": "{{count}} lists",
-  "ui.messagePart.shell.commands.one": "{{count}} command",
-  "ui.messagePart.shell.commands.other": "{{count}} commands",
 
   "ui.list.loading": "Loading",
   "ui.list.empty": "No results",
@@ -110,6 +107,15 @@ export const dict: Record<string, string> = {
   "ui.textField.copied": "Copied",
 
   "ui.imagePreview.alt": "Image preview",
+
+  "ui.mermaidPreview.expand": "Open diagram viewer",
+  "ui.mermaidPreview.zoomIn": "Zoom in",
+  "ui.mermaidPreview.zoomOut": "Zoom out",
+  "ui.mermaidPreview.reset": "Reset zoom",
+  "ui.mermaidPreview.fit": "Fit",
+  "ui.mermaidPreview.fullscreen": "Fullscreen",
+  "ui.mermaidPreview.exitFullscreen": "Exit fullscreen",
+  "ui.mermaidPreview.hint": "Drag to pan · Scroll to zoom · +/- keys · 0 to reset · F for fullscreen",
   "ui.scrollView.ariaLabel": "scrollable content",
 
   "ui.tool.read": "Read",
