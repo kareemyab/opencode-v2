@@ -3,18 +3,21 @@ import {
   ALLOWED_DEEP_LINK_HOSTS,
   collectNewSessionDeepLinks,
   collectOpenProjectDeepLinks,
+  collectOpenSandboxDeepLinks,
   drainPendingDeepLinks,
   isAllowedDeepLinkUrl,
   isSafeDirectoryPath,
   parseDeepLink,
   parseNewSessionDeepLink,
+  parseOpenSandboxDeepLink,
 } from "./deep-links"
 
 describe("deep link security", () => {
-  test("allowlists only open-project and new-session hosts", () => {
-    expect(ALLOWED_DEEP_LINK_HOSTS).toEqual(["open-project", "new-session"])
+  test("allowlists open-project, new-session, and open-sandbox hosts", () => {
+    expect(ALLOWED_DEEP_LINK_HOSTS).toEqual(["open-project", "new-session", "open-sandbox"])
     expect(isAllowedDeepLinkUrl(new URL("orgn://open-project?directory=/tmp"))).toBe(true)
     expect(isAllowedDeepLinkUrl(new URL("opencode://new-session?directory=/tmp"))).toBe(true)
+    expect(isAllowedDeepLinkUrl(new URL("orgn://open-sandbox?sandbox=abc&dir=/tmp"))).toBe(true)
     expect(isAllowedDeepLinkUrl(new URL("orgn://evil?directory=/tmp"))).toBe(false)
     expect(isAllowedDeepLinkUrl(new URL("orgn://open-project:8080?directory=/tmp"))).toBe(false)
   })
@@ -87,6 +90,42 @@ describe("deep link security", () => {
         "orgn://new-session?directory=relative",
       ]),
     ).toEqual([{ directory: "/a" }, { directory: "/c", prompt: "ship it" }])
+  })
+
+  test("parses open-sandbox links and validates fields", () => {
+    expect(
+      parseOpenSandboxDeepLink("orgn://open-sandbox?sandbox=be863981-abc&dir=/home/daytona/wt&port=4096"),
+    ).toEqual({ sandbox: "be863981-abc", dir: "/home/daytona/wt", port: 4096 })
+
+    expect(
+      parseOpenSandboxDeepLink("orgn://open-sandbox?sandbox=abc&dir=/wt&session=ses_123&prompt=fix%20bug"),
+    ).toEqual({ sandbox: "abc", dir: "/wt", session: "ses_123", prompt: "fix bug" })
+
+    // Missing/invalid required fields
+    expect(parseOpenSandboxDeepLink("orgn://open-sandbox?dir=/wt")).toBeUndefined()
+    expect(parseOpenSandboxDeepLink("orgn://open-sandbox?sandbox=abc")).toBeUndefined()
+    expect(parseOpenSandboxDeepLink("orgn://open-sandbox?sandbox=bad%20id&dir=/wt")).toBeUndefined()
+    expect(parseOpenSandboxDeepLink("orgn://open-sandbox?sandbox=abc&dir=relative")).toBeUndefined()
+    // Invalid optional fields are dropped, not fatal
+    expect(
+      parseOpenSandboxDeepLink("orgn://open-sandbox?sandbox=abc&dir=/wt&port=99999&session=bad%2Fid&prompt=%00"),
+    ).toEqual({ sandbox: "abc", dir: "/wt" })
+    // Credentials still rejected
+    expect(parseOpenSandboxDeepLink("orgn://user:pass@open-sandbox?sandbox=abc&dir=/wt")).toBeUndefined()
+  })
+
+  test("collects only validated open-sandbox deep links", () => {
+    expect(
+      collectOpenSandboxDeepLinks([
+        "orgn://open-sandbox?sandbox=a&dir=/wt-a",
+        "orgn://open-project?directory=/b",
+        "orgn://open-sandbox?sandbox=c&dir=/wt-c&session=ses_9",
+        "orgn://open-sandbox?dir=/missing-sandbox",
+      ]),
+    ).toEqual([
+      { sandbox: "a", dir: "/wt-a" },
+      { sandbox: "c", dir: "/wt-c", session: "ses_9" },
+    ])
   })
 
   test("drains orgn and legacy pending deep links once", () => {

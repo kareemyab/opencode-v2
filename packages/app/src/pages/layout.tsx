@@ -19,6 +19,7 @@ import { useLayout, LocalProject } from "@/context/layout"
 import { useServerSync } from "@/context/server-sync"
 import { Persist, persisted } from "@/utils/persist"
 import { base64Encode } from "@opencode-ai/core/util/encode"
+import { daytonaOpencodeOrigin } from "@opencode-ai/ui/brand"
 import { decode64 } from "@/utils/base64"
 import { ResizeHandle } from "@opencode-ai/ui/resize-handle"
 import { Button } from "@opencode-ai/ui/button"
@@ -78,8 +79,10 @@ import {
 import {
   collectNewSessionDeepLinks,
   collectOpenProjectDeepLinks,
+  collectOpenSandboxDeepLinks,
   deepLinkEvent,
   drainPendingDeepLinks,
+  type OpenSandboxDeepLink,
 } from "./layout/deep-links"
 import { createInlineEditorController } from "./layout/inline-editor"
 import {
@@ -1397,7 +1400,36 @@ export default function Layout(props: ParentProps) {
     if (navigate) return navigateToProject(directory)
   }
 
+  function openSandbox(link: OpenSandboxDeepLink) {
+    const origin = daytonaOpencodeOrigin(link.sandbox, link.port)
+    const conn: ServerConnection.Http = { type: "http", http: { url: origin } }
+    const scope = server.scope(ServerConnection.key(conn))
+    const slug = base64Encode(link.dir)
+
+    // Seed the composer BEFORE activating the server: server.add() flips the
+    // active connection and remounts the server-scoped (keyed) subtree, so the
+    // handoff must already be present under the new scope when the composer
+    // mounts. Mirrors the navigate-then-add ordering in pages/launch.tsx.
+    if (link.prompt && !link.session) {
+      setSessionHandoff(SessionStateKey.from(scope, SessionRouteKey.fromLegacy(slug)), { prompt: link.prompt })
+    }
+
+    const href = link.session
+      ? `/${slug}/session/${link.session}`
+      : link.prompt
+        ? `/${slug}/session?prompt=${encodeURIComponent(link.prompt)}`
+        : `/${slug}/session`
+    navigateWithSidebarReset(href)
+    server.add(conn)
+  }
+
   const handleDeepLinks = (urls: string[]) => {
+    // Sandbox connect switches to a REMOTE server, so it must run regardless of
+    // whether the current server is the local sidecar.
+    for (const link of collectOpenSandboxDeepLinks(urls)) {
+      openSandbox(link)
+    }
+
     if (!server.isLocal()) return
 
     for (const directory of collectOpenProjectDeepLinks(urls)) {

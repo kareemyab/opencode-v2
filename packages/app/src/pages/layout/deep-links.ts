@@ -18,7 +18,7 @@ export {
 
 export const deepLinkEvent = DEEP_LINK_EVENT
 
-export const ALLOWED_DEEP_LINK_HOSTS = ["open-project", "new-session"] as const
+export const ALLOWED_DEEP_LINK_HOSTS = ["open-project", "new-session", "open-sandbox"] as const
 
 const allowedHosts = new Set<string>(ALLOWED_DEEP_LINK_HOSTS)
 
@@ -55,10 +55,32 @@ export function isSafeDirectoryPath(directory: string): boolean {
   return false
 }
 
-function readDirectory(url: URL): string | undefined {
-  const directory = url.searchParams.get("directory")
+function readDirectory(url: URL, key = "directory"): string | undefined {
+  const directory = url.searchParams.get(key)
   if (!directory || !isSafeDirectoryPath(directory)) return
   return directory.trim()
+}
+
+const SANDBOX_ID_RE = /^[a-z0-9-]+$/i
+
+function readSandboxId(url: URL): string | undefined {
+  const sandbox = url.searchParams.get("sandbox")?.trim()
+  if (!sandbox || !SANDBOX_ID_RE.test(sandbox)) return
+  return sandbox
+}
+
+function readPort(url: URL): number | undefined {
+  const raw = url.searchParams.get("port")?.trim()
+  if (!raw || !/^\d+$/.test(raw)) return
+  const port = Number(raw)
+  if (!Number.isSafeInteger(port) || port <= 0 || port > 65535) return
+  return port
+}
+
+function readSessionId(url: URL): string | undefined {
+  const id = url.searchParams.get("session")?.trim()
+  if (!id || /[^A-Za-z0-9_-]/.test(id)) return
+  return id
 }
 
 function readPrompt(url: URL): string | undefined {
@@ -87,6 +109,42 @@ export const parseNewSessionDeepLink = (input: string) => {
   return { directory, prompt }
 }
 
+export type OpenSandboxDeepLink = {
+  sandbox: string
+  dir: string
+  port?: number
+  session?: string
+  prompt?: string
+}
+
+/**
+ * `orgn://open-sandbox?sandbox=<csbID>&dir=<absolute worktree>[&port=4096][&session=<id>][&prompt=<text>]`
+ *
+ * Connects the desktop app to a REMOTE running opencode instance (a Daytona
+ * sandbox preview) and opens the given git worktree directory — optionally a
+ * specific session, optionally seeding the composer with a prompt. Unlike
+ * `open-project` / `new-session` (which open LOCAL directories on the current
+ * server), this switches the active server to the sandbox's opencode origin.
+ */
+export const parseOpenSandboxDeepLink = (input: string): OpenSandboxDeepLink | undefined => {
+  const url = parseUrl(input)
+  if (!url || !isAllowedDeepLinkUrl(url)) return
+  if (url.hostname !== "open-sandbox") return
+  const sandbox = readSandboxId(url)
+  const dir = readDirectory(url, "dir")
+  if (!sandbox || !dir) return
+  const port = readPort(url)
+  const session = readSessionId(url)
+  const prompt = readPrompt(url)
+  return {
+    sandbox,
+    dir,
+    ...(port ? { port } : {}),
+    ...(session ? { session } : {}),
+    ...(prompt ? { prompt } : {}),
+  }
+}
+
 export const parseAuthCallbackDeepLink = (input: string) => {
   const url = parseUrl(input)
   if (!url) return
@@ -107,6 +165,9 @@ export const collectOpenProjectDeepLinks = (urls: string[]) =>
 
 export const collectNewSessionDeepLinks = (urls: string[]) =>
   urls.map(parseNewSessionDeepLink).filter((link): link is { directory: string; prompt?: string } => !!link)
+
+export const collectOpenSandboxDeepLinks = (urls: string[]) =>
+  urls.map(parseOpenSandboxDeepLink).filter((link): link is OpenSandboxDeepLink => !!link)
 
 type OrgnWindow = Window & {
   __ORGN__?: {
