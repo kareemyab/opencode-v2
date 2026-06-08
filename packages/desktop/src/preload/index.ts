@@ -4,6 +4,7 @@ import type { ElectronAPI } from "./types"
 const api: ElectronAPI = {
   killSidecar: () => ipcRenderer.invoke("kill-sidecar"),
   installCli: () => ipcRenderer.invoke("install-cli"),
+  apiFetch: (req) => ipcRenderer.invoke("api-fetch", req),
   awaitInitialization: () => ipcRenderer.invoke("await-initialization"),
   getWindowConfig: () => ipcRenderer.invoke("get-window-config"),
   consumeInitialDeepLinks: () => ipcRenderer.invoke("consume-initial-deep-links"),

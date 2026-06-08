@@ -156,6 +156,8 @@ const createPlatform = (): Platform => {
         .then((c) => c.authRedirectUri)
         .catch(() => null),
 
+    apiFetch: (req) => window.api.apiFetch(req),
+
     async openDirectoryPickerDialog(opts) {
       const defaultPath = await wslHome()
       const result = await window.api.openDirectoryPicker({

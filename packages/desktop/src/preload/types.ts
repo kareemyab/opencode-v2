@@ -28,9 +28,26 @@ export type FatalRendererError = {
   os?: string
 }
 
+/** A cross-origin fetch executed in the main process (no renderer CORS). */
+export type ApiFetchRequest = {
+  url: string
+  method?: string
+  headers?: Record<string, string>
+  body?: string
+}
+export type ApiFetchResponse = {
+  ok: boolean
+  status: number
+  statusText: string
+  headers: Record<string, string>
+  body: string
+}
+
 export type ElectronAPI = {
   killSidecar: () => Promise<void>
   installCli: () => Promise<string>
+  /** Cross-origin fetch via the main process — bypasses renderer CORS (Edge API / sandbox). */
+  apiFetch: (req: ApiFetchRequest) => Promise<ApiFetchResponse>
   awaitInitialization: () => Promise<ServerReadyData>
   getWindowConfig: () => Promise<WindowConfig>
   consumeInitialDeepLinks: () => Promise<string[]>
