@@ -235,7 +235,14 @@ const main = Effect.gen(function* () {
   yield* Effect.promise(() => app.whenReady())
 
   if (!TEST_ONBOARDING) migrate()
-  registerDeepLinkProtocolHandlers((scheme) => app.setAsDefaultProtocolClient(scheme))
+  // Only claim the orgn:// / opencode:// schemes as the OS-default handler from a
+  // packaged build. In an unpackaged macOS dev run, setAsDefaultProtocolClient
+  // registers the raw Electron.app (the "Open Electron?" prompt) and steals the
+  // schemes from an installed Orgn CDE, which breaks prod deep-link / OAuth-callback
+  // testing. Win/Linux dev registers via execPath (attributed to this app), so keep it.
+  if (app.isPackaged || process.platform !== "darwin") {
+    registerDeepLinkProtocolHandlers((scheme) => app.setAsDefaultProtocolClient(scheme))
+  }
   registerRendererProtocol()
   setupAutoUpdater()
   yield* Effect.promise(() => startNetLog()).pipe(
