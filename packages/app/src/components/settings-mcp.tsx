@@ -7,6 +7,7 @@ import { createEffect, createMemo, For, Show, type Component } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
+import { useServer } from "@/context/server"
 import { useServerSync } from "@/context/server-sync"
 import { showToast } from "@/utils/toast"
 
@@ -47,6 +48,7 @@ function parseEntries(mcp: Config["mcp"] | undefined): McpEntry[] {
 export const SettingsMcp: Component = () => {
   const language = useLanguage()
   const platform = usePlatform()
+  const server = useServer()
   const serverSync = useServerSync()
 
   const [store, setStore] = createStore({
@@ -130,7 +132,10 @@ export const SettingsMcp: Component = () => {
   }
 
   const openConfigFolder = () => {
-    if (!platform.openPath || !configDir()) return
+    // The config path belongs to the active server; opening it in the local OS file explorer
+    // only makes sense when that server is local. For a remote sandbox the path doesn't exist
+    // on this machine, so the button is hidden and this is a defensive no-op.
+    if (!platform.openPath || !configDir() || !server.isLocal()) return
     void platform.openPath(configDir())
   }
 
@@ -189,7 +194,7 @@ export const SettingsMcp: Component = () => {
           {/* Config directory row */}
           <div class="flex items-center justify-between gap-4 min-h-10 rounded-md border border-border-weak-base bg-background-base px-3 py-2">
             <code class="text-12-regular text-text-weak break-all min-w-0">{configDir()}</code>
-            <Show when={platform.openPath && configDir()}>
+            <Show when={platform.openPath && configDir() && server.isLocal()}>
               <button
                 type="button"
                 title={language.t("settings.mcp.action.openConfigFolder")}
