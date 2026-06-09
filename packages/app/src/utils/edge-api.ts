@@ -28,6 +28,7 @@ import type {
   CreateTaskInput,
   CreateTrialInput,
   Team,
+  TeamCredits,
 } from "./edge-api-types"
 
 export type EdgeFetch = (req: {
@@ -180,6 +181,10 @@ export function createEdgeClient(config: EdgeClientConfig) {
           "members",
         )
       },
+      /** Team credit balance (id-orgn billing ledger). Bare `{ balance, updatedAt, lowBalanceThreshold }`. */
+      async credits(teamId: string): Promise<TeamCredits> {
+        return asObject<TeamCredits>(await request(idUrl, `/api/user/teams/${teamId}/credits`))
+      },
     },
     projects: {
       async list(teamId: string): Promise<CloudProject[]> {
@@ -253,6 +258,24 @@ export function createEdgeClient(config: EdgeClientConfig) {
           ...(input.assignedToId ? { assignedToId: input.assignedToId } : {}),
         }
         return asObject<CloudTask>(await request(apiUrl, "/api/v1/tasks", { method: "POST", teamId: opts.teamId, body }))
+      },
+      /**
+       * Enhance a task's description with AI (per-team OLLM key, server-side). Persists the
+       * result and returns the enhanced Markdown plus the updated task. `input` overrides the
+       * source text (defaults to the task's current description server-side).
+       */
+      async enhance(
+        taskId: string,
+        input: string | undefined,
+        opts: EdgeRequestOpts,
+      ): Promise<{ enhanced: string; task: CloudTaskDetail }> {
+        return asObject<{ enhanced: string; task: CloudTaskDetail }>(
+          await request(apiUrl, `/api/v1/tasks/${taskId}/enhance`, {
+            method: "POST",
+            teamId: opts.teamId,
+            body: input ? { input } : {},
+          }),
+        )
       },
     },
     trials: {

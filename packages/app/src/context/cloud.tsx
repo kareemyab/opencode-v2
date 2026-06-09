@@ -12,6 +12,7 @@ import type {
   CloudTrial,
   CreateTaskInput,
   CreateTrialInput,
+  TeamCredits,
 } from "@/utils/edge-api-types"
 
 /**
@@ -80,6 +81,14 @@ export const { use: useCloud, provider: CloudProvider } = createSimpleContext({
         enabled: !!teamId(),
         staleTime: 300_000,
       }),
+      // Keyed by the explicit team (not the active one) so the team switcher can show a
+      // balance for every team it lists. id-orgn billing ledger; cached 60s.
+      teamCreditsQuery: (id: string | undefined) => ({
+        queryKey: ["cloud", "credits", id] as const,
+        queryFn: (): Promise<TeamCredits> => edge.teams.credits(id!),
+        enabled: !!id,
+        staleTime: 60_000,
+      }),
 
       // Imperative sandbox helpers (open-cloud flow, Phase 5).
       sandboxStatus: (trialId: string) => edge.trials.sandboxStatus(trialId, { teamId: teamId() }),
@@ -91,6 +100,8 @@ export const { use: useCloud, provider: CloudProvider } = createSimpleContext({
       createTask: (input: CreateTaskInput) => edge.tasks.create(input, { teamId: teamId() }),
       /** Post a comment on a task. */
       addComment: (taskId: string, body: string) => edge.tasks.addComment(taskId, body, { teamId: teamId() }),
+      /** Enhance a task's description with AI; persists and returns the enhanced text + updated task. */
+      enhanceTask: (taskId: string, input?: string) => edge.tasks.enhance(taskId, input, { teamId: teamId() }),
     }
   },
 })

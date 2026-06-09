@@ -1,9 +1,13 @@
 import { base64Encode } from "@opencode-ai/core/util/encode"
 import { Avatar } from "@opencode-ai/ui/avatar"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
+import { Dialog } from "@opencode-ai/ui/dialog"
 import { DropdownMenu } from "@opencode-ai/ui/dropdown-menu"
 import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
+import { Keybind } from "@opencode-ai/ui/keybind"
+import { List } from "@opencode-ai/ui/list"
+import { Isotype } from "@opencode-ai/ui/logo"
 import { Spinner } from "@opencode-ai/ui/spinner"
 import { useNavigate } from "@solidjs/router"
 import { useQuery } from "@tanstack/solid-query"
@@ -11,7 +15,9 @@ import { createEffect, createMemo, createSignal, For, type JSX, Match, Show, Swi
 import { createStore } from "solid-js/store"
 import { DialogSelectDirectory } from "@/components/dialog-select-directory"
 import { useCloud } from "@/context/cloud"
+import { formatKeybind, useCommand, type CommandOption } from "@/context/command"
 import { useGlobal } from "@/context/global"
+import { useLanguage } from "@/context/language"
 import { usePlatform } from "@/context/platform"
 import { useServer } from "@/context/server"
 import { useSettings } from "@/context/settings"
@@ -20,7 +26,16 @@ import { homeProjectDirectories } from "@/pages/layout/helpers"
 import { TaskFilterMenu, type FilterSection } from "@/components/task-filter-menu"
 import { SidebarChromeHeader } from "@/pages/layout/sidebar-chrome"
 import { SidebarProfileFooter } from "@/pages/layout/sidebar-profile"
-import type { CloudActivity, CloudComment, CloudProject, CloudTask, CloudTaskDetail, CloudTrial, Team } from "@/utils/edge-api-types"
+import type {
+  CloudActivity,
+  CloudComment,
+  CloudMember,
+  CloudProject,
+  CloudTask,
+  CloudTaskDetail,
+  CloudTrial,
+  Team,
+} from "@/utils/edge-api-types"
 import { openCloudTrial } from "@/utils/open-cloud"
 import { showToast } from "@/utils/toast"
 
@@ -49,6 +64,7 @@ export default function CloudPage() {
   const global = useGlobal()
   const settings = useSettings()
   const dialog = useDialog()
+  const command = useCommand()
   const navigate = useNavigate()
 
   // Unified top-bar chrome (matches the local layout): traffic-light inset + a toggle that
@@ -104,29 +120,55 @@ export default function CloudPage() {
     const statusOpts = [...new Set(all.map((t) => t.status).filter((s): s is string => !!s))].map((s) => ({
       value: s,
       label: s.replace(/[-_]/g, " "),
+      color: statusColor(s),
     }))
     const prioOpts = [...new Set(all.map((t) => t.priority).filter((p): p is number => typeof p === "number"))]
       .sort((a, b) => b - a)
-      .map((p) => ({ value: String(p), label: PRIORITY_LABELS[p] ?? `P${p}` }))
-    const memberName = (id: string) => {
-      const m = (members.data ?? []).find((x) => (x.user?.id ?? x.userId) === id)
-      return m?.user?.name || m?.user?.email || id
-    }
-    const assigneeOpts = [...new Set(all.map((t) => t.assignedToId ?? "unassigned"))].map((id) => ({
-      value: id,
-      label: id === "unassigned" ? "Unassigned" : memberName(id),
-    }))
+      .map((p) => ({ value: String(p), label: PRIORITY_LABELS[p] ?? `P${p}`, color: PRIORITY_COLORS[p] ?? "#9ca3af" }))
+    const findMember = (id: string) => (members.data ?? []).find((x) => (x.user?.id ?? x.userId) === id)
+    const assigneeOpts = [...new Set(all.map((t) => t.assignedToId ?? "unassigned"))].map((id) => {
+      if (id === "unassigned") return { value: id, label: "Unassigned", avatar: "" }
+      const m = findMember(id)
+      return { value: id, label: m?.user?.name || m?.user?.email || id, avatar: m?.user?.image ?? "" }
+    })
     const labelOpts = (labels.data ?? []).map((l) => ({ value: l.id, label: l.name, color: l.color }))
     return [
-      { label: "STATUS", options: statusOpts, isSelected: (v) => filters.statuses.includes(v), toggle: (v) => toggleArr("statuses", v) },
+      {
+        label: "STATUS",
+        key: "status",
+        variant: "chips",
+        options: statusOpts,
+        selectedCount: () => filters.statuses.length,
+        isSelected: (v) => filters.statuses.includes(v),
+        toggle: (v) => toggleArr("statuses", v),
+      },
       {
         label: "PRIORITY",
+        key: "priority",
+        variant: "chips",
         options: prioOpts,
+        selectedCount: () => filters.priorities.length,
         isSelected: (v) => filters.priorities.includes(Number(v)),
         toggle: (v) => togglePriority(Number(v)),
       },
-      { label: "ASSIGNEE", options: assigneeOpts, isSelected: (v) => filters.assignees.includes(v), toggle: (v) => toggleArr("assignees", v) },
-      { label: "LABEL", options: labelOpts, isSelected: (v) => filters.labelIds.includes(v), toggle: (v) => toggleArr("labelIds", v) },
+      {
+        label: "ASSIGNEE",
+        key: "assignee",
+        variant: "list",
+        options: assigneeOpts,
+        selectedCount: () => filters.assignees.length,
+        isSelected: (v) => filters.assignees.includes(v),
+        toggle: (v) => toggleArr("assignees", v),
+      },
+      {
+        label: "LABEL",
+        key: "label",
+        variant: "list",
+        options: labelOpts,
+        selectedCount: () => filters.labelIds.length,
+        isSelected: (v) => filters.labelIds.includes(v),
+        toggle: (v) => toggleArr("labelIds", v),
+      },
     ]
   })
 
@@ -263,6 +305,40 @@ export default function CloudPage() {
   const openServer = () => {
     void import("@/components/dialog-select-server").then((x) => dialog.show(() => <x.DialogSelectServer />))
   }
+  // Model list/visibility manager. Cloud-safe: DialogManageModels reads the global ModelsProvider
+  // (not the local-project context), so it works here without a mounted project.
+  const openModels = () => {
+    void import("@/components/dialog-manage-models").then((x) => dialog.show(() => <x.DialogManageModels />))
+  }
+  // Command palette ("Show All Commands"): lists every command registered for the cloud shell.
+  const openCommandPalette = () => {
+    dialog.show(() => <CloudCommandPalette />)
+  }
+
+  // Quick actions registered as real commands so their keybinds fire globally (via the command
+  // context's keydown handler) and they appear in the palette. `file.open` is the id `showPalette`
+  // invokes, so the built-in palette keybind (mod+shift+p) opens our palette too.
+  const quickActionHandlers: Record<string, () => void> = {
+    "project.open": () => void openLocalProject(),
+    "server.switch": () => openServer(),
+    "settings.open": () => openSettings(),
+    "models.manage": () => openModels(),
+    "file.open": () => openCommandPalette(),
+  }
+  command.register("cloud", () =>
+    QUICK_ACTIONS.map(
+      (action): CommandOption => ({
+        id: action.id,
+        title: action.label,
+        category: "Cloud",
+        // The palette keybind is handled by the command context itself; don't double-bind it.
+        keybind: action.id === "file.open" ? undefined : action.keybind,
+        hidden: action.id === "file.open",
+        onSelect: quickActionHandlers[action.id],
+      }),
+    ),
+  )
+
   // New-task dialog for the selected project; refetch the task list on success.
   const openCreateTask = () => {
     const projectId = nav.projectId
@@ -397,16 +473,7 @@ export default function CloudPage() {
 
         {/* Middle pane */}
         <main class="min-w-0 flex-1 overflow-y-auto">
-          <Switch
-            fallback={
-              <MiddleEmpty
-                icon="folder"
-                title="Select a project"
-                hint="Pick a project from the sidebar to view its tasks and worktrees."
-                onOpenLocal={() => void openLocalProject()}
-              />
-            }
-          >
+          <Switch fallback={<MiddleWelcome />}>
             <Match when={selectedTask()} keyed>
               {(task) => (
                 <TaskDetail
@@ -432,6 +499,41 @@ export default function CloudPage() {
   )
 }
 
+/** Per-team credit balance (id-orgn ledger). Lazily fetched + cached; `compact` drops the unit for the trigger. */
+function TeamBalance(props: { teamId: string; compact?: boolean }) {
+  const cloud = useCloud()
+  const credits = useQuery(() => cloud.teamCreditsQuery(props.teamId))
+
+  return (
+    <Switch>
+      <Match when={credits.isLoading}>
+        <span
+          aria-hidden="true"
+          classList={{
+            "h-3 animate-pulse rounded bg-surface-raised-base": true,
+            "w-9": props.compact,
+            "w-16": !props.compact,
+          }}
+        />
+      </Match>
+      <Match when={credits.data}>
+        {(c) => (
+          <span
+            classList={{
+              "shrink-0 text-12-mono tabular-nums": true,
+              "text-icon-critical-base": c().balance <= 0,
+              "text-text-weak": c().balance > 0,
+            }}
+          >
+            {c().balance.toLocaleString()}
+            {props.compact ? "" : " credits"}
+          </span>
+        )}
+      </Match>
+    </Switch>
+  )
+}
+
 function TeamSwitcher() {
   const team = useTeam()
   const active = createMemo(() => team.activeTeam())
@@ -439,17 +541,23 @@ function TeamSwitcher() {
   return (
     <DropdownMenu placement="bottom-start" gutter={6}>
       <DropdownMenu.Trigger class="group flex w-full items-center gap-2 rounded-md px-2 py-2 text-left transition-colors hover:bg-surface-raised-base-hover focus-visible:outline-none data-[expanded]:bg-surface-base-active">
-        <Avatar fallback={teamLabel(active())} class="size-6 shrink-0 rounded" size="small" />
+        <Avatar fallback={teamLabel(active())} src={active()?.logo ?? undefined} class="size-6 shrink-0 rounded" size="small" />
         <span class="min-w-0 flex-1 truncate text-14-medium text-text-strong">{teamLabel(active())}</span>
-        <Icon name="selector" class="size-3.5 shrink-0 text-icon-weak-base" />
+        <Show when={active()}>{(t) => <TeamBalance teamId={t().id} compact />}</Show>
+        <Icon name="selector" class="size-4 shrink-0 text-icon-weak-base transition-colors group-hover:text-icon-base" />
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
-        <DropdownMenu.Content class="z-50 min-w-[248px]">
+        <DropdownMenu.Content class="z-50 min-w-[260px]">
           <For each={team.teams()}>
             {(t) => (
-              <DropdownMenu.Item class="flex items-center gap-2" onSelect={() => team.setActiveTeam(t.id)}>
-                <Avatar fallback={teamLabel(t)} class="size-5 shrink-0 rounded" size="small" />
-                <DropdownMenu.ItemLabel class="min-w-0 flex-1 truncate">{teamLabel(t)}</DropdownMenu.ItemLabel>
+              <DropdownMenu.Item class="flex items-center gap-2.5" onSelect={() => team.setActiveTeam(t.id)}>
+                <Avatar fallback={teamLabel(t)} src={t.logo ?? undefined} class="size-6 shrink-0 rounded" size="small" />
+                <div class="flex min-w-0 flex-1 flex-col">
+                  <DropdownMenu.ItemLabel class="truncate text-14-regular text-text-strong">
+                    {teamLabel(t)}
+                  </DropdownMenu.ItemLabel>
+                  <TeamBalance teamId={t.id} />
+                </div>
                 <Show when={t.id === team.activeTeamId()}>
                   <Icon name="check" class="size-3.5 shrink-0 text-icon-base" />
                 </Show>
@@ -522,54 +630,101 @@ function TaskDetail(props: {
   const detail = useQuery(() => cloud.taskQuery(props.task.id))
   const comments = useQuery(() => cloud.commentsQuery(props.task.id))
   const activity = useQuery(() => cloud.activityQuery(props.task.id))
+  const members = useQuery(() => cloud.membersQuery())
   // Fall back to the list row while the full detail loads.
   const meta = createMemo<CloudTaskDetail>(() => detail.data ?? (props.task as CloudTaskDetail))
 
+  const [enhancing, setEnhancing] = createSignal(false)
+  // AI-rewrite the description via the team's OLLM key (persisted server-side), then refetch
+  // so the new description and the resulting activity entry show up.
+  const enhance = async () => {
+    if (enhancing()) return
+    setEnhancing(true)
+    try {
+      await cloud.enhanceTask(props.task.id, meta().description ?? undefined)
+      await Promise.all([detail.refetch(), activity.refetch()])
+    } catch (e) {
+      showToast({
+        variant: "error",
+        title: "Failed to enhance task",
+        description: e instanceof Error ? e.message : String(e),
+      })
+    } finally {
+      setEnhancing(false)
+    }
+  }
+
   return (
-    <div class="mx-auto flex w-full max-w-[760px] flex-col gap-7 px-8 py-10">
-      <div class="flex flex-col gap-2">
-        <div class="flex items-center gap-2.5">
-          <h1 class="min-w-0 text-16-medium text-text-strong">{meta().title}</h1>
-          <Show when={meta().status}>
-            <StatusBadge status={meta().status!} />
-          </Show>
-        </div>
-        <Show when={meta().description}>
-          <p class="text-14-regular text-text-base" style={{ "line-height": "var(--line-height-normal)" }}>
-            {meta().description}
-          </p>
-        </Show>
-      </div>
-
-      <MetadataSection meta={meta()} />
-
-      <div class="flex flex-col gap-3">
-        <div class="flex items-center justify-between gap-3">
-          <div class="text-12-mono tracking-[0.12em] text-text-weak">WORKTREES</div>
+    <div class="mx-auto flex w-full max-w-[900px] flex-col gap-6 px-8 py-6">
+      {/* Header — title + primary CTA, with the metadata pill row beneath (orgn task layout). */}
+      <div class="flex flex-col gap-4 border-b border-border-weak-base pb-5">
+        <div class="flex items-start justify-between gap-4">
+          <h1
+            class="min-w-0 flex-1 text-18-medium text-text-strong"
+            style={{ "line-height": "var(--line-height-tight)" }}
+          >
+            {meta().title}
+          </h1>
           <button
             type="button"
             disabled={props.opening}
             onClick={props.onCreate}
-            class="flex items-center gap-1.5 rounded-md border border-border-weak-base px-2.5 py-1.5 text-13-medium text-text-strong transition-colors hover:bg-surface-raised-base-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3578f5] disabled:opacity-50"
+            class="flex shrink-0 items-center gap-1.5 border border-border-weak-base bg-surface-base px-2.5 py-1.5 text-13-medium text-text-strong transition-colors hover:bg-surface-raised-base-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3578f5] disabled:opacity-50"
           >
             <Icon name="plus-small" class="size-4" />
             New worktree
           </button>
         </div>
+        <MetadataPills meta={meta()} members={members.data ?? []} />
+      </div>
 
+      {/* Description */}
+      <div class="flex flex-col gap-3">
+        <div class="flex items-center justify-between gap-2">
+          <div class="text-12-mono tracking-[0.12em] text-text-weak">DESCRIPTION</div>
+          <button
+            type="button"
+            disabled={enhancing()}
+            onClick={enhance}
+            aria-label="Enhance task description with AI"
+            title="Rewrite the description to be clearer and more actionable with AI"
+            class="flex h-7 shrink-0 items-center gap-1.5 border border-border-weak-base bg-surface-base px-2.5 text-12-mono uppercase tracking-[0.08em] text-text-strong transition-colors hover:bg-surface-raised-base-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3578f5] disabled:opacity-60"
+          >
+            <Show when={enhancing()} fallback={<Icon name="sparkles" class="size-3.5" />}>
+              <Spinner class="size-3.5" />
+            </Show>
+            {enhancing() ? "Enhancing…" : "Enhance"}
+          </button>
+        </div>
+        <Show
+          when={meta().description}
+          fallback={<p class="text-13-regular text-text-weak">No description yet. Enhance to draft one with AI.</p>}
+        >
+          <p
+            class="whitespace-pre-wrap break-words text-14-regular text-text-base"
+            style={{ "line-height": "var(--line-height-normal)" }}
+          >
+            {meta().description}
+          </p>
+        </Show>
+      </div>
+
+      {/* Worktrees */}
+      <div class="flex flex-col gap-3">
+        <div class="text-12-mono tracking-[0.12em] text-text-weak">WORKTREES</div>
         <Switch>
           <Match when={props.trials.isLoading}>
-            <div class="flex items-center gap-2 rounded-lg border border-border-weak-base px-4 py-5 text-13-regular text-text-weak">
+            <div class="flex items-center gap-2 border border-border-weak-base px-4 py-5 text-13-regular text-text-weak">
               <Spinner class="size-4" /> Loading worktrees…
             </div>
           </Match>
           <Match when={props.trials.isError}>
-            <div class="rounded-lg border border-border-weak-base px-4 py-5 text-13-regular text-text-weak">
+            <div class="border border-border-weak-base px-4 py-5 text-13-regular text-text-weak">
               Failed to load worktrees. Check your connection and try again.
             </div>
           </Match>
           <Match when={(props.trials.data?.length ?? 0) === 0}>
-            <div class="flex flex-col items-start gap-1 rounded-lg border border-dashed border-border-weak-base px-4 py-6">
+            <div class="flex flex-col items-start gap-1 border border-dashed border-border-weak-base px-4 py-6">
               <div class="text-13-medium text-text-strong">No worktrees yet</div>
               <div class="text-13-regular text-text-weak">Create a worktree to start a session for this task.</div>
             </div>
@@ -584,6 +739,10 @@ function TaskDetail(props: {
         </Switch>
       </div>
 
+      {/* Activity */}
+      <ActivitySection activity={activity} />
+
+      {/* Comments */}
       <CommentsSection
         taskId={props.task.id}
         comments={comments}
@@ -592,8 +751,6 @@ function TaskDetail(props: {
           void activity.refetch()
         }}
       />
-
-      <ActivitySection activity={activity} />
     </div>
   )
 }
@@ -607,37 +764,121 @@ function formatDate(value: string): string {
   return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
 }
 
-function MetadataSection(props: { meta: CloudTaskDetail }) {
-  const rows = createMemo(() => {
-    const m = props.meta
-    const out: Array<{ label: string; value: string }> = []
-    if (m.status) out.push({ label: "Status", value: m.status })
-    if (typeof m.priority === "number") out.push({ label: "Priority", value: PRIORITY_LABELS[m.priority] ?? `P${m.priority}` })
-    if (typeof m.estimate === "number") out.push({ label: "Estimate", value: String(m.estimate) })
-    const assignee = m.assignee?.name || m.assignee?.email || m.assignedToId
-    if (assignee) out.push({ label: "Assignee", value: assignee })
-    if (m.labels?.length) out.push({ label: "Labels", value: m.labels.map((l) => l.name).join(", ") })
-    if (m.createdAt) out.push({ label: "Created", value: formatDate(m.createdAt) })
-    if (m.updatedAt) out.push({ label: "Updated", value: formatDate(m.updatedAt) })
-    return out
+const STATUS_LABELS: Record<string, string> = {
+  backlog: "Backlog",
+  triage: "Triage",
+  todo: "To Do",
+  to_do: "To Do",
+  queued: "Queued",
+  in_progress: "In Progress",
+  "in-progress": "In Progress",
+  in_review: "In Review",
+  in_human_review: "In Review",
+  blocked: "Blocked",
+  completed: "Completed",
+  done: "Done",
+  canceled: "Canceled",
+  duplicate: "Duplicate",
+}
+const STATUS_COLORS: Record<string, string> = {
+  backlog: "#6b7280",
+  triage: "#a855f7",
+  todo: "#9ca3af",
+  to_do: "#9ca3af",
+  queued: "#a855f7",
+  in_progress: "#f97316",
+  "in-progress": "#f97316",
+  blocked: "#ef4444",
+  completed: "#22c55e",
+  done: "#22c55e",
+  canceled: "#6b7280",
+}
+// Priority dot colors (orgn priority-icon): urgent=red, high=amber, medium/low=grey.
+const PRIORITY_COLORS: Record<number, string> = { 0: "#6b7280", 1: "#9ca3af", 2: "#9ca3af", 3: "#f59e0b", 4: "#dc2626" }
+const statusLabel = (s: string) => STATUS_LABELS[s] ?? s.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+const statusColor = (s: string) => STATUS_COLORS[s] ?? "#9ca3af"
+
+function formatRelative(value: string): string {
+  const t = new Date(value).getTime()
+  if (Number.isNaN(t)) return value
+  const sec = Math.round((Date.now() - t) / 1000)
+  if (sec < 60) return "just now"
+  const min = Math.round(sec / 60)
+  if (min < 60) return `${min}m ago`
+  const hr = Math.round(min / 60)
+  if (hr < 24) return `${hr}h ago`
+  const day = Math.round(hr / 24)
+  if (day < 30) return `${day}d ago`
+  const mo = Math.round(day / 30)
+  if (mo < 12) return `${mo}mo ago`
+  return `${Math.round(mo / 12)}y ago`
+}
+
+/** Sharp metadata pill (orgn style): bordered, muted, h-7, icon + label. */
+function Pill(props: { children: JSX.Element }) {
+  return (
+    <span class="flex h-7 shrink-0 items-center gap-1.5 border border-border-weak-base bg-surface-base px-2.5 text-12-medium text-text-strong">
+      {props.children}
+    </span>
+  )
+}
+
+/** Inline metadata row: status / priority / assignee / estimate / labels / created — orgn task layout. */
+function MetadataPills(props: { meta: CloudTaskDetail; members: CloudMember[] }) {
+  const m = () => props.meta
+  const assignee = createMemo(() => {
+    const id = m().assignedToId ?? m().assignee?.id
+    if (!id) return null
+    const mem = props.members.find((x) => (x.user?.id ?? x.userId) === id)
+    return mem?.user?.name || mem?.user?.email || m().assignee?.name || m().assignee?.email || id
   })
 
   return (
-    <Show when={rows().length}>
-      <div class="flex flex-col gap-3">
-        <div class="text-12-mono tracking-[0.12em] text-text-weak">DETAILS</div>
-        <dl class="grid grid-cols-[120px_minmax(0,1fr)] gap-x-4 gap-y-2">
-          <For each={rows()}>
-            {(row) => (
-              <div class="contents">
-                <dt class="text-13-regular text-text-weak">{row.label}</dt>
-                <dd class="break-words text-13-regular text-text-strong">{row.value}</dd>
-              </div>
-            )}
-          </For>
-        </dl>
-      </div>
-    </Show>
+    <div class="flex flex-wrap items-center gap-1.5">
+      <Show when={m().status}>
+        <Pill>
+          <span class="size-2 shrink-0 rounded-full" style={{ "background-color": statusColor(m().status!) }} />
+          {statusLabel(m().status!)}
+        </Pill>
+      </Show>
+      <Show when={typeof m().priority === "number"}>
+        <Pill>
+          <span
+            class="size-2 shrink-0 rounded-full"
+            style={{ "background-color": PRIORITY_COLORS[m().priority!] ?? "#9ca3af" }}
+          />
+          {PRIORITY_LABELS[m().priority!] ?? `P${m().priority}`}
+        </Pill>
+      </Show>
+      <Show when={assignee()}>
+        <Pill>
+          <Avatar fallback={assignee()!} class="size-4 shrink-0 rounded-full" size="small" />
+          <span class="max-w-[160px] truncate">{assignee()}</span>
+        </Pill>
+      </Show>
+      <Show when={typeof m().estimate === "number"}>
+        <Pill>{m().estimate} pts</Pill>
+      </Show>
+      <For each={m().labels ?? []}>
+        {(l) => (
+          <span
+            class="flex h-7 shrink-0 items-center gap-1.5 border px-2.5 text-12-medium"
+            style={
+              l.color
+                ? { "background-color": `${l.color}1a`, color: l.color, "border-color": `${l.color}40` }
+                : { "border-color": "var(--border-weak-base)" }
+            }
+          >
+            {l.name}
+          </span>
+        )}
+      </For>
+      <Show when={m().createdAt}>
+        <span class="flex h-7 shrink-0 items-center px-1 text-12-regular text-text-weak">
+          Created {formatRelative(m().createdAt!)}
+        </span>
+      </Show>
+    </div>
   )
 }
 
@@ -812,11 +1053,92 @@ function TrialRow(props: { trial: CloudTrial; disabled: boolean; onOpen: () => v
   )
 }
 
-function StatusBadge(props: { status: string }) {
+// Quick actions for the cloud welcome screen. Each `id`/`keybind` is registered as a real command
+// in CloudPage, so the keybind fires globally (command context's keydown handler) and the action
+// shows up in the palette; `keys` is just the visual rendering of `keybind` (keep them in sync).
+// `file.open` is the id the command context's `showPalette` runs, so the built-in palette keybind
+// (mod+shift+p) opens our palette too.
+const QUICK_ACTIONS: ReadonlyArray<{ id: string; label: string; keybind: string; keys: readonly string[] }> = [
+  { id: "project.open", label: "Open Local Folder", keybind: "mod+o", keys: ["⌘", "O"] },
+  { id: "server.switch", label: "Open Remote Server", keybind: "mod+shift+o", keys: ["⇧", "⌘", "O"] },
+  { id: "settings.open", label: "Open Settings", keybind: "mod+comma", keys: ["⌘", ","] },
+  { id: "models.manage", label: "Open Model List", keybind: "mod+shift+m", keys: ["⇧", "⌘", "M"] },
+  { id: "file.open", label: "Show All Commands", keybind: "mod+shift+p", keys: ["⇧", "⌘", "P"] },
+]
+
+const WELCOME_KEYCAP =
+  "inline-flex h-6 min-w-6 items-center justify-center rounded-md border border-border-weak-base bg-surface-raised-base px-1.5 text-12-mono text-text-weak"
+
+// Welcome/empty state for the middle pane: a faded brand mark over the quick-action shortcuts.
+// Clicking a row triggers the same registered command its keybind does.
+function MiddleWelcome() {
+  const command = useCommand()
+
   return (
-    <span class="shrink-0 rounded-full border border-border-weak-base px-2 py-0.5 text-12-mono text-text-weak">
-      {props.status}
-    </span>
+    <div class="flex h-full flex-col items-center justify-center px-6">
+      <Isotype class="h-40 w-auto text-text-weak opacity-60" aria-hidden="true" />
+      <div class="mt-12 flex w-[260px] flex-col gap-3.5">
+        <For each={QUICK_ACTIONS}>
+          {(action) => (
+            <button
+              type="button"
+              class="group flex items-center justify-between gap-4 text-left focus-visible:outline-none"
+              onClick={() => command.trigger(action.id)}
+            >
+              <span class="text-14-mono text-text-weak transition-colors group-hover:text-text-strong">
+                {action.label}
+              </span>
+              <span class="flex items-center gap-1">
+                <For each={action.keys}>{(key) => <kbd class={WELCOME_KEYCAP}>{key}</kbd>}</For>
+              </span>
+            </button>
+          )}
+        </For>
+      </div>
+    </div>
+  )
+}
+
+// Lightweight command palette for the cloud shell. The local palette (DialogSelectFile) depends on
+// file/session/layout contexts that don't exist here, so this simply lists the commands registered
+// for the cloud shell and runs the selected one. Opened via "Show All Commands" or mod+shift+p.
+function CloudCommandPalette() {
+  const command = useCommand()
+  const language = useLanguage()
+  const dialog = useDialog()
+
+  type PaletteEntry = { id: string; title: string; keybind?: string; option: CommandOption }
+  const entries = createMemo<PaletteEntry[]>(() =>
+    command.options
+      .filter((o) => !o.disabled && !o.hidden && !o.id.startsWith("suggested.") && o.id !== "file.open")
+      .map((o) => ({ id: o.id, title: o.title, keybind: o.keybind, option: o })),
+  )
+
+  return (
+    <Dialog class="pt-3 pb-0 !max-h-[480px]" transition>
+      <List
+        class="px-3"
+        search={{ placeholder: "Search commands…", autofocus: true, hideIcon: true }}
+        emptyMessage="No matching commands"
+        items={() => entries()}
+        key={(item) => item.id}
+        filterKeys={["title"]}
+        onSelect={(item) => {
+          if (!item) return
+          dialog.close()
+          item.option.onSelect?.("palette")
+        }}
+      >
+        {(item) => (
+          <div class="flex w-full items-center justify-between gap-4">
+            <span class="whitespace-nowrap text-14-regular text-text-strong">{item.title}</span>
+            <Show when={item.keybind}>
+              <Keybind class="rounded-[4px]">{formatKeybind(item.keybind ?? "", language.t)}</Keybind>
+            </Show>
+          </div>
+        )}
+      </List>
+    </Dialog>
   )
 }
 

@@ -58,6 +58,8 @@ const icons = {
 <path d="M2 18H18V10H2V18Z" fill="currentColor" fill-opacity="0.1"/>
 <path d="M2 10V18H18V10M2 10V2H18V10M2 10H18M5 6H9M5 14H9" stroke="currentColor"/>`,
   sidebar: `<path d="M7.86667 2H5.2H2V18H5.2H7.86667M7.86667 2H18V18H7.86667M7.86667 2V18" stroke="currentColor"/>`,
+  sparkles: `<path d="M8.5 2.5C9 6.4 10.6 8 14.5 8.5C10.6 9 9 10.6 8.5 14.5C8 10.6 6.4 9 2.5 8.5C6.4 8 8 6.4 8.5 2.5Z" stroke="currentColor" stroke-linejoin="round"/>
+<path d="M14.75 11.5C15 13.4 15.6 14 17.5 14.25C15.6 14.5 15 15.1 14.75 17C14.5 15.1 13.9 14.5 12 14.25C13.9 14 14.5 13.4 14.75 11.5Z" stroke="currentColor" stroke-linejoin="round"/>`,
   "sidebar-right": `<path d="M12.13333 2H14.8H18V18H14.8H12.13333M12.13333 2H2V18H12.13333M12.13333 2V18" stroke="currentColor"/>`,
   "sidebar-active": `<path d="M2 2V18H5.2H7.86667V2H5.2H2Z" fill="currentColor" fill-opacity="0.1"/>
 <path d="M7.86667 2H5.2H2V18H5.2H7.86667M7.86667 2H18V18H7.86667M7.86667 2V18" stroke="currentColor"/>`,

@@ -14,6 +14,13 @@ export interface Team {
   readonly personal?: boolean
 }
 
+/** Team credit balance from id-orgn (authoritative billing ledger): `GET /api/user/teams/:id/credits`. */
+export interface TeamCredits {
+  readonly balance: number
+  readonly updatedAt?: string | null
+  readonly lowBalanceThreshold?: number
+}
+
 export interface CloudProject {
   readonly id: string
   readonly name: string
