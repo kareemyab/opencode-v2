@@ -1489,24 +1489,18 @@ export default function Layout(props: ParentProps) {
     const active = pathKey(currentProject()?.worktree ?? "") === key
     if (index === -1) return
 
+    // Closing a project that isn't the one you're viewing just removes it from the
+    // open list — stay where you are.
     if (!active) {
       layout.projects.close(directory)
       return
     }
 
-    if (list.length === 1) {
-      layout.projects.close(directory)
-      navigate("/")
-      return
-    }
-
-    const next = list[index + 1] ?? list[index - 1]
-
-    navigateWithSidebarReset(`/${base64Encode(next.worktree)}/session`)
+    // Closing the active project returns to the home screen. Previously it
+    // auto-activated the adjacent open project, so closing several projects meant
+    // stepping through every one of them to get back to the empty home view.
     layout.projects.close(directory)
-    queueMicrotask(() => {
-      void navigateToProject(next.worktree)
-    })
+    navigateWithSidebarReset("/")
   }
 
   function toggleProjectWorkspaces(project: LocalProject) {
