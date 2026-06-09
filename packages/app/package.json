@@ -22,7 +22,8 @@
     "test:e2e": "playwright test",
     "test:e2e:local": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:report": "playwright show-report e2e/playwright-report"
+    "test:e2e:report": "playwright show-report e2e/playwright-report",
+    "postinstall": "node scripts/copy-canvaskit.mjs"
   },
   "license": "MIT",
   "devDependencies": {
@@ -42,6 +43,7 @@
   },
   "dependencies": {
     "@kobalte/core": "catalog:",
+    "canvaskit-wasm": "^0.39.1",
     "@opencode-ai/core": "workspace:*",
     "@opencode-ai/sdk": "workspace:*",
     "@opencode-ai/ui": "workspace:*",
