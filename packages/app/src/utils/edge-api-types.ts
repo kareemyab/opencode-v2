@@ -135,6 +135,9 @@ export interface CreateTrialInput {
   readonly repoUrl?: string
   readonly chatMode?: string
   readonly agentId?: string
+  /** Suggested git branch for the worktree; backend may normalize/dedupe it. */
+  readonly agentOSBranch?: string
+  readonly mainModel?: string
 }
 
 /** Input for creating a task (subset of deno-stealth's `createTaskSchema`). */

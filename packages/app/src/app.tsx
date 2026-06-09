@@ -31,6 +31,7 @@ import { AuthProvider } from "@/context/auth"
 import { EdgeAPIProvider } from "@/context/edge-api"
 import { TeamProvider } from "@/context/team"
 import { CloudProvider } from "@/context/cloud"
+import { OllmProvider } from "@/context/ollm-provider"
 import { AuthGate } from "@/components/auth-gate"
 import { CommandProvider } from "@/context/command"
 import { CommentsProvider } from "@/context/comments"
@@ -346,7 +347,9 @@ export function AppInterface(props: {
                   <QueryProvider>
                     <ServerSDKProvider>
                       <ServerSyncProvider>
-                        <RouterRoot appChildren={props.children}>{routerProps.children}</RouterRoot>
+                        <OllmProvider>
+                          <RouterRoot appChildren={props.children}>{routerProps.children}</RouterRoot>
+                        </OllmProvider>
                       </ServerSyncProvider>
                     </ServerSDKProvider>
                   </QueryProvider>

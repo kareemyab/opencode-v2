@@ -25,6 +25,9 @@ export const APP_URL = "https://cde.orgn.com" as const
 
 export const ATTESTATION_URL = "https://attest.daytona.orgn.com" as const
 
+/** OLLM (Confidential Compute) OpenAI-compatible gateway. Inference base URL (ends in /v1). */
+export const OLLM_GATEWAY_URL = "https://api.gateway.orgn.com/v1" as const
+
 /**
  * Base domain for self-hosted Daytona sandbox previews. opencode runs inside a
  * sandbox and is exposed at `https://<port>-<sandboxId>.<DAYTONA_PROXY_BASE>`.
