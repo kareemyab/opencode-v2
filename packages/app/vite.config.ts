@@ -7,9 +7,13 @@ const src = fileURLToPath(new URL("./src", import.meta.url))
 const sidebarItems = fileURLToPath(new URL("./src/pages/layout/sidebar-items.tsx", import.meta.url))
 const sidebarItemsPatched = fileURLToPath(new URL("./src/pages/layout/sidebar-items.patched.tsx", import.meta.url))
 
+// Exact-match (anchored) so only the bare module specifier is redirected to its
+// .patched variant. A plain string find prefix-matches in Vite's dev resolver and
+// wrongly catches subpaths like `@/pages/layout/helpers`, rewriting them into
+// `layout.patched.tsx/helpers` (a path inside a file) → "Failed to resolve import".
 const patchedAliases = [
-  { find: "@/pages/layout", replacement: `${src}/pages/layout.patched.tsx` },
-  { find: "@/components/titlebar", replacement: `${src}/components/titlebar.patched.tsx` },
+  { find: /^@\/pages\/layout$/, replacement: `${src}/pages/layout.patched.tsx` },
+  { find: /^@\/components\/titlebar$/, replacement: `${src}/components/titlebar.patched.tsx` },
   { find: sidebarItems, replacement: sidebarItemsPatched },
 ]
 

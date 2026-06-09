@@ -37,15 +37,66 @@ export interface CloudTask {
   readonly priority?: number
   readonly projectId?: string | null
   readonly parentTaskId?: string | null
+  readonly assignedToId?: string | null
   readonly trialCount?: number
   readonly createdAt?: string
   readonly updatedAt?: string
+}
+
+/** A team/project label (`GET /tasks/labels/counts`) — used for the task filter. */
+export interface CloudLabel {
+  readonly id: string
+  readonly name: string
+  readonly color?: string | null
+  readonly count?: number
 }
 
 export interface CloudTaskPage {
   readonly tasks: CloudTask[]
   readonly cursor?: string
   readonly hasMore: boolean
+}
+
+/** Full task as returned by `GET /tasks/:id` (deno-stealth `getTask`) — list fields + metadata. */
+export interface CloudTaskDetail extends CloudTask {
+  readonly assignedToId?: string | null
+  readonly estimate?: number | null
+  readonly milestoneId?: string | null
+  readonly cycleId?: string | null
+  readonly featureId?: string | null
+  readonly source?: string | null
+  readonly archived?: boolean
+  /** Some enrich the row with an assignee object; render defensively if present. */
+  readonly assignee?: { id?: string; email?: string | null; name?: string | null; image?: string | null } | null
+  readonly labels?: Array<{ id: string; name: string; color?: string | null }>
+}
+
+/** A task comment (`GET /tasks/:id/comments`). `body` is the markdown content. */
+export interface CloudComment {
+  readonly id: string
+  readonly body: string
+  readonly createdAt?: string
+  readonly updatedAt?: string
+  readonly authorUserId?: string | null
+  readonly authorEmail?: string | null
+}
+
+/** A task activity-log entry (`GET /tasks/:id/activity`). */
+export interface CloudActivity {
+  readonly id: string
+  readonly action: string
+  readonly field?: string | null
+  readonly oldValue?: string | null
+  readonly newValue?: string | null
+  readonly metadata?: string | null
+  readonly createdAt?: string
+  readonly user?: {
+    readonly id?: string
+    readonly email?: string | null
+    readonly name?: string | null
+    readonly image?: string | null
+    readonly githubUsername?: string | null
+  } | null
 }
 
 /** A Trial == a worktree (trial record + its sandbox + its git branch). */
@@ -64,6 +115,41 @@ export interface CloudTrial {
   readonly prNumber?: number | null
   readonly opencodeSessionId?: string | null
   readonly skipClientSandboxProvision?: boolean
+}
+
+/** Input for creating a trial (worktree). Subset of deno-stealth's `createTrialSchema`. */
+export interface CreateTrialInput {
+  readonly projectId: string
+  readonly title: string
+  readonly taskId?: string
+  readonly type?: "RESEARCH" | "CODE" | "ASK" | string
+  readonly baseBranch?: string
+  readonly repoFullName?: string
+  readonly repoUrl?: string
+  readonly chatMode?: string
+  readonly agentId?: string
+}
+
+/** Input for creating a task (subset of deno-stealth's `createTaskSchema`). */
+export interface CreateTaskInput {
+  readonly projectId: string
+  readonly title: string
+  readonly description?: string
+  readonly status?: string
+  readonly priority?: number
+  readonly assignedToId?: string
+}
+
+/** A team member (`GET /teams/:teamId/members`) — used for the assignee picker. */
+export interface CloudMember {
+  readonly userId?: string
+  readonly role?: string | null
+  readonly user?: {
+    readonly id: string
+    readonly email?: string | null
+    readonly name?: string | null
+    readonly image?: string | null
+  }
 }
 
 /** Returned by sandbox status/provision — the bridge to the opencode origin. */
@@ -91,5 +177,11 @@ export interface ActiveTrialDescriptor {
   readonly taskTitle: string | null
   readonly workspacePath?: string | null
   readonly csbID?: string | null
+  /**
+   * ServerConnection key of the pinned sandbox (its normalized opencode origin). Lets the UI tell
+   * "we're inside this trial's session" (active server === serverKey) apart from local sessions,
+   * and resume the worktree by re-activating that server instead of losing it.
+   */
+  readonly serverKey?: string
   readonly activatedAt: string
 }

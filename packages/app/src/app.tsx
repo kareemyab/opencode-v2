@@ -9,7 +9,7 @@ import { Font } from "@opencode-ai/ui/font"
 import { Splash } from "@opencode-ai/ui/logo"
 import { ThemeProvider } from "@opencode-ai/ui/theme/context"
 import { MetaProvider } from "@solidjs/meta"
-import { type BaseRouterProps, Navigate, Route, Router } from "@solidjs/router"
+import { type BaseRouterProps, Navigate, Route, Router, useLocation } from "@solidjs/router"
 import { QueryClient, QueryClientProvider } from "@tanstack/solid-query"
 import { Effect } from "effect"
 import {
@@ -56,6 +56,7 @@ import { useCheckServerHealth } from "./utils/server-health"
 
 const HomeRoute = lazy(() => import("@/pages/home"))
 const LaunchRoute = lazy(() => import("@/pages/launch"))
+const CloudRoute = lazy(() => import("@/pages/cloud"))
 const Session = lazy(() => import("@/pages/session"))
 
 const SessionRoute = Object.assign(
@@ -116,6 +117,13 @@ function BodyDesignClass() {
 }
 
 function AppShellProviders(props: ParentProps) {
+  const location = useLocation()
+  // The cloud experience is a dedicated full-screen shell, so it renders outside the
+  // local-project Layout (no local sidebar/titlebar) while keeping all shared providers.
+  // The desktop launches directly into "/cloud" (see the renderer's MemoryRouter history);
+  // navigating to "/" (the cloud shell's "Back to app") renders the local home + Layout.
+  const isCloud = createMemo(() => location.pathname === "/cloud" || location.pathname.startsWith("/cloud/"))
+
   return (
     <SettingsProvider>
       <BodyDesignClass />
@@ -125,7 +133,9 @@ function AppShellProviders(props: ParentProps) {
             <ModelsProvider>
               <CommandProvider>
                 <HighlightsProvider>
-                  <Layout>{props.children}</Layout>
+                  <Show when={!isCloud()} fallback={props.children}>
+                    <Layout>{props.children}</Layout>
+                  </Show>
                 </HighlightsProvider>
               </CommandProvider>
             </ModelsProvider>
@@ -346,6 +356,7 @@ export function AppInterface(props: {
           >
             <Route path="/" component={HomeRoute} />
             <Route path="/launch" component={LaunchRoute} />
+            <Route path="/cloud" component={CloudRoute} />
             <Route path="/:dir" component={DirectoryLayout}>
               <Route path="/" component={() => <Navigate href="session" />} />
               <Route path="/session/:id?" component={SessionRoute} />
