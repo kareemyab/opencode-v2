@@ -11,6 +11,7 @@ import { SettingsModels } from "./settings-models"
 import { SettingsServers } from "./settings-servers"
 import { SettingsProfile } from "./settings-profile"
 import { SettingsUsage } from "./settings-usage"
+import { SettingsMcp } from "./settings-mcp"
 
 export const DialogSettings: Component<{ tab?: string }> = (props) => {
   const language = useLanguage()
@@ -52,6 +53,10 @@ export const DialogSettings: Component<{ tab?: string }> = (props) => {
                       <Icon name="server" />
                       {language.t("status.popover.tab.servers")}
                     </Tabs.Trigger>
+                    <Tabs.Trigger value="mcp">
+                      <Icon name="plug" />
+                      {language.t("status.popover.tab.mcp")}
+                    </Tabs.Trigger>
                   </div>
                 </div>
 
@@ -90,6 +95,9 @@ export const DialogSettings: Component<{ tab?: string }> = (props) => {
         </Tabs.Content>
         <Tabs.Content value="servers" class="no-scrollbar">
           <SettingsServers />
+        </Tabs.Content>
+        <Tabs.Content value="mcp" class="no-scrollbar">
+          <SettingsMcp />
         </Tabs.Content>
         <Tabs.Content value="providers" class="no-scrollbar">
           <SettingsProviders />

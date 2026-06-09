@@ -2,6 +2,7 @@ import { DropdownMenu } from "@opencode-ai/ui/dropdown-menu"
 import { Icon } from "@opencode-ai/ui/icon"
 import { Popover } from "@opencode-ai/ui/popover"
 import { TooltipKeybind } from "@opencode-ai/ui/tooltip"
+import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useTheme, type ColorScheme } from "@opencode-ai/ui/theme/context"
 import { createMemo, createSignal, For, onMount, Show, Suspense, type JSX } from "solid-js"
 import { useCommand } from "@/context/command"
@@ -10,7 +11,6 @@ import { useSettings } from "@/context/settings"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import {
   LspStatusPanel,
-  McpStatusPanel,
   PluginsStatusPanel,
   ServersDirectoryStatusPanel,
   useDirectoryStatusCounts,
@@ -174,6 +174,35 @@ function TerminalBarItem() {
   )
 }
 
+function BottomBarButtonItem(props: {
+  label: string
+  count?: number
+  dotClass?: string
+  icon?: JSX.Element
+  ariaLabel: string
+  onClick: () => void
+}) {
+  return (
+    <div class="flex shrink-0 items-center self-stretch border-border-weak-base border-l">
+      <button
+        type="button"
+        class="flex h-7 cursor-pointer items-center gap-1.5 px-2 text-text-weak text-xs transition-colors hover:bg-surface-raised-base-hover hover:text-text-base"
+        aria-label={props.ariaLabel}
+        onClick={props.onClick}
+      >
+        <Show when={props.dotClass}>
+          <div classList={{ "size-1.5 rounded-full shrink-0": true, [props.dotClass!]: true }} />
+        </Show>
+        {props.icon}
+        <span class="bottom-bar-label whitespace-nowrap">
+          {props.count !== undefined && props.count > 0 ? `${props.count} ` : ""}
+          {props.label}
+        </span>
+      </button>
+    </div>
+  )
+}
+
 function ServersBarItem() {
   const language = useLanguage()
   const counts = useDirectoryStatusCounts()
@@ -194,6 +223,7 @@ function ServersBarItem() {
 function StatusBarItems() {
   const language = useLanguage()
   const counts = useDirectoryStatusCounts()
+  const dialog = useDialog()
 
   const mcpDotClass = createMemo(() => {
     if (counts.mcpConnected() === 0) return "bg-border-weak-base"
@@ -203,15 +233,18 @@ function StatusBarItems() {
 
   return (
     <>
-      <BottomBarPopoverItem
+      <BottomBarButtonItem
         label={language.t("status.popover.tab.mcp")}
         count={counts.mcpConnected()}
         dotClass={mcpDotClass()}
         icon={<Icon name="plug" size="small" class="shrink-0" />}
         ariaLabel={language.t("status.popover.tab.mcp")}
-      >
-        <McpStatusPanel />
-      </BottomBarPopoverItem>
+        onClick={() => {
+          void import("../dialog-settings").then((module) => {
+            dialog.show(() => <module.DialogSettings tab="mcp" />)
+          })
+        }}
+      />
 
       <BottomBarPopoverItem
         label={language.t("status.popover.tab.lsp")}

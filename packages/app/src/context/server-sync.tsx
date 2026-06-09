@@ -521,6 +521,9 @@ export function createServerSyncContextInner(_serverSDK?: ServerSDK) {
       queryClient.invalidateQueries({
         predicate: (query) => query.queryKey[0] === serverSDK.scope && query.queryKey[2] === "providers",
       })
+      queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === serverSDK.scope && query.queryKey[2] === "mcp",
+      })
     },
   }))
 

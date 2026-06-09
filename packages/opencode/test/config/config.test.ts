@@ -395,6 +395,59 @@ it.effect("updates global config and omits empty shell key in jsonc", () =>
   ),
 )
 
+it.effect("updates global config and replaces mcp block", () =>
+  withGlobalConfig(
+    {
+      config: {
+        mcp: {
+          old: { type: "remote", url: "https://old.example.com/mcp" },
+        },
+      },
+    },
+    ({ dir }) =>
+      Effect.gen(function* () {
+        yield* Config.use.updateGlobal({
+          mcp: {
+            next: { type: "remote", url: "https://next.example.com/mcp" },
+          },
+        })
+
+        const writtenConfig = (yield* FSUtil.use.readJson(path.join(dir, "opencode.json"))) as { mcp?: unknown }
+        expect(writtenConfig.mcp).toEqual({
+          next: { type: "remote", url: "https://next.example.com/mcp" },
+        })
+      }),
+  ),
+)
+
+it.effect("updates global jsonc config and replaces mcp block", () =>
+  withGlobalConfig(
+    {
+      config: {
+        mcp: {
+          old: { type: "remote", url: "https://old.example.com/mcp" },
+        },
+      },
+      name: "opencode.jsonc",
+    },
+    ({ dir }) =>
+      Effect.gen(function* () {
+        yield* Config.use.updateGlobal({
+          mcp: {
+            next: { type: "remote", url: "https://next.example.com/mcp" },
+          },
+        })
+
+        const file = path.join(dir, "opencode.jsonc")
+        const writtenConfig = yield* FSUtil.use.readFileString(file)
+        const parsed = ConfigParse.schema(ConfigV1.Info, ConfigParse.jsonc(writtenConfig, file), file)
+        expect(parsed.mcp).toEqual({
+          next: { type: "remote", url: "https://next.example.com/mcp" },
+        })
+      }),
+  ),
+)
+
 it.instance(
   "loads formatter boolean config",
   Effect.gen(function* () {
