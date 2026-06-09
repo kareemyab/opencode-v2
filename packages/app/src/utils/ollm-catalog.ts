@@ -58,11 +58,16 @@ export async function fetchOllmModels(baseURL: string, apiKey: string, fetchImpl
         ? await fetchImpl({ url, headers })
         : await fetch(url, { headers }).then(async (r) => ({ ok: r.ok, body: await r.text() }))
       if (!ok) throw new Error("models fetch failed")
-      const json = JSON.parse(body) as { data?: Array<{ id?: string; name?: string }> } | Array<{ id?: string; name?: string }>
+      // The gateway returns the operator-curated label in `display_name` (an OpenAI-compatible
+      // `/models` extension); there is no `name` field. Prefer `display_name`, fall back to `name`,
+      // and trim/ignore blank values so a missing or whitespace-only label leaves `name` undefined
+      // (callers then fall back to the id) instead of rendering an empty row in the picker.
+      type RawModel = { id?: string; name?: string; display_name?: string }
+      const json = JSON.parse(body) as { data?: RawModel[] } | RawModel[]
       const list = Array.isArray(json) ? json : (json.data ?? [])
       const models = list
-        .filter((m): m is { id: string; name?: string } => !!m && typeof m.id === "string" && m.id.length > 0)
-        .map((m) => ({ id: m.id, name: m.name }))
+        .filter((m): m is RawModel & { id: string } => !!m && typeof m.id === "string" && m.id.length > 0)
+        .map((m) => ({ id: m.id, name: m.display_name?.trim() || m.name?.trim() || undefined }))
       if (models.length) return models
       throw new Error("empty model list")
     } catch {
