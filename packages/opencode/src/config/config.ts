@@ -147,17 +147,20 @@ function globalConfigFile() {
   return candidates[0]
 }
 
-function patchJsonc(input: string, patch: unknown, path: string[] = []): string {
-  if (!isRecord(patch)) {
-    const edits = modify(input, path, patch, {
+function patchJsoncValue(input: string, patch: unknown, path: string[] = []): string {
+  return applyEdits(
+    input,
+    modify(input, path, patch, {
       formattingOptions: {
         insertSpaces: true,
         tabSize: 2,
       },
-    })
-    return applyEdits(input, edits)
-  }
+    }),
+  )
+}
 
+function patchJsonc(input: string, patch: unknown, path: string[] = []): string {
+  if (!isRecord(patch)) return patchJsoncValue(input, patch, path)
   return Object.entries(patch).reduce((result, [key, value]) => patchJsonc(result, value, [...path, key]), input)
 }
 
@@ -171,6 +174,12 @@ function writableGlobal(info: Info) {
   // When a user changes config from a value back to default in the Desktop app, we don't want to leave a blank `"shell": "",` key
   if ("shell" in next && next.shell === "") return { ...next, shell: undefined }
   return next
+}
+
+function mergeWritableGlobal(existing: Info, patch: Info) {
+  const merged = mergeDeep(writable(existing), patch) as Info
+  if ("mcp" in patch) merged.mcp = patch.mcp
+  return merged
 }
 
 export const layer = Layer.effect(
@@ -637,13 +646,14 @@ export const layer = Layer.effect(
       let changed: boolean
       if (!file.endsWith(".jsonc")) {
         const existing = ConfigParse.schema(ConfigV1.Info, ConfigParse.jsonc(before, file), file)
-        const merged = mergeDeep(writable(existing), patch)
+        const merged = mergeWritableGlobal(existing, patch)
         const serialized = JSON.stringify(merged, null, 2)
         changed = serialized !== before
         if (changed) yield* fs.writeFileString(file, serialized).pipe(Effect.orDie)
         next = merged
       } else {
-        const updated = patchJsonc(before, patch)
+        const { mcp, ...rest } = patch
+        const updated = "mcp" in patch ? patchJsoncValue(patchJsonc(before, rest), mcp, ["mcp"]) : patchJsonc(before, patch)
         next = ConfigParse.schema(ConfigV1.Info, ConfigParse.jsonc(updated, file), file)
         changed = updated !== before
         if (changed) yield* fs.writeFileString(file, updated).pipe(Effect.orDie)
