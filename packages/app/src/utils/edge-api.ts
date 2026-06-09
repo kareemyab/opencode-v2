@@ -15,13 +15,20 @@
  *   object   → {...} | { data: {...} }
  */
 import type {
+  CloudActivity,
+  CloudComment,
+  CloudLabel,
+  CloudMember,
   CloudProject,
   CloudSandboxStatus,
   CloudTask,
+  CloudTaskDetail,
   CloudTaskPage,
   CloudTrial,
+  CreateTaskInput,
   CreateTrialInput,
   Team,
+  TeamCredits,
 } from "./edge-api-types"
 
 export type EdgeFetch = (req: {
@@ -170,6 +177,17 @@ export function createEdgeClient(config: EdgeClientConfig) {
       async list(): Promise<Team[]> {
         return asArray<Team>(await request(idUrl, "/api/user/teams"), "teams")
       },
+      /** Team members (for the assignee picker). */
+      async members(teamId: string, opts: EdgeRequestOpts): Promise<CloudMember[]> {
+        return asArray<CloudMember>(
+          await request(apiUrl, `/api/v1/teams/${teamId}/members`, { teamId: opts.teamId }),
+          "members",
+        )
+      },
+      /** Team credit balance (id-orgn billing ledger). Bare `{ balance, updatedAt, lowBalanceThreshold }`. */
+      async credits(teamId: string): Promise<TeamCredits> {
+        return asObject<TeamCredits>(await request(idUrl, `/api/user/teams/${teamId}/credits`))
+      },
       /** Team OLLM gateway key (sk-ollm-*), via deno-stealth. Cached 5 min per team. */
       async ollmKey(teamId: string, opts?: { force?: boolean }): Promise<string> {
         const cached = ollmKeyCache.get(teamId)
@@ -199,11 +217,11 @@ export function createEdgeClient(config: EdgeClientConfig) {
     tasks: {
       async list(
         projectId: string,
-        opts: EdgeRequestOpts & { limit?: number; cursor?: string; status?: string },
+        opts: EdgeRequestOpts & { limit?: number; cursor?: string; status?: string; labelIds?: string },
       ): Promise<CloudTaskPage> {
         const body = (await request(apiUrl, "/api/v1/tasks", {
           teamId: opts.teamId,
-          query: { projectId, limit: opts.limit ?? 100, cursor: opts.cursor, status: opts.status },
+          query: { projectId, limit: opts.limit ?? 100, cursor: opts.cursor, status: opts.status, labelIds: opts.labelIds },
         })) as Record<string, unknown> | unknown[]
         const meta = (!Array.isArray(body) ? (body?.meta as { cursor?: string; hasMore?: boolean }) : undefined) ?? {}
         return {
@@ -215,21 +233,92 @@ export function createEdgeClient(config: EdgeClientConfig) {
       async trials(taskId: string, opts: EdgeRequestOpts): Promise<CloudTrial[]> {
         return asArray<CloudTrial>(await request(apiUrl, `/api/v1/tasks/${taskId}/trials`, { teamId: opts.teamId }), "trials")
       },
-    },
-    trials: {
-      async get(id: string, opts: EdgeRequestOpts): Promise<CloudTrial> {
-        return asObject<CloudTrial>(await request(apiUrl, `/api/v1/trials/${id}`, { teamId: opts.teamId }))
+      /** Project labels with task counts (for the task filter's label options). */
+      async labels(projectId: string, opts: EdgeRequestOpts): Promise<CloudLabel[]> {
+        return asArray<CloudLabel>(
+          await request(apiUrl, "/api/v1/tasks/labels/counts", { teamId: opts.teamId, query: { projectId } }),
+          "labels",
+        )
+      },
+      /** Full task detail (`{ success, data }` envelope). */
+      async get(taskId: string, opts: EdgeRequestOpts): Promise<CloudTaskDetail> {
+        return asObject<CloudTaskDetail>(await request(apiUrl, `/api/v1/tasks/${taskId}`, { teamId: opts.teamId }))
+      },
+      /** Task comments, oldest→newest (`{ success, data: [...] }`). */
+      async comments(taskId: string, opts: EdgeRequestOpts): Promise<CloudComment[]> {
+        return asArray<CloudComment>(
+          await request(apiUrl, `/api/v1/tasks/${taskId}/comments`, { teamId: opts.teamId }),
+          "comments",
+        )
+      },
+      /** Post a comment; returns the created comment. */
+      async addComment(taskId: string, body: string, opts: EdgeRequestOpts): Promise<CloudComment> {
+        return asObject<CloudComment>(
+          await request(apiUrl, `/api/v1/tasks/${taskId}/comments`, { method: "POST", teamId: opts.teamId, body: { content: body } }),
+        )
+      },
+      /** Activity log, newest→oldest (bare array). */
+      async activity(taskId: string, opts: EdgeRequestOpts & { limit?: number }): Promise<CloudActivity[]> {
+        return asArray<CloudActivity>(
+          await request(apiUrl, `/api/v1/tasks/${taskId}/activity`, { teamId: opts.teamId, query: { limit: opts.limit ?? 50 } }),
+          "activity",
+        )
+      },
+      /** Create a task (subset of deno-stealth's createTaskSchema). Returns the created task. */
+      async create(input: CreateTaskInput, opts: EdgeRequestOpts): Promise<CloudTask> {
+        const body: Record<string, unknown> = {
+          projectId: input.projectId,
+          title: input.title,
+          ...(input.description ? { description: input.description } : {}),
+          ...(input.status ? { status: input.status } : {}),
+          ...(typeof input.priority === "number" ? { priority: input.priority } : {}),
+          ...(input.assignedToId ? { assignedToId: input.assignedToId } : {}),
+        }
+        return asObject<CloudTask>(await request(apiUrl, "/api/v1/tasks", { method: "POST", teamId: opts.teamId, body }))
       },
       /**
-       * Create a new worktree (Trial) under a project/task — the CDE Web "Launch CDE"
-       * create step. The real `git worktree add` happens later, server-side, when the
-       * sandbox is provisioned (deno-stealth clones + installs the GIT_ASKPASS shim);
-       * createTrial only inserts the durable trial row, so no git credentials are needed.
+       * Enhance a task's description with AI (per-team OLLM key, server-side). Persists the
+       * result and returns the enhanced Markdown plus the updated task. `input` overrides the
+       * source text (defaults to the task's current description server-side).
+       */
+      async enhance(
+        taskId: string,
+        input: string | undefined,
+        opts: EdgeRequestOpts,
+      ): Promise<{ enhanced: string; task: CloudTaskDetail }> {
+        return asObject<{ enhanced: string; task: CloudTaskDetail }>(
+          await request(apiUrl, `/api/v1/tasks/${taskId}/enhance`, {
+            method: "POST",
+            teamId: opts.teamId,
+            body: input ? { input } : {},
+          }),
+        )
+      },
+    },
+    trials: {
+      /**
+       * Create a new trial (worktree) in a project. Mirrors deno-stealth's `createTrialSchema`
+       * (and vscode-cde's `createTrial`); does NOT provision a sandbox — follow with
+       * provision/start via the open-cloud flow. Returns the created trial (with its id).
        */
       async create(input: CreateTrialInput, opts: EdgeRequestOpts): Promise<CloudTrial> {
-        return asObject<CloudTrial>(
-          await request(apiUrl, "/api/v1/trials", { method: "POST", teamId: opts.teamId, body: input }),
-        )
+        const body: Record<string, unknown> = {
+          projectId: input.projectId,
+          title: input.title,
+          type: input.type ?? "CODE",
+          ...(input.taskId ? { taskId: input.taskId } : {}),
+          ...(input.baseBranch ? { baseBranch: input.baseBranch } : {}),
+          ...(input.repoFullName ? { repoFullName: input.repoFullName } : {}),
+          ...(input.repoUrl ? { repoUrl: input.repoUrl } : {}),
+          ...(input.chatMode ? { chatMode: input.chatMode } : {}),
+          ...(input.agentOSBranch ? { agentOSBranch: input.agentOSBranch } : {}),
+          ...(input.mainModel ? { mainModel: input.mainModel } : {}),
+          ...(input.agentId ? { agentId: input.agentId } : {}),
+        }
+        return asObject<CloudTrial>(await request(apiUrl, "/api/v1/trials", { method: "POST", teamId: opts.teamId, body }))
+      },
+      async get(id: string, opts: EdgeRequestOpts): Promise<CloudTrial> {
+        return asObject<CloudTrial>(await request(apiUrl, `/api/v1/trials/${id}`, { teamId: opts.teamId }))
       },
       async sandboxStatus(id: string, opts: EdgeRequestOpts): Promise<CloudSandboxStatus> {
         return asObject<CloudSandboxStatus>(await request(apiUrl, `/api/v1/trials/${id}/sandbox/status`, { teamId: opts.teamId }))

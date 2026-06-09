@@ -106,7 +106,10 @@ export async function openCloudTrial(deps: OpenCloudDeps, input: OpenCloudInput)
 
   const workspacePath = status.workspacePath?.startsWith("/") ? status.workspacePath : DEFAULT_WORKSPACE_PATH
 
-  deps.setActiveTrial({ ...descriptor, csbID: status.csbID ?? descriptor.csbID, workspacePath })
+  // `origin` is already normalized (protocol, no trailing slash) and connected without a target,
+  // so it equals the pinned connection's ServerConnection key — recorded so the UI can detect and
+  // resume this exact cloud session later.
+  deps.setActiveTrial({ ...descriptor, csbID: status.csbID ?? descriptor.csbID, workspacePath, serverKey: origin })
 
   // Tear down any owner-scoped UI (e.g. the dialog) BEFORE the route/server mutation: connect
   // flips the keyed <ServerKey>, disposing the owner the caller ran under.

@@ -234,23 +234,25 @@ export function SessionSidePanel(props: {
         aria-label={language.t("session.panel.reviewAndFiles")}
         aria-hidden={!open()}
         inert={!open()}
-        class="relative min-w-0 h-full flex shrink-0 overflow-hidden bg-background-base"
+        class="relative min-w-0 flex shrink-0 overflow-hidden bg-background-base"
         classList={{
           "pointer-events-none": !open(),
           "transition-[width] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[width] motion-reduce:transition-none":
             !props.size.active() && !props.reviewSnap,
           "shadow-[var(--v2-elevation-raised)] overflow-hidden": settings.general.newLayoutDesigns(),
           "flex-1": reviewOpen(),
+          // Floating rounded card (matches the left sidebar) when open.
+          "m-2 border border-border-weak-base": open(),
         }}
-        style={{ width: panelWidth() }}
+        style={{
+          width: panelWidth(),
+          // Inline radius bypasses the global sharp-corner override; overflow-hidden clips the inner content.
+          "border-radius": open() ? "14px" : undefined,
+          "box-shadow": open() ? "0 12px 32px -12px rgba(0, 0, 0, 0.7)" : undefined,
+        }}
       >
         <Show when={open()}>
-          <div
-            class="size-full flex"
-            classList={{
-              "border-l border-border-weaker-base": !settings.general.newLayoutDesigns(),
-            }}
-          >
+          <div class="size-full flex">
             <div
               aria-hidden={!reviewOpen()}
               inert={!reviewOpen()}

@@ -18,7 +18,6 @@ import { DateTime } from "luxon"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { DialogSelectDirectory } from "@/components/dialog-select-directory"
 import { DialogSelectServer, useServerManagementController } from "@/components/dialog-select-server"
-import { DialogCloudProjects } from "@/components/dialog-cloud-projects"
 import { DialogServerV2 } from "@/components/settings-v2/dialog-server-v2"
 import { ServerConnection, useServer } from "@/context/server"
 import { sessionHasOpenTab, useTabs } from "@/context/tabs"
@@ -1081,16 +1080,13 @@ function groupSessions(records: HomeSessionRecord[], language: ReturnType<typeof
   ].filter((group) => group.sessions.length > 0)
 }
 
-// Command shortcuts shown on the welcome screen. `id` triggers the command when it
-// exists (no-op otherwise); `keys` are the keycap glyphs rendered on the right.
+// Quick actions shown on the welcome screen. Curated to the few that actually make sense
+// with no project open (the session-only ones — chat, terminal, browser — were just noise
+// here). `id` triggers the command when it exists (no-op otherwise); `keys` are the keycap
+// glyphs rendered on the right.
 const HOME_COMMAND_ROWS: ReadonlyArray<{ label: string; id: string; keys: readonly string[] }> = [
-  { label: "Open Chat", id: "chat.open", keys: ["⌃", "⌘", "I"] },
-  { label: "Toggle Terminal", id: "terminal.toggle", keys: ["⌃", "`"] },
-  { label: "Open Browser", id: "browser.open", keys: ["⌥", "⌘", "/"] },
-  { label: "Show All Commands", id: "command.palette", keys: ["⇧", "⌘", "P"] },
-  { label: "Open Recent", id: "project.recent", keys: ["⌃", "R"] },
-  { label: "Open File or Folder", id: "project.open", keys: ["⌘", "O"] },
-  { label: "New Untitled Text File", id: "file.new", keys: ["⌘", "N"] },
+  { label: "Show all commands", id: "command.palette", keys: ["⇧", "⌘", "P"] },
+  { label: "Open recent", id: "project.recent", keys: ["⌃", "R"] },
 ]
 
 const HOME_KEYCAP =
@@ -1108,9 +1104,15 @@ function LegacyHome() {
   const homedir = createMemo(() => sync.data.path.home)
   const recent = createMemo(() => {
     return sync.data.project
+      .filter((project) => {
+        // Drop junk/placeholder entries (e.g. a project rooted at "/") so the list
+        // only shows real, openable projects.
+        const worktree = (project.worktree ?? "").trim()
+        return worktree.length > 0 && worktree !== "/"
+      })
       .slice()
       .sort((a, b) => (b.time.updated ?? b.time.created) - (a.time.updated ?? a.time.created))
-      .slice(0, 5)
+      .slice(0, 6)
   })
 
   function openProject(server: ServerConnection.Any, directory: string) {
@@ -1153,53 +1155,64 @@ function LegacyHome() {
   const projectTag = () => (server.isLocal() ? "LOCAL" : (server.name || "CLOUD").toUpperCase())
 
   return (
-    <div class="mx-auto flex w-full max-w-[640px] flex-col px-6 pb-16 pt-[14vh]">
+    <div class="mx-auto flex w-full max-w-[460px] flex-col px-6 pb-16 pt-[16vh]">
       {/* Brand lockup */}
-      <div class="flex items-center justify-center gap-2">
-        <Mark class="h-[22px] w-auto text-text-strong" />
-        <span class="rounded bg-text-strong px-1.5 py-[3px] text-[11px] leading-none font-[var(--font-family-mono)] [font-weight:600] tracking-[0.08em] text-background-base">
-          ALPHA
-        </span>
+      <div class="flex flex-col items-center gap-3">
+        <div class="flex items-center gap-2">
+          <Mark class="h-[22px] w-auto text-text-strong" />
+          <span class="rounded bg-text-strong px-1.5 py-[3px] text-[11px] leading-none font-[var(--font-family-mono)] [font-weight:600] tracking-[0.08em] text-background-base">
+            ALPHA
+          </span>
+        </div>
+        <p class="text-13-regular text-text-weak">
+          {recent().length > 0 ? "Pick up where you left off." : "Open a project to start building."}
+        </p>
       </div>
 
-      {/* Primary actions */}
-      <div class="mt-8 flex items-center justify-center gap-3">
-        <button
-          type="button"
-          class="rounded-lg border border-border-weak-base bg-transparent px-6 py-2.5 text-14-regular text-text-strong transition-colors hover:bg-surface-raised-base-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3578f5]"
-          onClick={chooseProject}
-        >
-          Open Project
-        </button>
-        <button
-          type="button"
-          class="rounded-lg border border-[#3578f5] bg-transparent px-6 py-2.5 text-14-regular text-text-strong ring-1 ring-[#3578f5] transition-colors hover:bg-surface-raised-base-hover focus-visible:outline-none"
-          onClick={() => dialog.show(() => <DialogCloudProjects />)}
-        >
-          Open Cloud Project
-        </button>
-      </div>
-
-      {/* Recent projects */}
-      <Show when={recent().length > 0}>
-        <div class="mt-14 flex flex-col">
-          <div class="text-12-mono tracking-[0.12em] text-text-weak">RECENT</div>
-          <ul class="mt-5 flex flex-col gap-6">
+      <Show
+        when={recent().length > 0}
+        fallback={
+          <div class="mt-9 flex justify-center">
+            <button
+              type="button"
+              class="rounded-lg border border-border-weak-base bg-transparent px-6 py-2.5 text-14-regular text-text-strong transition-colors hover:bg-surface-raised-base-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3578f5]"
+              onClick={chooseProject}
+            >
+              Open project
+            </button>
+          </div>
+        }
+      >
+        {/* Recent projects — the hero of the empty home */}
+        <div class="mt-10 flex flex-col">
+          <div class="flex items-center justify-between px-1">
+            <span class="text-12-mono tracking-[0.12em] text-text-weak">RECENT</span>
+            <button
+              type="button"
+              class="-mr-1 rounded-md px-2 py-1 text-12-mono text-text-weak transition-colors hover:text-text-strong focus-visible:outline-none"
+              onClick={chooseProject}
+            >
+              + Open project
+            </button>
+          </div>
+          <ul class="mt-2 flex flex-col">
             <For each={recent()}>
               {(project) => (
                 <li>
                   <button
                     type="button"
-                    class="group flex w-full items-baseline justify-between gap-4 text-left focus-visible:outline-none"
+                    class="group flex w-full items-center justify-between gap-4 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-surface-raised-base-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3578f5]"
                     onClick={() => openProject(server.current!, project.worktree)}
                   >
                     <div class="min-w-0">
-                      <div class="truncate text-14-mono [font-weight:600] text-text-strong group-hover:underline">
+                      <div class="truncate text-14-mono [font-weight:600] text-text-strong">
                         {projectName(project)}
                       </div>
-                      <div class="mt-1 truncate text-12-mono text-text-weak">{projectPath(project)}</div>
+                      <div class="mt-0.5 truncate text-12-mono text-text-weak">{projectPath(project)}</div>
                     </div>
-                    <span class="shrink-0 text-12-mono tracking-[0.12em] text-text-weak">{projectTag()}</span>
+                    <span class="shrink-0 text-11-mono tracking-[0.12em] text-text-weak opacity-0 transition-opacity group-hover:opacity-100">
+                      {projectTag()}
+                    </span>
                   </button>
                 </li>
               )}
@@ -1208,16 +1221,16 @@ function LegacyHome() {
         </div>
       </Show>
 
-      {/* Command shortcuts */}
-      <div class="mt-14 flex flex-col gap-3.5">
+      {/* Minimal quick actions — keyboard hints, de-emphasized */}
+      <div class="mt-10 flex items-center justify-center gap-5 border-t border-border-weak-base pt-5">
         <For each={HOME_COMMAND_ROWS}>
           {(row) => (
             <button
               type="button"
-              class="flex items-center justify-between gap-4 text-left focus-visible:outline-none"
+              class="group inline-flex items-center gap-2 focus-visible:outline-none"
               onClick={() => command.trigger(row.id)}
             >
-              <span class="text-14-mono text-text-weak transition-colors hover:text-text-strong">{row.label}</span>
+              <span class="text-12-mono text-text-weak transition-colors group-hover:text-text-strong">{row.label}</span>
               <span class="flex items-center gap-1">
                 <For each={row.keys}>{(key) => <kbd class={HOME_KEYCAP}>{key}</kbd>}</For>
               </span>

@@ -58,6 +58,11 @@ const icons = {
 <path d="M2 18H18V10H2V18Z" fill="currentColor" fill-opacity="0.1"/>
 <path d="M2 10V18H18V10M2 10V2H18V10M2 10H18M5 6H9M5 14H9" stroke="currentColor"/>`,
   sidebar: `<path d="M7.86667 2H5.2H2V18H5.2H7.86667M7.86667 2H18V18H7.86667M7.86667 2V18" stroke="currentColor"/>`,
+  sparkles: `<path d="M8.5 2.5C9 6.4 10.6 8 14.5 8.5C10.6 9 9 10.6 8.5 14.5C8 10.6 6.4 9 2.5 8.5C6.4 8 8 6.4 8.5 2.5Z" stroke="currentColor" stroke-linejoin="round"/>
+<path d="M14.75 11.5C15 13.4 15.6 14 17.5 14.25C15.6 14.5 15 15.1 14.75 17C14.5 15.1 13.9 14.5 12 14.25C13.9 14 14.5 13.4 14.75 11.5Z" stroke="currentColor" stroke-linejoin="round"/>`,
+  user: `<path d="M10 10.4163C11.6108 10.4163 12.9166 9.11051 12.9166 7.49967C12.9166 5.88884 11.6108 4.58301 10 4.58301C8.38913 4.58301 7.0833 5.88884 7.0833 7.49967C7.0833 9.11051 8.38913 10.4163 10 10.4163Z" stroke="currentColor" stroke-linejoin="round"/><path d="M4.16663 16.6667C4.16663 13.6058 6.7283 12.0833 10 12.0833C13.2716 12.0833 15.8333 13.6058 15.8333 16.6667" stroke="currentColor" stroke-linecap="square"/>`,
+  credit: `<path d="M2.91663 5.41699H17.0833V14.583H2.91663V5.41699Z" stroke="currentColor" stroke-linecap="square"/><path d="M2.91663 8.33301H17.0833" stroke="currentColor"/><path d="M5.41663 11.667H8.74996" stroke="currentColor" stroke-linecap="square"/>`,
+  "sidebar-right": `<path d="M12.13333 2H14.8H18V18H14.8H12.13333M12.13333 2H2V18H12.13333M12.13333 2V18" stroke="currentColor"/>`,
   "sidebar-active": `<path d="M2 2V18H5.2H7.86667V2H5.2H2Z" fill="currentColor" fill-opacity="0.1"/>
 <path d="M7.86667 2H5.2H2V18H5.2H7.86667M7.86667 2H18V18H7.86667M7.86667 2V18" stroke="currentColor"/>`,
   "layout-left": `<path d="M2.91675 2.91699L2.91675 2.41699L2.41675 2.41699L2.41675 2.91699L2.91675 2.91699ZM17.0834 2.91699L17.5834 2.91699L17.5834 2.41699L17.0834 2.41699L17.0834 2.91699ZM17.0834 17.0837L17.0834 17.5837L17.5834 17.5837L17.5834 17.0837L17.0834 17.0837ZM2.91675 17.0837L2.41675 17.0837L2.41675 17.5837L2.91675 17.5837L2.91675 17.0837ZM7.41674 17.0837L7.41674 17.5837L8.41674 17.5837L8.41674 17.0837L7.91674 17.0837L7.41674 17.0837ZM8.41674 2.91699L8.41674 2.41699L7.41674 2.41699L7.41674 2.91699L7.91674 2.91699L8.41674 2.91699ZM2.91675 2.91699L2.91675 3.41699L17.0834 3.41699L17.0834 2.91699L17.0834 2.41699L2.91675 2.41699L2.91675 2.91699ZM17.0834 2.91699L16.5834 2.91699L16.5834 17.0837L17.0834 17.0837L17.5834 17.0837L17.5834 2.91699L17.0834 2.91699ZM17.0834 17.0837L17.0834 16.5837L2.91675 16.5837L2.91675 17.0837L2.91675 17.5837L17.0834 17.5837L17.0834 17.0837ZM2.91675 17.0837L3.41675 17.0837L3.41675 2.91699L2.91675 2.91699L2.41675 2.91699L2.41675 17.0837L2.91675 17.0837ZM7.91674 17.0837L8.41674 17.0837L8.41674 2.91699L7.91674 2.91699L7.41674 2.91699L7.41674 17.0837L7.91674 17.0837Z" fill="currentColor"/>`,
@@ -116,6 +121,8 @@ const icons = {
   "lucide-chevron-up": `<path d="m18 15-6-6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
   "lucide-chevron-down": `<path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
   "lucide-x": `<path d="M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="m6 6 12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
+  monitor: `<rect width="20" height="14" x="2" y="3" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><line x1="8" x2="16" y1="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" x2="12" y1="17" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`,
+  cloud: `<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
 }
 
 const spriteID = "opencode-icon-sprite"
@@ -135,6 +142,8 @@ const lucideIcons = new Set<keyof typeof icons>([
   "lucide-chevron-up",
   "lucide-chevron-down",
   "lucide-x",
+  "monitor",
+  "cloud",
 ])
 
 function viewBox(name: keyof typeof icons) {

@@ -44,6 +44,21 @@
   }
 }
 
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .fade-up-text {
   animation: fadeUp 0.4s ease-out forwards;
   opacity: 0;

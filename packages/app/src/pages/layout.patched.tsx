@@ -65,7 +65,7 @@ import { useTheme, type ColorScheme } from "@opencode-ai/ui/theme/context"
 import { useCommand, type CommandOption } from "@/context/command"
 import { ConstrainDragXAxis, getDraggableId } from "@/utils/solid-dnd"
 import { DebugBar } from "@/components/debug-bar"
-import { SidebarToggleButton, Titlebar, type TitlebarUpdate } from "@/components/titlebar"
+import { Titlebar, type TitlebarUpdate } from "@/components/titlebar"
 import { ServerConnection, useServer } from "@/context/server"
 import { useLanguage, type Locale } from "@/context/language"
 import { pathKey } from "@/utils/path-key"
@@ -1256,14 +1256,14 @@ export default function Layout(props: ParentProps) {
     })
   }
 
-  function openSettings() {
+  function openSettings(tab?: string) {
     const run = ++dialogRun
     const module = settings.general.newLayoutDesigns()
       ? import("@/components/settings-v2")
       : import("@/components/dialog-settings")
     void module.then((x) => {
       if (dialogDead || dialogRun !== run) return
-      dialog.show(() => <x.DialogSettings />)
+      dialog.show(() => <x.DialogSettings tab={tab} />)
     })
   }
 
@@ -1489,24 +1489,18 @@ export default function Layout(props: ParentProps) {
     const active = pathKey(currentProject()?.worktree ?? "") === key
     if (index === -1) return
 
+    // Closing a project that isn't the one you're viewing just removes it from the
+    // open list — stay where you are.
     if (!active) {
       layout.projects.close(directory)
       return
     }
 
-    if (list.length === 1) {
-      layout.projects.close(directory)
-      navigate("/")
-      return
-    }
-
-    const next = list[index + 1] ?? list[index - 1]
-
-    navigateWithSidebarReset(`/${base64Encode(next.worktree)}/session`)
+    // Closing the active project returns to the home screen. Previously it
+    // auto-activated the adjacent open project, so closing several projects meant
+    // stepping through every one of them to get back to the empty home view.
     layout.projects.close(directory)
-    queueMicrotask(() => {
-      void navigateToProject(next.worktree)
-    })
+    navigateWithSidebarReset("/")
   }
 
   function toggleProjectWorkspaces(project: LocalProject) {
@@ -2198,15 +2192,6 @@ export default function Layout(props: ParentProps) {
                   </div>
 
                   <div class="flex shrink-0 items-center gap-1">
-                    <Show when={merged() && !panelProps.mobile}>
-                      <SidebarToggleButton
-                        compact
-                        opened={layout.sidebar.opened()}
-                        onToggle={() => layout.sidebar.toggle()}
-                        command={command}
-                        language={language}
-                      />
-                    </Show>
                     <DropdownMenu modal={!sidebarHovering()}>
                       <DropdownMenu.Trigger
                         as={IconButton}
@@ -2392,7 +2377,8 @@ export default function Layout(props: ParentProps) {
         </div>
 
         <SidebarProfileFooter
-          onSettings={openSettings}
+          onSettings={() => openSettings()}
+          onUsage={() => openSettings("usage")}
           onConnectProvider={connectProvider}
           onSwitchServer={openServer}
           onHelp={() => platform.openLink("https://orgn.com/support")}
@@ -2538,16 +2524,27 @@ export default function Layout(props: ParentProps) {
         <Show when={updateVersion() !== undefined}>
           <UpdateAvailableToast version={updateVersion() ?? ""} install={installUpdate} language={language} />
         </Show>
+        {/* Unified full-width title bar: macOS traffic-light inset + sidebar toggle, with one
+            continuous bottom border across the whole app. The sidebar + main view float below it. */}
+        <div class="hidden xl:block shrink-0">{sidebarChrome()}</div>
         <div class="flex-1 min-h-0 min-w-0 flex">
           <nav
             aria-label={language.t("sidebar.nav.projectsAndSessions")}
             data-component="sidebar-nav-desktop"
             classList={{
               "hidden xl:flex": true,
-              "shrink-0 flex-col overflow-hidden border-r border-border-weak-base bg-background-base z-10": true,
+              "shrink-0 flex-col overflow-hidden bg-background-base z-10": true,
+              // Floating rounded sidebar card (inset + full border + shadow) when expanded.
+              "m-2 border border-border-weak-base": layout.sidebar.opened(),
+              // Collapsed: flush divider, no float.
+              "border-r border-border-weak-base": !layout.sidebar.opened(),
             }}
             style={{
               width: layout.sidebar.opened() ? `${side()}px` : "0px",
+              // Inline radius bypasses the global sharp-corner override, which only zeroes elements
+              // carrying a rounded-*/rounded-[…] class. overflow-hidden clips the inner chrome.
+              "border-radius": layout.sidebar.opened() ? "14px" : "0px",
+              "box-shadow": layout.sidebar.opened() ? "0 12px 32px -12px rgba(0, 0, 0, 0.7)" : "none",
             }}
             ref={(el) => {
               setState("nav", el)
@@ -2562,11 +2559,12 @@ export default function Layout(props: ParentProps) {
               arm()
             }}
           >
-            {sidebarChrome()}
             <div class="@container min-h-0 w-full flex-1 contain-strict overflow-hidden">{sidebarContent()}</div>
           </nav>
           <div class="flex min-h-0 min-w-0 flex-1 flex-col">
-            {desktopTitlebar}
+            {/* The unified full-width top bar above replaces the old per-pane titlebar, which
+                otherwise rendered as a redundant in-flow 32px strip that pushed the main view
+                (and the right panel) below the left sidebar. */}
             <div class="relative min-h-0 flex-1">
               <div class="size-full relative overflow-x-hidden">
 

@@ -10,18 +10,34 @@ import { SettingsProvidersV2 } from "./providers"
 import { SettingsModelsV2 } from "./models"
 import "./settings-v2.css"
 import { SettingsServersV2 } from "./servers"
+import { SettingsProfile } from "../settings-profile"
+import { SettingsUsage } from "../settings-usage"
 
-export const DialogSettings: Component = () => {
+export const DialogSettings: Component<{ tab?: string }> = (props) => {
   const language = useLanguage()
   const platform = usePlatform()
 
   return (
     <Dialog size="x-large" variant="settings" class="settings-v2-dialog">
-      <TabsV2 orientation="vertical" variant="settings" defaultValue="general" class="settings-v2">
+      <TabsV2 orientation="vertical" variant="settings" defaultValue={props.tab ?? "general"} class="settings-v2">
         <TabsV2.List>
           <div class="flex flex-col justify-between h-full w-full">
             <div class="flex flex-col gap-3 w-full">
               <div class="flex flex-col gap-3">
+                <div class="flex flex-col gap-1.5">
+                  <TabsV2.SectionTitle>Account</TabsV2.SectionTitle>
+                  <div class="flex flex-col gap-1.5 w-full">
+                    <TabsV2.Trigger value="profile">
+                      <Icon name="user" />
+                      Profile
+                    </TabsV2.Trigger>
+                    <TabsV2.Trigger value="usage">
+                      <Icon name="credit" />
+                      Usage
+                    </TabsV2.Trigger>
+                  </div>
+                </div>
+
                 <div class="flex flex-col gap-1.5">
                   <TabsV2.SectionTitle>{language.t("settings.section.desktop")}</TabsV2.SectionTitle>
                   <div class="flex flex-col gap-1.5 w-full">
@@ -61,6 +77,12 @@ export const DialogSettings: Component = () => {
             </div>
           </div>
         </TabsV2.List>
+        <TabsV2.Content value="profile" class="settings-v2-panel">
+          <SettingsProfile />
+        </TabsV2.Content>
+        <TabsV2.Content value="usage" class="settings-v2-panel">
+          <SettingsUsage />
+        </TabsV2.Content>
         <TabsV2.Content value="general" class="settings-v2-panel">
           <SettingsGeneralV2 />
         </TabsV2.Content>

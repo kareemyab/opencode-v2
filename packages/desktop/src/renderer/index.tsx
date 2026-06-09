@@ -16,7 +16,7 @@ import {
 } from "@opencode-ai/app"
 import * as Sentry from "@sentry/solid"
 import type { AsyncStorage } from "@solid-primitives/storage"
-import { MemoryRouter } from "@solidjs/router"
+import { createMemoryHistory, MemoryRouter } from "@solidjs/router"
 import { createEffect, createResource, onCleanup, onMount, Show } from "solid-js"
 import { render } from "solid-js/web"
 import pkg from "../../package.json"
@@ -313,6 +313,13 @@ listenForDeepLinks()
 
 render(() => {
   const platform = createPlatform()
+
+  // Land on the cloud view (team switcher + projects) at launch instead of the local home.
+  // MemoryRouter defaults its first entry to "/"; seed it to "/cloud" so the cloud shell is the
+  // initial route — deterministic (no post-mount redirect/flash) and the local Layout (with its
+  // project autoselect) only mounts when the user navigates back to "/" ("Back to app").
+  const initialHistory = createMemoryHistory()
+  initialHistory.set({ value: "/cloud", replace: true })
   const [windowConfig] = createResource(() => window.api.getWindowConfig().catch(() => ({ updaterEnabled: false })))
   const loadLocale = async () => {
     const current =
@@ -406,7 +413,7 @@ render(() => {
               <AppInterface
                 defaultServer={defaultServer.latest ?? ServerConnection.Key.make("sidecar")}
                 servers={servers()}
-                router={MemoryRouter}
+                router={(routerProps) => <MemoryRouter {...routerProps} history={initialHistory} />}
               >
                 <Inner />
               </AppInterface>
