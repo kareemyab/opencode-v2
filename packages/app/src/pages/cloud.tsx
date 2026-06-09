@@ -187,7 +187,14 @@ export default function CloudPage() {
 
   // Provision (if needed) + pin a session against the trial's sandbox, then navigate into it.
   // On success the route/server mutation unmounts this shell; on failure we surface a toast.
-  const runOpen = async (trial: CloudTrial, project: CloudProject, task: CloudTask | undefined, skipProvision: boolean) => {
+  // `initialPrompt` (set only when freshly creating a worktree) seeds the new session's input.
+  const runOpen = async (
+    trial: CloudTrial,
+    project: CloudProject,
+    task: CloudTask | undefined,
+    skipProvision: boolean,
+    initialPrompt?: string,
+  ) => {
     await openCloudTrial(
       {
         status: (id) => cloud.sandboxStatus(id),
@@ -207,6 +214,7 @@ export default function CloudPage() {
       {
         trialId: trial.id,
         skipProvision,
+        initialPrompt,
         descriptor: {
           trialId: trial.id,
           trialTitle: trial.title ?? null,
@@ -254,7 +262,10 @@ export default function CloudPage() {
         chatMode: "csbopencode",
         agentId: "csbopencode",
       })
-      await runOpen(trial, project, task, false)
+      // Seed the new session's input with the task's title + description.
+      const description = task.description?.trim()
+      const initialPrompt = [task.title?.trim(), description].filter(Boolean).join("\n\n") || undefined
+      await runOpen(trial, project, task, false, initialPrompt)
     } catch (e) {
       showToast({
         variant: "error",
