@@ -2,6 +2,8 @@ import { Show } from "solid-js"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { TooltipKeybind } from "@opencode-ai/ui/tooltip"
 import { Mark } from "@opencode-ai/ui/logo"
+import { useCommand } from "@/context/command"
+import { useLanguage } from "@/context/language"
 
 /** Top chrome for the unified sidebar column (traffic-light inset + sidebar toggle). */
 export function SidebarChromeHeader(props: {
@@ -12,6 +14,9 @@ export function SidebarChromeHeader(props: {
   toggleKeybind: string
   mobile?: boolean
 }) {
+  const command = useCommand()
+  const language = useLanguage()
+  const settingsLabel = () => language.t("command.settings.open")
   const trafficLightInset = () => (props.mac ? `${84 / props.zoom}px` : undefined)
 
   return (
@@ -38,11 +43,28 @@ export function SidebarChromeHeader(props: {
           />
         </TooltipKeybind>
       </Show>
-      {/* Right-aligned actions mount — the session view portals its panel/terminal toggles here.
-          Unique id (NOT the Titlebar's #opencode-titlebar-right, which a hidden mobile Titlebar also
-          renders) so the portal lands in THIS visible top bar. Desktop-only to avoid a duplicate id. */}
+      {/* Right-aligned actions — the session view portals its panel/terminal toggles into the mount,
+          and the settings gear is rendered persistently so it stays in the top-right on every route
+          (home, cloud, and session), not just where the session header mounts. Unique id (NOT the
+          Titlebar's #opencode-titlebar-right, which a hidden mobile Titlebar also renders) so the
+          portal lands in THIS visible top bar. Desktop-only to avoid a duplicate id. */}
       <Show when={!props.mobile}>
-        <div id="orgn-titlebar-actions" class="ml-auto flex items-center gap-1 [app-region:no-drag]" />
+        <div class="ml-auto flex items-center gap-1 [app-region:no-drag]">
+          <div id="orgn-titlebar-actions" class="flex items-center gap-1" />
+          <TooltipKeybind
+            placement="bottom"
+            title={settingsLabel()}
+            keybind={command.keybind("settings.open")}
+          >
+            <IconButton
+              icon="settings-gear"
+              variant="ghost"
+              class="size-8 shrink-0"
+              onClick={() => command.trigger("settings.open")}
+              aria-label={settingsLabel()}
+            />
+          </TooltipKeybind>
+        </div>
       </Show>
     </div>
   )

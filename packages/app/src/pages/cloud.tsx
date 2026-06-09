@@ -293,11 +293,11 @@ export default function CloudPage() {
   }
 
   // Profile-footer actions (mirror the local Layout's sidebar footer).
-  const openSettings = () => {
+  const openSettings = (tab?: string) => {
     const module = settings.general.newLayoutDesigns()
       ? import("@/components/settings-v2")
       : import("@/components/dialog-settings")
-    void module.then((x) => dialog.show(() => <x.DialogSettings />))
+    void module.then((x) => dialog.show(() => <x.DialogSettings tab={tab} />))
   }
   const connectProvider = () => {
     void import("@/components/dialog-select-provider").then((x) => dialog.show(() => <x.DialogSelectProvider />))
@@ -463,7 +463,8 @@ export default function CloudPage() {
           </Switch>
 
           <SidebarProfileFooter
-            onSettings={openSettings}
+            onSettings={() => openSettings()}
+            onUsage={() => openSettings("usage")}
             onConnectProvider={connectProvider}
             onSwitchServer={openServer}
             onHelp={() => platform.openLink("https://orgn.com/support")}

@@ -60,6 +60,8 @@ const icons = {
   sidebar: `<path d="M7.86667 2H5.2H2V18H5.2H7.86667M7.86667 2H18V18H7.86667M7.86667 2V18" stroke="currentColor"/>`,
   sparkles: `<path d="M8.5 2.5C9 6.4 10.6 8 14.5 8.5C10.6 9 9 10.6 8.5 14.5C8 10.6 6.4 9 2.5 8.5C6.4 8 8 6.4 8.5 2.5Z" stroke="currentColor" stroke-linejoin="round"/>
 <path d="M14.75 11.5C15 13.4 15.6 14 17.5 14.25C15.6 14.5 15 15.1 14.75 17C14.5 15.1 13.9 14.5 12 14.25C13.9 14 14.5 13.4 14.75 11.5Z" stroke="currentColor" stroke-linejoin="round"/>`,
+  user: `<path d="M10 10.4163C11.6108 10.4163 12.9166 9.11051 12.9166 7.49967C12.9166 5.88884 11.6108 4.58301 10 4.58301C8.38913 4.58301 7.0833 5.88884 7.0833 7.49967C7.0833 9.11051 8.38913 10.4163 10 10.4163Z" stroke="currentColor" stroke-linejoin="round"/><path d="M4.16663 16.6667C4.16663 13.6058 6.7283 12.0833 10 12.0833C13.2716 12.0833 15.8333 13.6058 15.8333 16.6667" stroke="currentColor" stroke-linecap="square"/>`,
+  credit: `<path d="M2.91663 5.41699H17.0833V14.583H2.91663V5.41699Z" stroke="currentColor" stroke-linecap="square"/><path d="M2.91663 8.33301H17.0833" stroke="currentColor"/><path d="M5.41663 11.667H8.74996" stroke="currentColor" stroke-linecap="square"/>`,
   "sidebar-right": `<path d="M12.13333 2H14.8H18V18H14.8H12.13333M12.13333 2H2V18H12.13333M12.13333 2V18" stroke="currentColor"/>`,
   "sidebar-active": `<path d="M2 2V18H5.2H7.86667V2H5.2H2Z" fill="currentColor" fill-opacity="0.1"/>
 <path d="M7.86667 2H5.2H2V18H5.2H7.86667M7.86667 2H18V18H7.86667M7.86667 2V18" stroke="currentColor"/>`,

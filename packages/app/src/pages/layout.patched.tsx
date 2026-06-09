@@ -1256,14 +1256,14 @@ export default function Layout(props: ParentProps) {
     })
   }
 
-  function openSettings() {
+  function openSettings(tab?: string) {
     const run = ++dialogRun
     const module = settings.general.newLayoutDesigns()
       ? import("@/components/settings-v2")
       : import("@/components/dialog-settings")
     void module.then((x) => {
       if (dialogDead || dialogRun !== run) return
-      dialog.show(() => <x.DialogSettings />)
+      dialog.show(() => <x.DialogSettings tab={tab} />)
     })
   }
 
@@ -2383,7 +2383,8 @@ export default function Layout(props: ParentProps) {
         </div>
 
         <SidebarProfileFooter
-          onSettings={openSettings}
+          onSettings={() => openSettings()}
+          onUsage={() => openSettings("usage")}
           onConnectProvider={connectProvider}
           onSwitchServer={openServer}
           onHelp={() => platform.openLink("https://orgn.com/support")}
