@@ -64,11 +64,9 @@ import { usePlatform } from "@/context/platform"
 import { useSettings } from "@/context/settings"
 import { useSDK } from "@/context/sdk"
 import { useSync } from "@/context/sync"
-import { SidebarToggleButton } from "@/components/titlebar"
 import { notifySessionTabsRemoved } from "@/components/titlebar-session-events"
 import { useCommand } from "@/context/command"
 import { useLayout } from "@/context/layout"
-import { createMediaQuery } from "@solid-primitives/media"
 import { messageAgentColor } from "@/utils/agent"
 import { sessionTitle } from "@/utils/session-title"
 import { makeTimer } from "@solid-primitives/timer"
@@ -300,7 +298,6 @@ export function MessageTimeline(props: {
   const layout = useLayout()
   const { params, sessionKey } = useSessionKey()
   const platform = usePlatform()
-  const xl = createMediaQuery("(min-width: 1280px)")
 
   let virtualizer: VirtualizerHandle | undefined
   const sessionID = createMemo(() => params.id)
@@ -1320,20 +1317,10 @@ export function MessageTimeline(props: {
             }}
           >
             <div class="flex h-12 w-full items-center gap-1 pl-1 md:gap-2 md:pl-2">
-              <Show when={xl() && !layout.sidebar.opened()}>
-                <SidebarToggleButton
-                  compact
-                  class="shrink-0"
-                  opened={false}
-                  onToggle={() => layout.sidebar.toggle()}
-                  command={command}
-                  language={language}
-                />
-              </Show>
               <div
                 classList={{
                   "flex h-12 min-w-0 flex-1 items-center gap-2 pr-3 md:pr-4": true,
-                  "pl-2 md:pl-4": !xl() || layout.sidebar.opened(),
+                  "pl-2 md:pl-4": true,
                   "md:max-w-200 md:mx-auto 2xl:max-w-[1000px]": props.centered,
                 }}
               >

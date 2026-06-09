@@ -1,6 +1,6 @@
 import { createSimpleContext } from "@opencode-ai/ui/context"
 import { makeEventListener } from "@solid-primitives/event-listener"
-import { createEffect, createSignal, onMount } from "solid-js"
+import { batch, createEffect, createSignal, onMount } from "solid-js"
 import { createStore } from "solid-js/store"
 import { usePlatform } from "./platform"
 import { Persist, persisted } from "@/utils/persist"
@@ -155,8 +155,15 @@ export const { use: useAuth, provider: AuthProvider } = createSimpleContext({
       signedIn: () => !!user(),
       signIn,
       signOut: () => {
-        setUser(null)
-        setTokens(null)
+        // Clear tokens before the user, in one batch. Solid flushes effects synchronously
+        // after an un-batched write, so setting user=null first would run the restore effect
+        // (`if (tokens && !user) restore`) while tokens are still present — re-signing-in and
+        // flashing the gate, which is why a second logout was needed. Batching applies both
+        // before the effect runs, so it sees no tokens and stays signed out.
+        batch(() => {
+          setTokens(null)
+          setUser(null)
+        })
       },
       /** Current access token (may be expired); prefer getAccessToken() for API calls. */
       accessToken: () => tokens()?.accessToken,
